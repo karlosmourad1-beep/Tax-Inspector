@@ -1,12 +1,22 @@
 import { useState, useCallback, useRef } from 'react';
-import { GameState, Client, DailyLog } from '../types/game';
+import { GameState, DailyLog, AlignmentPath, DecisionType, WorldState } from '../types/game';
 import { generateDailyClients } from '../lib/generator';
+import { DAILY_EVENTS, calculateEnding, HUMAN_COSTS } from '../lib/narrative';
+import { pickRandom } from '../lib/utils';
 import confetti from 'canvas-confetti';
 
 const INITIAL_MONEY = 0;
 const MAX_CITATIONS = 5;
 const MAX_DAYS = 7;
 const CLIENTS_PER_DAY = 4;
+
+const INITIAL_WORLD: WorldState = {
+  housingCrisisTriggered: false,
+  whistleblowerNetworkActive: false,
+  bankingSystemStrained: false,
+  insiderTradingExposed: false,
+  corruptDeveloperApproved: false,
+};
 
 export function useGameEngine() {
   const [state, setState] = useState<GameState>({
@@ -17,9 +27,17 @@ export function useGameEngine() {
     clientsQueue: [],
     currentClient: null,
     dailyLogs: [],
+    allTimeLogs: [],
+    alignment: { corporate: 0, whistleblower: 0, survivalist: 0 },
+    worldState: { ...INITIAL_WORLD },
+    activeEvent: null,
+    costOfLiving: 0,
+    activeMemo: null,
+    memoActed: false,
+    ending: null,
   });
 
-  const [stampAction, setStampAction] = useState<'APPROVE' | 'REJECT' | null>(null);
+  const [stampAction, setStampAction] = useState<DecisionType | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const playThud = useCallback(() => {
@@ -31,17 +49,15 @@ export function useGameEngine() {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'square';
-      osc.frequency.setValueAtTime(100, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.8, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.1);
-    } catch (e) {
-      // Ignore audio errors
-    }
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (e) { /* ignore */ }
   }, []);
 
   const startGame = useCallback(() => {
@@ -51,19 +67,34 @@ export function useGameEngine() {
       day: 1,
       money: INITIAL_MONEY,
       citations: 0,
-      dailyLogs: []
+      dailyLogs: [],
+      allTimeLogs: [],
+      alignment: { corporate: 0, whistleblower: 0, survivalist: 0 },
+      worldState: { ...INITIAL_WORLD },
+      activeEvent: DAILY_EVENTS[1] || null,
+      costOfLiving: DAILY_EVENTS[1]?.costOfLiving || 0,
+      activeMemo: null,
+      memoActed: false,
+      ending: null,
     }));
   }, []);
 
   const startDay = useCallback(() => {
     setState(prev => {
+      const event = DAILY_EVENTS[prev.day] || null;
       const queue = generateDailyClients(prev.day, CLIENTS_PER_DAY);
+      // Deduct cost of living from yesterday's event if applicable
+      const costDeduction = event?.costOfLiving || 0;
       return {
         ...prev,
         status: 'PLAYING',
         clientsQueue: queue,
         currentClient: null,
-        dailyLogs: []
+        dailyLogs: [],
+        activeEvent: event,
+        money: prev.money - costDeduction,
+        activeMemo: null,
+        memoActed: false,
       };
     });
   }, []);
@@ -71,20 +102,32 @@ export function useGameEngine() {
   const callNextClient = useCallback(() => {
     setState(prev => {
       if (prev.clientsQueue.length === 0) {
-        return { ...prev, status: 'DAY_END', currentClient: null };
+        return { ...prev, status: 'DAY_END', currentClient: null, activeMemo: null };
       }
       const nextQueue = [...prev.clientsQueue];
       const nextClient = nextQueue.shift() || null;
       return {
         ...prev,
         clientsQueue: nextQueue,
-        currentClient: nextClient
+        currentClient: nextClient,
+        activeMemo: nextClient?.leakedMemo || null,
+        memoActed: false,
       };
     });
   }, []);
 
-  // circledCount = number of fields the player circled as suspicious before deciding
-  const processDecision = useCallback((decision: 'APPROVE' | 'REJECT', circledCount: number = 0) => {
+  const actOnMemo = useCallback(() => {
+    setState(prev => {
+      if (!prev.activeMemo || prev.memoActed) return prev;
+      return { ...prev, memoActed: true };
+    });
+  }, []);
+
+  const dismissMemo = useCallback(() => {
+    setState(prev => ({ ...prev, activeMemo: null }));
+  }, []);
+
+  const processDecision = useCallback((decision: DecisionType, circledCount: number = 0) => {
     setStampAction(decision);
     playThud();
 
@@ -94,47 +137,100 @@ export function useGameEngine() {
       setState(prev => {
         if (!prev.currentClient) return prev;
 
-        const isCorrect = prev.currentClient.expectedDecision === decision;
-        let earnings = 0;
-        let citationsAdded = 0;
+        const client = prev.currentClient;
+        const isCorrect = client.expectedDecision === decision;
+        const event = prev.activeEvent;
+        const wageMult = event?.wageMultiplier ?? 1.0;
 
-        if (isCorrect && decision === 'APPROVE') {
-          earnings = 50;
+        let baseEarnings = 0;
+        let citationsAdded = 0;
+        let alignmentShift: AlignmentPath | undefined;
+        let humanCostMsg: string | undefined;
+
+        if (isCorrect) {
+          if (decision === 'APPROVE') {
+            baseEarnings = 50;
+            alignmentShift = 'corporate';
+            humanCostMsg = pickRandom(HUMAN_COSTS.correct_approve);
+          } else if (decision === 'REJECT') {
+            const circledBonus = Math.min(circledCount, 4) * 25;
+            baseEarnings = 75 + circledBonus;
+            alignmentShift = 'whistleblower';
+            humanCostMsg = pickRandom(HUMAN_COSTS.correct_reject);
+          } else if (decision === 'FREEZE') {
+            baseEarnings = 150;
+            alignmentShift = 'whistleblower';
+            humanCostMsg = pickRandom(HUMAN_COSTS.freeze_correct);
+          }
+        } else {
+          if (decision === 'APPROVE') {
+            baseEarnings = client.isContraband ? -50 : -25;
+            citationsAdded = event?.type === 'audit_sweep' ? 2 : 1;
+            alignmentShift = 'survivalist';
+            humanCostMsg = pickRandom(HUMAN_COSTS.approve_fraud);
+          } else {
+            baseEarnings = -10;
+            citationsAdded = 1;
+            alignmentShift = 'survivalist';
+            humanCostMsg = pickRandom(HUMAN_COSTS.reject_innocent);
+          }
         }
-        if (isCorrect && decision === 'REJECT') {
-          // Base reward + $25 per circled discrepancy (max 4 bonus slots)
-          const circledBonus = Math.min(circledCount, 4) * 25;
-          earnings = 75 + circledBonus;
+
+        // Memo bonus
+        if (prev.memoActed && prev.activeMemo) {
+          if (decision === prev.activeMemo.suggestedAction && isCorrect) {
+            baseEarnings += prev.activeMemo.bonusIfActed;
+            alignmentShift = prev.activeMemo.alignmentReward;
+          }
         }
-        if (!isCorrect && decision === 'APPROVE') {
-          earnings = -25;
-          citationsAdded = 1;
-        }
-        if (!isCorrect && decision === 'REJECT') {
-          earnings = -10;
-          citationsAdded = 1;
-        }
+
+        const earnings = Math.round(baseEarnings * wageMult);
 
         const log: DailyLog = {
-          clientId: prev.currentClient.id,
-          clientName: prev.currentClient.name,
+          clientId: client.id,
+          clientName: client.name,
           decision,
           wasCorrect: isCorrect,
           earnings,
-          citations: citationsAdded
+          citations: citationsAdded,
+          humanCost: humanCostMsg ? { clientName: client.name, impact: humanCostMsg, isPositive: isCorrect } : undefined,
+          alignmentShift,
         };
 
         const newCitations = prev.citations + citationsAdded;
         const newMoney = prev.money + earnings;
 
+        // Update alignment
+        const newAlignment = { ...prev.alignment };
+        if (alignmentShift) newAlignment[alignmentShift] += 1;
+
+        // Update world state based on VIP decisions
+        const newWorld = { ...prev.worldState };
+        if (client.isVIP && client.vipData) {
+          const flag = client.vipData.flagId;
+          if (flag === 'corrupt_developer' && decision === 'APPROVE') newWorld.corruptDeveloperApproved = true;
+          if (flag === 'corrupt_developer' && (decision === 'REJECT' || decision === 'FREEZE')) newWorld.housingCrisisTriggered = true;
+          if (flag === 'whistleblower_nurse' && decision === 'APPROVE') newWorld.whistleblowerNetworkActive = true;
+          if (flag === 'director_offshore' && decision === 'FREEZE') newWorld.insiderTradingExposed = true;
+        }
+
+        const newDailyLogs = [...prev.dailyLogs, log];
+        const newAllLogs = [...prev.allTimeLogs, log];
+
         if (newCitations >= MAX_CITATIONS) {
+          const ending = calculateEnding(newMoney, newCitations, newAlignment, newWorld, prev.day);
           return {
             ...prev,
             money: newMoney,
             citations: newCitations,
-            dailyLogs: [...prev.dailyLogs, log],
+            dailyLogs: newDailyLogs,
+            allTimeLogs: newAllLogs,
+            alignment: newAlignment,
+            worldState: newWorld,
             status: 'GAME_OVER',
-            currentClient: null
+            currentClient: null,
+            activeMemo: null,
+            ending,
           };
         }
 
@@ -146,25 +242,33 @@ export function useGameEngine() {
           ...prev,
           money: newMoney,
           citations: newCitations,
-          dailyLogs: [...prev.dailyLogs, log],
+          dailyLogs: newDailyLogs,
+          allTimeLogs: newAllLogs,
+          alignment: newAlignment,
+          worldState: newWorld,
           status: nextStatus,
           clientsQueue: nextQueue,
-          currentClient: nextClient
+          currentClient: nextClient,
+          activeMemo: nextClient?.leakedMemo || null,
+          memoActed: false,
         };
       });
-    }, 800);
+    }, 900);
   }, [playThud]);
 
   const endDay = useCallback(() => {
     setState(prev => {
       if (prev.day >= MAX_DAYS) {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-        return { ...prev, status: 'VICTORY' };
+        const ending = calculateEnding(prev.money, prev.citations, prev.alignment, prev.worldState, prev.day);
+        return { ...prev, status: 'VICTORY', ending };
       }
+      const nextDay = prev.day + 1;
       return {
         ...prev,
-        day: prev.day + 1,
-        status: 'DAY_START'
+        day: nextDay,
+        status: 'DAY_START',
+        activeEvent: DAILY_EVENTS[nextDay] || null,
       };
     });
   }, []);
@@ -180,7 +284,9 @@ export function useGameEngine() {
     startDay,
     callNextClient,
     processDecision,
+    actOnMemo,
+    dismissMemo,
     endDay,
-    returnToMenu
+    returnToMenu,
   };
 }

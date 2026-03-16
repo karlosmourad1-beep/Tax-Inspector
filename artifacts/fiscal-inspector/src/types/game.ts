@@ -45,7 +45,60 @@ export type FraudType =
   | 'w2_mismatch'
   | 'expense_mismatch'
   | 'math_error'
-  | 'tax_error';
+  | 'tax_error'
+  | 'money_laundering'
+  | 'offshore_accounts'
+  | 'insider_trading';
+
+export type DecisionType = 'APPROVE' | 'REJECT' | 'FREEZE';
+
+export type AlignmentPath = 'corporate' | 'whistleblower' | 'survivalist';
+
+export interface AlignmentScores {
+  corporate: number;
+  whistleblower: number;
+  survivalist: number;
+}
+
+export type MacroEventType = 'market_shock' | 'hyperinflation' | 'audit_sweep' | 'banking_crisis';
+
+export interface MacroEvent {
+  type: MacroEventType;
+  title: string;
+  description: string;
+  ruleAddendum: string;
+  wageMultiplier: number;
+  costOfLiving: number;
+}
+
+export interface LeakedMemo {
+  id: string;
+  classification: string;
+  from: string;
+  subject: string;
+  lines: string[];
+  targetClientId: string;
+  suggestedAction: DecisionType;
+  alignmentReward: AlignmentPath;
+  bonusIfActed: number;
+  riskIfActed: boolean;
+}
+
+export interface VIPData {
+  flagId: string;
+  title: string;
+  organization: string;
+  consequence: string;
+  humanCostIfApproved: string;
+  humanCostIfFrozen: string;
+  requiresFreeze: boolean;
+}
+
+export interface HumanCostEntry {
+  clientName: string;
+  impact: string;
+  isPositive: boolean;
+}
 
 export interface Client {
   id: string;
@@ -55,19 +108,44 @@ export interface Client {
   documents: AnyDocument[];
   isFraud: boolean;
   fraudType: FraudType;
-  expectedDecision: 'APPROVE' | 'REJECT';
+  isContraband: boolean;
+  isVIP: boolean;
+  vipData?: VIPData;
+  hiddenNote?: string;
+  leakedMemo?: LeakedMemo;
+  expectedDecision: DecisionType;
+  humanCostIfApproved?: string;
+  humanCostIfRejected?: string;
 }
 
 export interface DailyLog {
   clientId: string;
   clientName: string;
-  decision: 'APPROVE' | 'REJECT';
+  decision: DecisionType;
   wasCorrect: boolean;
   earnings: number;
   citations: number;
+  humanCost?: HumanCostEntry;
+  alignmentShift?: AlignmentPath;
+}
+
+export interface WorldState {
+  housingCrisisTriggered: boolean;
+  whistleblowerNetworkActive: boolean;
+  bankingSystemStrained: boolean;
+  insiderTradingExposed: boolean;
+  corruptDeveloperApproved: boolean;
 }
 
 export type GameStatus = 'TITLE' | 'DAY_START' | 'PLAYING' | 'DAY_END' | 'GAME_OVER' | 'VICTORY';
+
+export interface EndingData {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  color: 'green' | 'red' | 'amber' | 'blue' | 'purple';
+}
 
 export interface GameState {
   status: GameStatus;
@@ -77,4 +155,12 @@ export interface GameState {
   clientsQueue: Client[];
   currentClient: Client | null;
   dailyLogs: DailyLog[];
+  allTimeLogs: DailyLog[];
+  alignment: AlignmentScores;
+  worldState: WorldState;
+  activeEvent: MacroEvent | null;
+  costOfLiving: number;
+  activeMemo: LeakedMemo | null;
+  memoActed: boolean;
+  ending: EndingData | null;
 }

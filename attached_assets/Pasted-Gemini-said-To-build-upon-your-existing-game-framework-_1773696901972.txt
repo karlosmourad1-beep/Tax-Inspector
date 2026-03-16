@@ -1,0 +1,27 @@
+Gemini said
+To build upon your existing game framework, you can use the following technical prompt. It is designed to help an AI generator or LLM bridge the gap between "document checking" and "financial narrative depth" by treating financial data as the primary storytelling medium.
+
+The "Financial Twist" Expansion Prompt
+Objective: Expand the existing 2D finance-oriented "document thriller" (inspired by Papers, Please) by implementing a branching narrative and high-stakes moral "twists." The game currently focuses on data verification; these additions must transform routine processing into a struggle for survival and systemic influence.
+
+1. Narrative Architecture & Branching Logic:
+
+The Three-Path System: Develop a narrative engine that tracks player decisions across three distinct alignment variables: Corporate Loyalist (maximizing bank profit), Whistleblower/Insurgent (leaking data to a resistance group), and Survivalist (prioritizing personal/family wealth).
+
+Dynamic Story Flags: Create a series of scripted "VIP Applicants" whose approval or denial triggers specific world-state changes (e.g., approving a corrupt developer’s loan leads to a "Housing Crisis" event on Day 15, changing the daily ruleset).
+
+Ending Matrix: Design 10–15 unique endings determined by the player’s final balance, "Audit Trail" (error history), and alignment variables.
+
+2. Technical "Twist" Mechanics:
+
+Asset Seizure/Foreclosure: Instead of a "Detain" button, implement a "Freeze Assets" mechanic. This should be used when the player identifies "Financial Contraband" (money laundering, undeclared offshore accounts, or tax evasion).
+
+Insider Information Overlay: Introduce a "Black Market" terminal or "Leaked Memo" mechanic. The player receives non-public data (e.g., "Company X is insolvent"). The player must decide whether to process Company X’s documents by the official book or use the "leak" to deny them, risking a citation for "using unauthorized data" to potentially save the bank's economy.
+
+Macro-Economic Events: Script "Market Shock" days where the UI and ruleset shift. For example, during a "Hyperinflation" event, the player’s daily wages lose value in real-time, and the "Cost of Living" (Rent/Food/Medicine) sidebar increases exponentially, forcing the player to accept bribes or speed through documents and risk errors.
+
+3. Integration & UI/UX Requirements:
+
+The Moral Ledger: Add a post-day summary screen that tracks the "Human Cost" of the player's financial decisions alongside their earnings.
+
+Conflict Resolution: Ensure all narrative twists are delivered through the document workspace (e.g., a desperate letter tucked inside a loan application or a coded message hidden in a transaction ID).

@@ -91,6 +91,40 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/fiscal-inspector` (`@workspace/fiscal-inspector`)
+
+Papers Please-style 2D finance auditing game. Frontend-only React + Vite app served at `/`.
+
+**Stack:** React, Vite, TypeScript, Framer Motion, Tailwind CSS, canvas-confetti, Lucide icons
+
+**Core loop:** 7 days × 4 clients/day. Player inspects tax documents (1040, W-2, Expense, ID), spots discrepancies, and stamps APPROVE / REJECT / FREEZE. Up to 5 citations before termination.
+
+**Financial Twist Expansion features:**
+- **Three-path alignment** tracked across all decisions: Corporate Loyalist, Resistance/Whistleblower, Survivalist
+- **VIP scripted clients** on Days 2, 4, 6 (Marcus Vane, Ana Reyes, Director Strauss) with world-state consequences
+- **Freeze Assets** third action for financial contraband (money laundering, offshore accounts, insider trading) — earns $150 when correct
+- **Leaked Memos** — encrypted intel panels appear in sidebar for fraud/contraband clients; player can Act on Intel (+bonus, alignment shift) or Discard
+- **Macro-Economic Events** on Days 3, 5, 7: Market Shock (wages ×0.7), Hyperinflation ($120 cost of living deduction), Audit Sweep (bonus wages ×1.25)
+- **Moral Ledger** — each decision generates a human-cost narrative shown in day-end summary
+- **12 narrative endings** determined by final balance, citations, dominant alignment, and world-state flags
+- **Hidden notes** tucked inside VIP documents, toggled via eye icon in client booth
+
+**Key files:**
+- `src/types/game.ts` — full type system (alignment, macro events, VIP data, leaked memos, endings)
+- `src/lib/narrative.ts` — VIP definitions, macro events, 12-ending matrix, human cost messages
+- `src/lib/generator.ts` — procedural client generation + VIP injection + leaked memo generation
+- `src/hooks/useGameEngine.ts` — full game state machine with alignment tracking, freeze, memo handling
+- `src/pages/Desk.tsx` — main game view (lineup, booth, workspace, memo panel, day-end overlay)
+- `src/pages/EndScreen.tsx` — ending reveal with alignment bars and moral ledger
+
+**Scoring:**
+- Correct Approve: +$50
+- Correct Reject: +$75 + $25×circled fields (max 4)
+- Correct Freeze: +$150
+- Wrong Approve: −$25 to −$50 + 1 citation
+- Wrong Reject: −$10 + 1 citation
+- Memo Intel bonus: +$30–$80 when acted on correctly
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
