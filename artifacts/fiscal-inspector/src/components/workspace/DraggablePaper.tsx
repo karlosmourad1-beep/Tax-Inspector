@@ -9,9 +9,11 @@ interface DraggablePaperProps {
   initialY: number;
   zIndex: number;
   onFocus: () => void;
+  circledFields: Set<string>;
+  onCircle: (key: string) => void;
 }
 
-export function DraggablePaper({ doc, initialX, initialY, zIndex, onFocus }: DraggablePaperProps) {
+export function DraggablePaper({ doc, initialX, initialY, zIndex, onFocus, circledFields, onCircle }: DraggablePaperProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   return (
@@ -30,7 +32,7 @@ export function DraggablePaper({ doc, initialX, initialY, zIndex, onFocus }: Dra
       style={{ zIndex }}
       className="absolute cursor-grab active:cursor-grabbing origin-center"
     >
-      <RenderForm doc={doc} />
+      <RenderForm doc={doc} circledFields={circledFields} onCircle={onCircle} />
     </motion.div>
   );
 }

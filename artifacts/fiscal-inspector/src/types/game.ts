@@ -38,17 +38,20 @@ export interface IDDoc extends BaseDocument {
 
 export type AnyDocument = TaxReturnDoc | W2Doc | ExpenseDoc | IDDoc;
 
-export type FraudType = 
-  | 'none' 
-  | 'name_mismatch' 
-  | 'ssn_mismatch' 
-  | 'w2_mismatch' 
-  | 'expense_mismatch' 
-  | 'math_error' 
+export type FraudType =
+  | 'none'
+  | 'name_mismatch'
+  | 'ssn_mismatch'
+  | 'w2_mismatch'
+  | 'expense_mismatch'
+  | 'math_error'
   | 'tax_error';
 
 export interface Client {
   id: string;
+  name: string;
+  avatarSeed: number;
+  smallTalk: string[];
   documents: AnyDocument[];
   isFraud: boolean;
   fraudType: FraudType;
@@ -57,6 +60,7 @@ export interface Client {
 
 export interface DailyLog {
   clientId: string;
+  clientName: string;
   decision: 'APPROVE' | 'REJECT';
   wasCorrect: boolean;
   earnings: number;

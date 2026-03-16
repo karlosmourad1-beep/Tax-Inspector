@@ -83,13 +83,14 @@ export function useGameEngine() {
     });
   }, []);
 
-  const processDecision = useCallback((decision: 'APPROVE' | 'REJECT') => {
+  // circledCount = number of fields the player circled as suspicious before deciding
+  const processDecision = useCallback((decision: 'APPROVE' | 'REJECT', circledCount: number = 0) => {
     setStampAction(decision);
     playThud();
 
     setTimeout(() => {
       setStampAction(null);
-      
+
       setState(prev => {
         if (!prev.currentClient) return prev;
 
@@ -97,13 +98,26 @@ export function useGameEngine() {
         let earnings = 0;
         let citationsAdded = 0;
 
-        if (isCorrect && decision === 'APPROVE') earnings = 50;
-        if (isCorrect && decision === 'REJECT') earnings = 75; // Bonus for catching fraud
-        if (!isCorrect && decision === 'APPROVE') { earnings = -25; citationsAdded = 1; }
-        if (!isCorrect && decision === 'REJECT') { earnings = -10; citationsAdded = 1; }
+        if (isCorrect && decision === 'APPROVE') {
+          earnings = 50;
+        }
+        if (isCorrect && decision === 'REJECT') {
+          // Base reward + $25 per circled discrepancy (max 4 bonus slots)
+          const circledBonus = Math.min(circledCount, 4) * 25;
+          earnings = 75 + circledBonus;
+        }
+        if (!isCorrect && decision === 'APPROVE') {
+          earnings = -25;
+          citationsAdded = 1;
+        }
+        if (!isCorrect && decision === 'REJECT') {
+          earnings = -10;
+          citationsAdded = 1;
+        }
 
         const log: DailyLog = {
           clientId: prev.currentClient.id,
+          clientName: prev.currentClient.name,
           decision,
           wasCorrect: isCorrect,
           earnings,
@@ -113,7 +127,6 @@ export function useGameEngine() {
         const newCitations = prev.citations + citationsAdded;
         const newMoney = prev.money + earnings;
 
-        // Check fail state immediately
         if (newCitations >= MAX_CITATIONS) {
           return {
             ...prev,
@@ -125,11 +138,8 @@ export function useGameEngine() {
           };
         }
 
-        // Check if day ends after this client
         const nextQueue = [...prev.clientsQueue];
         const nextStatus = nextQueue.length === 0 ? 'DAY_END' : 'PLAYING';
-
-        // Automatically pull next client if playing
         const nextClient = nextStatus === 'PLAYING' ? nextQueue.shift() || null : null;
 
         return {
@@ -142,7 +152,7 @@ export function useGameEngine() {
           currentClient: nextClient
         };
       });
-    }, 800); // Wait for stamp animation
+    }, 800);
   }, [playThud]);
 
   const endDay = useCallback(() => {
