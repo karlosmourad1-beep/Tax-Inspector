@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Fiscal Inspector"
+version = "1.0.0"
+id = "artifacts/fiscal-inspector"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 24323
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/fiscal-inspector run dev"
+
+[services.env]
+PORT = "24323"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/fiscal-inspector", "run", "build"]
+publicDir = "artifacts/fiscal-inspector/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

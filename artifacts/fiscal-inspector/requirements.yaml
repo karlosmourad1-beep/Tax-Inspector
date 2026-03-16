@@ -1,0 +1,22 @@
+packages:
+  "framer-motion": "Animations and drag-and-drop for the documents and stamps"
+  "lucide-react": "Icons for UI elements"
+  "clsx": "Utility for conditional class joining"
+  "tailwind-merge": "Utility for merging tailwind classes"
+  "canvas-confetti": "Confetti effect for winning the game"
+  "@types/canvas-confetti": "Types for canvas-confetti"
+
+images:
+  - path: "artifacts/fiscal-inspector/public/images/desk-texture.png"
+    description: "Top down view of a dark mahogany wooden desk texture, seamless, slightly scratched and worn, retro office aesthetic, dark amber tones"
+    aspect_ratio: "16:9"
+  - path: "artifacts/fiscal-inspector/public/images/seal.png"
+    description: "A retro pixel-art style fictional government seal, black ink on transparent background, circular, featuring a hawk and scales of justice"
+    aspect_ratio: "1:1"
+  - path: "artifacts/fiscal-inspector/public/images/paper-texture.png"
+    description: "A blank slightly yellowed aged paper texture, retro office stationery style, subtle grain, no lines"
+    aspect_ratio: "3:4"
+
+notes:
+  - "Fully self-contained React frontend game. No backend API calls required."
+  - "Relies heavily on framer-motion for the drag-and-drop desktop workspace."

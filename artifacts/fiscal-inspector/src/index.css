@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=VT323&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --font-terminal: 'VT323', monospace;
+  --font-typewriter: 'Courier Prime', monospace;
+  --font-stamped: 'Special Elite', cursive;
+
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-900: #78350f;
+  
+  --color-desk-dark: #1a1412;
+  --color-desk-wood: #2c1e16;
+  
+  --color-paper-light: #f4ebd0;
+  --color-paper-dark: #e8dcb8;
+  --color-ink: #1a1a1a;
+  --color-ink-faded: #333333;
+  
+  --color-stamp-red: #dc2626;
+  --color-stamp-green: #16a34a;
+
+  --animate-scanline: scanline 8s linear infinite;
+  --animate-flicker: flicker 0.15s infinite;
+}
+
+@layer base {
+  body {
+    @apply bg-desk-dark text-amber-500 font-terminal overflow-hidden select-none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer utilities {
+  .crt-overlay {
+    position: relative;
+  }
+  .crt-overlay::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 50;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+  }
+  
+  .paper-shadow {
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.4), 0 0 2px rgba(0,0,0,0.2);
+  }
+
+  .paper-texture-bg {
+    background-color: var(--color-paper-light);
+    background-image: url('/images/paper-texture.png');
+    background-size: cover;
+    background-blend-mode: multiply;
+  }
+
+  .desk-texture-bg {
+    background-color: var(--color-desk-wood);
+    background-image: url('/images/desk-texture.png');
+    background-size: cover;
+    background-blend-mode: multiply;
+  }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes flicker {
+  0% { opacity: 0.95; }
+  50% { opacity: 1; }
+  100% { opacity: 0.95; }
+}
