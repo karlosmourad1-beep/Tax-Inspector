@@ -17,7 +17,7 @@ export default function EndScreen({ engine }: { engine: ReturnType<typeof useGam
   const isVictory = state.status === 'VICTORY';
 
   const ending = state.ending ?? calculateEnding(
-    state.money, state.citations, state.alignment, state.worldState, state.day
+    state.money, state.citations, state.alignment, state.worldState
   );
   const colors = ENDING_COLORS[ending.color] || ENDING_COLORS.amber;
 

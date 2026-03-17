@@ -1,4 +1,4 @@
-export type DocType = '1040' | 'W2' | 'EXPENSE' | 'ID';
+export type DocType = '1040' | 'W2' | 'EXPENSE' | 'ID' | 'SCHEDULE_D';
 
 export interface BaseDocument {
   id: string;
@@ -27,6 +27,7 @@ export interface ExpenseDoc extends BaseDocument {
   type: 'EXPENSE';
   name: string;
   totalExpenses: number;
+  lineItems: { description: string; amount: number; isSuspect?: boolean }[];
 }
 
 export interface IDDoc extends BaseDocument {
@@ -36,7 +37,18 @@ export interface IDDoc extends BaseDocument {
   dob: string;
 }
 
-export type AnyDocument = TaxReturnDoc | W2Doc | ExpenseDoc | IDDoc;
+export interface ScheduleDDoc extends BaseDocument {
+  type: 'SCHEDULE_D';
+  name: string;
+  shortTermGains: number;
+  shortTermTax: number;
+  longTermGains: number;
+  longTermTax: number;
+  ltRate: number;
+  totalCapitalGainsTax: number;
+}
+
+export type AnyDocument = TaxReturnDoc | W2Doc | ExpenseDoc | IDDoc | ScheduleDDoc;
 
 export type FraudType =
   | 'none'
@@ -46,9 +58,11 @@ export type FraudType =
   | 'expense_mismatch'
   | 'math_error'
   | 'tax_error'
+  | 'capital_gains_misclass'
   | 'money_laundering'
   | 'offshore_accounts'
-  | 'insider_trading';
+  | 'insider_trading'
+  | 'shell_company_legal';
 
 export type DecisionType = 'APPROVE' | 'REJECT' | 'FREEZE';
 
@@ -92,6 +106,8 @@ export interface VIPData {
   humanCostIfApproved: string;
   humanCostIfFrozen: string;
   requiresFreeze: boolean;
+  isMegaCorp?: boolean;
+  isRobinHood?: boolean;
 }
 
 export interface HumanCostEntry {
@@ -135,6 +151,8 @@ export interface WorldState {
   bankingSystemStrained: boolean;
   insiderTradingExposed: boolean;
   corruptDeveloperApproved: boolean;
+  robinHoodSpared: boolean;
+  megaCorpApproved: boolean;
 }
 
 export type GameStatus = 'TITLE' | 'DAY_START' | 'PLAYING' | 'DAY_END' | 'GAME_OVER' | 'VICTORY';

@@ -16,6 +16,8 @@ const INITIAL_WORLD: WorldState = {
   bankingSystemStrained: false,
   insiderTradingExposed: false,
   corruptDeveloperApproved: false,
+  robinHoodSpared: false,
+  megaCorpApproved: false,
 };
 
 export function useGameEngine() {
@@ -38,26 +40,28 @@ export function useGameEngine() {
   });
 
   const [stampAction, setStampAction] = useState<DecisionType | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioRef = useRef<AudioContext | null>(null);
 
-  const playThud = useCallback(() => {
+  const playThud = useCallback((type: DecisionType = 'APPROVE') => {
     try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (!audioRef.current) {
+        audioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
-      const ctx = audioContextRef.current;
+      const ctx = audioRef.current;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'square';
-      osc.frequency.setValueAtTime(120, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.8, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      // Freeze sounds different (deeper)
+      const freq = type === 'FREEZE' ? 60 : type === 'APPROVE' ? 110 : 90;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.9, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.15);
-    } catch (e) { /* ignore */ }
+      osc.stop(ctx.currentTime + 0.18);
+    } catch (_) { /* ignore */ }
   }, []);
 
   const startGame = useCallback(() => {
@@ -83,7 +87,6 @@ export function useGameEngine() {
     setState(prev => {
       const event = DAILY_EVENTS[prev.day] || null;
       const queue = generateDailyClients(prev.day, CLIENTS_PER_DAY);
-      // Deduct cost of living from yesterday's event if applicable
       const costDeduction = event?.costOfLiving || 0;
       return {
         ...prev,
@@ -127,20 +130,21 @@ export function useGameEngine() {
     setState(prev => ({ ...prev, activeMemo: null }));
   }, []);
 
-  const processDecision = useCallback((decision: DecisionType, circledCount: number = 0) => {
+  const processDecision = useCallback((decision: DecisionType, circledCount = 0) => {
     setStampAction(decision);
-    playThud();
+    playThud(decision);
 
     setTimeout(() => {
       setStampAction(null);
-
       setState(prev => {
         if (!prev.currentClient) return prev;
-
         const client = prev.currentClient;
-        const isCorrect = client.expectedDecision === decision;
         const event = prev.activeEvent;
         const wageMult = event?.wageMultiplier ?? 1.0;
+
+        // For MegaCorp (shell_company_legal), APPROVE is the "correct" game answer
+        // but morally wrong — we track that in world state
+        const isCorrect = client.expectedDecision === decision;
 
         let baseEarnings = 0;
         let citationsAdded = 0;
@@ -150,7 +154,7 @@ export function useGameEngine() {
         if (isCorrect) {
           if (decision === 'APPROVE') {
             baseEarnings = 50;
-            alignmentShift = 'corporate';
+            alignmentShift = client.vipData?.isMegaCorp ? 'corporate' : 'corporate';
             humanCostMsg = pickRandom(HUMAN_COSTS.correct_approve);
           } else if (decision === 'REJECT') {
             const circledBonus = Math.min(circledCount, 4) * 25;
@@ -176,12 +180,10 @@ export function useGameEngine() {
           }
         }
 
-        // Memo bonus
-        if (prev.memoActed && prev.activeMemo) {
-          if (decision === prev.activeMemo.suggestedAction && isCorrect) {
-            baseEarnings += prev.activeMemo.bonusIfActed;
-            alignmentShift = prev.activeMemo.alignmentReward;
-          }
+        // Memo intel bonus
+        if (prev.memoActed && prev.activeMemo && decision === prev.activeMemo.suggestedAction && isCorrect) {
+          baseEarnings += prev.activeMemo.bonusIfActed;
+          alignmentShift = prev.activeMemo.alignmentReward;
         }
 
         const earnings = Math.round(baseEarnings * wageMult);
@@ -193,44 +195,40 @@ export function useGameEngine() {
           wasCorrect: isCorrect,
           earnings,
           citations: citationsAdded,
-          humanCost: humanCostMsg ? { clientName: client.name, impact: humanCostMsg, isPositive: isCorrect } : undefined,
+          humanCost: humanCostMsg
+            ? { clientName: client.name, impact: humanCostMsg, isPositive: isCorrect }
+            : undefined,
           alignmentShift,
         };
 
         const newCitations = prev.citations + citationsAdded;
-        const newMoney = prev.money + earnings;
+        const newMoney     = prev.money + earnings;
 
-        // Update alignment
         const newAlignment = { ...prev.alignment };
         if (alignmentShift) newAlignment[alignmentShift] += 1;
 
-        // Update world state based on VIP decisions
         const newWorld = { ...prev.worldState };
         if (client.isVIP && client.vipData) {
           const flag = client.vipData.flagId;
           if (flag === 'corrupt_developer' && decision === 'APPROVE') newWorld.corruptDeveloperApproved = true;
-          if (flag === 'corrupt_developer' && (decision === 'REJECT' || decision === 'FREEZE')) newWorld.housingCrisisTriggered = true;
+          if (flag === 'corrupt_developer' && decision !== 'APPROVE') newWorld.housingCrisisTriggered = true;
           if (flag === 'whistleblower_nurse' && decision === 'APPROVE') newWorld.whistleblowerNetworkActive = true;
-          if (flag === 'director_offshore' && decision === 'FREEZE') newWorld.insiderTradingExposed = true;
+          if (flag === 'director_offshore'   && decision === 'FREEZE')  newWorld.insiderTradingExposed = true;
+          if (flag === 'robin_hood'          && decision === 'APPROVE') newWorld.robinHoodSpared = true;
+          if (flag === 'megacorp'            && decision === 'APPROVE') newWorld.megaCorpApproved = true;
         }
 
         const newDailyLogs = [...prev.dailyLogs, log];
-        const newAllLogs = [...prev.allTimeLogs, log];
+        const newAllLogs   = [...prev.allTimeLogs, log];
 
         if (newCitations >= MAX_CITATIONS) {
-          const ending = calculateEnding(newMoney, newCitations, newAlignment, newWorld, prev.day);
+          const ending = calculateEnding(newMoney, newCitations, newAlignment, newWorld);
           return {
             ...prev,
-            money: newMoney,
-            citations: newCitations,
-            dailyLogs: newDailyLogs,
-            allTimeLogs: newAllLogs,
-            alignment: newAlignment,
-            worldState: newWorld,
-            status: 'GAME_OVER',
-            currentClient: null,
-            activeMemo: null,
-            ending,
+            money: newMoney, citations: newCitations,
+            dailyLogs: newDailyLogs, allTimeLogs: newAllLogs,
+            alignment: newAlignment, worldState: newWorld,
+            status: 'GAME_OVER', currentClient: null, activeMemo: null, ending,
           };
         }
 
@@ -240,14 +238,10 @@ export function useGameEngine() {
 
         return {
           ...prev,
-          money: newMoney,
-          citations: newCitations,
-          dailyLogs: newDailyLogs,
-          allTimeLogs: newAllLogs,
-          alignment: newAlignment,
-          worldState: newWorld,
-          status: nextStatus,
-          clientsQueue: nextQueue,
+          money: newMoney, citations: newCitations,
+          dailyLogs: newDailyLogs, allTimeLogs: newAllLogs,
+          alignment: newAlignment, worldState: newWorld,
+          status: nextStatus, clientsQueue: nextQueue,
           currentClient: nextClient,
           activeMemo: nextClient?.leakedMemo || null,
           memoActed: false,
@@ -260,16 +254,11 @@ export function useGameEngine() {
     setState(prev => {
       if (prev.day >= MAX_DAYS) {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-        const ending = calculateEnding(prev.money, prev.citations, prev.alignment, prev.worldState, prev.day);
+        const ending = calculateEnding(prev.money, prev.citations, prev.alignment, prev.worldState);
         return { ...prev, status: 'VICTORY', ending };
       }
       const nextDay = prev.day + 1;
-      return {
-        ...prev,
-        day: nextDay,
-        status: 'DAY_START',
-        activeEvent: DAILY_EVENTS[nextDay] || null,
-      };
+      return { ...prev, day: nextDay, status: 'DAY_START', activeEvent: DAILY_EVENTS[nextDay] || null };
     });
   }, []);
 
@@ -277,16 +266,5 @@ export function useGameEngine() {
     setState(prev => ({ ...prev, status: 'TITLE' }));
   }, []);
 
-  return {
-    state,
-    stampAction,
-    startGame,
-    startDay,
-    callNextClient,
-    processDecision,
-    actOnMemo,
-    dismissMemo,
-    endDay,
-    returnToMenu,
-  };
+  return { state, stampAction, startGame, startDay, callNextClient, processDecision, actOnMemo, dismissMemo, endDay, returnToMenu };
 }

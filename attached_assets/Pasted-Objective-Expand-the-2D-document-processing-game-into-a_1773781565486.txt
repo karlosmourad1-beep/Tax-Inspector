@@ -1,0 +1,29 @@
+Objective: Expand the 2D document-processing game into a comprehensive Tax Audit Simulator. The gameplay must teach players the mechanics of progressive taxation, legal deductions, and the detection of fraudulent filings. The narrative should explore the tension between a government’s need for revenue and the financial burden on its citizens.
+
+1. Technical Tax Mechanics:
+
+The Reconciliation Engine: Implement a multi-document verification system. The player must cross-reference a "Tax Summary Form" against supporting evidence (Employer Wage Statements, Bank Interest Reports, and Charity Receipts).
+
+Deduction Validation: Create a "Tax Code Handbook" tool. Players must verify if a claim (e.g., "Home Office Deduction" or "Business Travel") meets specific legal criteria. If the receipt is for a personal vacation disguised as business, the player must "Flag for Audit."
+
+Bracket Logic: Introduce a manual calculation mechanic where players must verify if the "Tax Owed" matches the country’s Progressive Tax Brackets. This teaches the player that moving into a higher bracket only taxes the additional income at the higher rate, correcting a common financial myth.
+
+2. Narrative "Twists" & Moral Dilemmas:
+
+The "Robin Hood" Internal Conflict: Introduce a storyline involving a low-income family that made a technical error on their filing which, if corrected, would result in a massive fine they cannot afford. The player must choose: enforce the strict tax law (Loyalist) or "overlook" the error to keep the family afloat (Reformed).
+
+Corporate Shell Games: Create a high-stakes recurring "Mega-Corp" client. Their filings are technically "legal" according to the letter of the law but utilize Offshore Tax Havens and Transfer Pricing to pay 0% in taxes. The twist: The player is pressured by their "Superior" to approve these filings because the Corp's CEO is a donor to the Ministry.
+
+The "Under-the-Table" Informant: A mechanic where the player receives "Anonymous Tips" about a neighbor’s undeclared "Side Hustle" (Cash-only business). The player must decide whether to initiate an invasive audit based on a tip, teaching the concepts of Unreported Income.
+
+3. Educational Feedback & Loop:
+
+The "Audit Report" Summary: When a player incorrectly denies a valid deduction or misses an evasion attempt, the game generates a "Notice of Deficiency" that explains the specific tax law (e.g., "Standard Deduction vs. Itemized Deductions") to ensure the player learns the concept for the next round.
+
+National Impact UI: Implement a background "City View" that improves or decays based on the total tax revenue collected. If the player is too lenient, the "Public School" or "Roads" in the background visually degrade, showing the Social Contract side of taxation.
+
+4. Advanced Concepts (Late-Game):
+
+Tax Credits vs. Deductions: Introduce a level focused on Child Tax Credits or Green Energy Credits, teaching players that credits reduce tax liability dollar-for-dollar, while deductions only reduce taxable income.
+
+Capital Gains: Introduce "Investment Schedules" where players must calculate the tax on sold stocks, teaching the difference between Short-term and Long-term Capital Gains

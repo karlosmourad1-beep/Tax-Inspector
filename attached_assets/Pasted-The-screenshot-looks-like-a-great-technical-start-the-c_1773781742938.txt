@@ -1,0 +1,35 @@
+The screenshot looks like a great technical start—the core loop of "Compare Document A to Document B" is clearly working. However, I agree that the UI feels a bit disconnected. Right now, your story/intel is relegated to a tiny, dark blue window that looks like a pop-up ad rather than a part of your desk.
+
+To make the game feel more cohesive and impactful, you need to integrate the story into the physical workspace.
+
+Here is a technical prompt to help your AI generator refine the UI and weave the "twists" directly into the gameplay:
+
+UI & Narrative Integration Overhaul Prompt
+Goal: Redesign the game's UI and narrative delivery to move away from "pop-up" windows and toward a tactile, immersive workspace. The story should be delivered through physical objects on the desk, not separate UI panels.
+
+1. Workspace Layout & "The Desk" Physics:
+
+The Desktop Grid: Abandon the rigid, floating layout. Implement a "Desk Surface" where documents (Form 1040-FI, ID Card, and Intel) can be manually dragged and layered.
+
+Tactile Storytelling: Replace the bottom-right "Leaked" window with a physical "Under-the-Table Note" or a "Coded Ledger." When a story event triggers, a hand should slide a crumpled piece of paper onto the desk or a dot-matrix printer should chatter and spit out a "Ministry Memo" at the side of the screen.
+
+Alignment & Snapping: Implement a subtle "snap-to-grid" system for documents so they don't look messy, but allow for slight rotation (1–3 degrees) to make them look like real paper.
+
+2. Narrative "Twist" UI Elements:
+
+The Moral Choice Buttons: The "Freeze" button should feel "heavier" or more high-stakes than Approve/Reject. Add a confirmation seal or a physical "shredder" slot for rejected documents to make the action feel final.
+
+Intel Interaction: Instead of an "Act on Intel" button inside a text box, the player should have to correlate the Intel note with the fraudulent document using an "Inspection Tool." This makes the player feel like a detective discovering the shell company themselves, rather than just reading a hint.
+
+The "Daily Ledger" Sidebar: Replace the top-right text with a physical tally sheet on the desk that tracks "Bonuses Earned" vs. "Family Needs."
+
+3. Visual Polish & Thematic Twist:
+
+Glitch/Interference Effects: When "Leaked Intel" arrives, implement a subtle CRT screen flicker or a color-shift on the monitor to signal that the player is accessing "off-the-books" information.
+
+Dread Factor: If the player ignores a story-critical "twist" (like the shell-company operator), the "Ministry Directives" on the right should visually change or become more aggressive (e.g., text turning red, more exclamation points) to represent rising suspicion.
+
+A few "Wit & Grit" tips for your UI:
+Make it "Chunky": Your buttons (Approve/Reject/Freeze) are currently very clean. Make them look like physical, ink-stained rubber stamps that the player has to "slam" down. It adds weight to the decision.
+
+The Dialogue Box: Elena Garcia’s dialogue is currently a floating bubble. Try putting a "Microphone" or "Intercom" icon next to her sprite, and have her text appear as if it’s being transcribed onto a ticker-tape at the top of your desk. It keeps your eyes on the "desk" rather than scanning the whole screen.

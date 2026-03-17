@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameEngine } from '@/hooks/useGameEngine';
 import { TerminalPanel } from '@/components/workspace/TerminalPanel';
@@ -6,21 +6,22 @@ import { Rulebook } from '@/components/workspace/Rulebook';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
-import { Client, LeakedMemo } from '@/types/game';
+import { Client, LeakedMemo, DecisionType } from '@/types/game';
 import {
   Clock, ShieldAlert, DollarSign, CheckCircle2, XCircle, Users,
-  Snowflake, AlertTriangle, FileText, TrendingDown, Eye, EyeOff,
+  Snowflake, AlertTriangle, Eye, EyeOff, TrendingDown,
 } from 'lucide-react';
 
-// ─── Pixel-art person silhouette ───────────────────────────────────────────────
+// ─── Pixel person silhouette ───────────────────────────────────────────────────
 function PersonSilhouette({ seed, label, isActive = false, isGone = false, isVIP = false }: {
   seed: number; label?: string; isActive?: boolean; isGone?: boolean; isVIP?: boolean;
 }) {
-  const hue = (seed * 47) % 360;
+  const hue      = (seed * 47) % 360;
   const shirtHue = (seed * 83 + 120) % 360;
   return (
     <div className={cn("flex flex-col items-center gap-0.5 transition-all duration-300", isGone && "opacity-0 pointer-events-none")}>
-      <svg width="36" height="52" viewBox="0 0 36 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="36" height="52" viewBox="0 0 36 52" fill="none">
+        {isVIP && <polygon points="18,0 20,6 26,6 21,10 23,16 18,12 13,16 15,10 10,6 16,6" fill="gold" opacity="0.9" />}
         <ellipse cx="18" cy="11" rx="8" ry="9" fill={`hsl(${hue},40%,60%)`} />
         <ellipse cx="18" cy="4" rx="8" ry="4" fill={`hsl(${hue},30%,30%)`} />
         <rect x="9" y="20" width="18" height="18" rx="2" fill={`hsl(${shirtHue},50%,45%)`} />
@@ -30,15 +31,12 @@ function PersonSilhouette({ seed, label, isActive = false, isGone = false, isVIP
         <rect x="19" y="38" width="7" height="13" rx="2" fill={`hsl(${hue},20%,25%)`} />
         {isActive && <rect x="24" y="30" width="10" height="8" rx="1" fill="#8B7355" stroke="#5D4E37" strokeWidth="1" />}
         {isActive && <ellipse cx="18" cy="50" rx="14" ry="3" fill="rgba(245,158,11,0.4)" />}
-        {isVIP && <polygon points="18,0 20,6 26,6 21,10 23,16 18,12 13,16 15,10 10,6 16,6" fill="gold" opacity="0.9" />}
       </svg>
       {label && (
         <span className={cn(
           "text-[9px] font-terminal tracking-wider truncate max-w-[44px] text-center leading-tight",
           isActive ? (isVIP ? "text-yellow-300" : "text-amber-400") : "text-amber-700/60"
-        )}>
-          {label.split(' ')[0]}
-        </span>
+        )}>{label.split(' ')[0]}</span>
       )}
     </div>
   );
@@ -48,10 +46,9 @@ function PersonSilhouette({ seed, label, isActive = false, isGone = false, isVIP
 function PeopleLineup({ queue, currentClient, processedCount }: {
   queue: Client[]; currentClient: Client | null; processedCount: number;
 }) {
-  const allSlots = 4;
   return (
     <div className="h-[18vh] bg-gradient-to-b from-black/60 to-black/30 border-b border-amber-900/50 flex items-end pb-2 px-6 overflow-hidden relative">
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_80px,rgba(245,158,11,0.03)_80px,rgba(245,158,11,0.03)_81px)]" />
         <div className="absolute bottom-0 left-0 right-0 h-4 bg-amber-900/20" />
         <div className="absolute bottom-14 left-0 right-0 h-0.5 bg-amber-800/30" />
@@ -63,7 +60,6 @@ function PeopleLineup({ queue, currentClient, processedCount }: {
         {Array.from({ length: processedCount }).map((_, i) => (
           <div key={`gone-${i}`} className="w-10 flex flex-col items-center gap-1 opacity-20">
             <div className="w-8 h-12 border border-dashed border-amber-700/40 rounded-t-full" />
-            <span className="text-[8px] font-terminal text-amber-700/40">—</span>
           </div>
         ))}
         {currentClient && (
@@ -77,7 +73,7 @@ function PeopleLineup({ queue, currentClient, processedCount }: {
             <PersonSilhouette seed={c.avatarSeed} isVIP={c.isVIP} />
           </motion.div>
         ))}
-        {Array.from({ length: Math.max(0, allSlots - processedCount - (currentClient ? 1 : 0) - queue.length) }).map((_, i) => (
+        {Array.from({ length: Math.max(0, 4 - processedCount - (currentClient ? 1 : 0) - queue.length) }).map((_, i) => (
           <div key={`empty-${i}`} className="w-10 h-14 border border-dashed border-amber-900/20 rounded-t-full opacity-20" />
         ))}
       </div>
@@ -99,9 +95,7 @@ function ChatBubble({ text, isNote = false }: { text: string; isNote?: boolean }
       transition={{ duration: 0.25 }}
       className={cn(
         "relative rounded-lg px-4 py-2 max-w-[360px] font-terminal text-xs leading-relaxed shadow-lg",
-        isNote
-          ? "bg-red-950/80 border border-red-600/50 text-red-200 italic"
-          : "bg-amber-950/80 border border-amber-700/50 text-amber-200"
+        isNote ? "bg-red-950/80 border border-red-600/50 text-red-200 italic" : "bg-amber-950/80 border border-amber-700/50 text-amber-200"
       )}
     >
       <div className="absolute -left-2 top-4 w-0 h-0 border-t-4 border-t-transparent border-r-8 border-r-amber-700/50 border-b-4 border-b-transparent" />
@@ -124,32 +118,21 @@ function ClientBooth({ client, onCallNext, queueLength, canCallNext }: {
     setLineIdx(0);
     setShowNote(false);
     if (client.smallTalk.length <= 1) return;
-    const timer = setInterval(() => {
-      setLineIdx(prev => (prev + 1 < client.smallTalk.length ? prev + 1 : prev));
-    }, 3200);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setLineIdx(p => p + 1 < client.smallTalk.length ? p + 1 : p), 3200);
+    return () => clearInterval(t);
   }, [client?.id]);
 
-  const allLines = client ? [...client.smallTalk] : [];
-  const currentText = showNote && client?.hiddenNote ? client.hiddenNote : allLines[lineIdx];
+  const currentText = showNote && client?.hiddenNote ? client.hiddenNote : client?.smallTalk[lineIdx] || '';
 
   return (
     <div className="h-[18vh] bg-gradient-to-b from-black/40 to-black/20 border-b border-amber-900/40 flex items-center px-6 gap-6 relative overflow-hidden">
       <div className="absolute left-0 top-0 bottom-0 w-2 bg-amber-900/40 border-r border-amber-800/30" />
       <div className="absolute bottom-0 left-0 right-0 h-3 bg-amber-900/30 border-t border-amber-800/20" />
-
       <AnimatePresence mode="wait">
         {client ? (
-          <motion.div
-            key={client.id + '-booth'}
-            initial={{ x: -30, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 30, opacity: 0 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 200 }}
-            className="flex items-center gap-5 z-10 w-full"
-          >
+          <motion.div key={client.id + '-booth'} initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 30, opacity: 0 }} transition={{ type: 'spring', damping: 20, stiffness: 200 }} className="flex items-center gap-5 z-10 w-full">
             <div className="shrink-0 relative">
-              <svg width="52" height="72" viewBox="0 0 36 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="52" height="72" viewBox="0 0 36 52" fill="none">
                 <ellipse cx="18" cy="11" rx="8" ry="9" fill={`hsl(${(client.avatarSeed * 47) % 360},40%,60%)`} />
                 <ellipse cx="18" cy="4" rx="8" ry="4" fill={`hsl(${(client.avatarSeed * 47) % 360},30%,30%)`} />
                 <rect x="9" y="20" width="18" height="18" rx="2" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},50%,45%)`} />
@@ -159,9 +142,7 @@ function ClientBooth({ client, onCallNext, queueLength, canCallNext }: {
                 <rect x="19" y="38" width="7" height="13" rx="2" fill={`hsl(${(client.avatarSeed * 47) % 360},20%,25%)`} />
                 <rect x="24" y="30" width="10" height="8" rx="1" fill="#8B7355" stroke="#5D4E37" strokeWidth="1" />
               </svg>
-              {client.isVIP && (
-                <div className="absolute -top-1 -right-1 text-yellow-300 text-xs font-bold">★</div>
-              )}
+              {client.isVIP && <div className="absolute -top-1 -right-1 text-yellow-300 text-xs font-bold">★</div>}
             </div>
             <div className="flex flex-col gap-1.5 flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -172,21 +153,13 @@ function ClientBooth({ client, onCallNext, queueLength, canCallNext }: {
                   )}
                 </span>
                 {client.hiddenNote && (
-                  <button
-                    onClick={() => setShowNote(s => !s)}
-                    className="shrink-0 text-red-400/60 hover:text-red-400 transition-colors"
-                    title="Toggle hidden note"
-                  >
+                  <button onClick={() => setShowNote(s => !s)} className="shrink-0 text-red-400/60 hover:text-red-400 transition-colors" title="Toggle hidden note">
                     {showNote ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 )}
               </div>
               <AnimatePresence mode="wait">
-                <ChatBubble
-                  key={client.id + '-' + lineIdx + (showNote ? '-note' : '')}
-                  text={currentText || ''}
-                  isNote={showNote && !!client.hiddenNote}
-                />
+                <ChatBubble key={client.id + '-' + lineIdx + (showNote ? '-note' : '')} text={currentText} isNote={showNote && !!client.hiddenNote} />
               </AnimatePresence>
             </div>
           </motion.div>
@@ -199,10 +172,8 @@ function ClientBooth({ client, onCallNext, queueLength, canCallNext }: {
               onClick={onCallNext}
               disabled={!canCallNext}
               className={cn(
-                "px-6 py-3 font-terminal text-sm uppercase tracking-widest border transition-all duration-200",
-                canCallNext
-                  ? "border-amber-500 text-amber-400 hover:bg-amber-500/10 cursor-pointer"
-                  : "border-amber-900/40 text-amber-900/40 cursor-not-allowed"
+                "px-6 py-3 font-terminal text-sm uppercase tracking-widest border transition-all",
+                canCallNext ? "border-amber-500 text-amber-400 hover:bg-amber-500/10 cursor-pointer" : "border-amber-900/40 text-amber-900/40 cursor-not-allowed"
               )}
             >
               {canCallNext ? '▶ Call Next Citizen' : 'Queue Empty — End Shift'}
@@ -211,62 +182,145 @@ function ClientBooth({ client, onCallNext, queueLength, canCallNext }: {
         )}
       </AnimatePresence>
       <div className="absolute top-2 right-4 flex items-center gap-1 text-amber-700/50 font-terminal text-[10px] uppercase tracking-widest">
-        <Users className="w-3 h-3" />
-        {queueLength} waiting
+        <Users className="w-3 h-3" /> {queueLength} waiting
       </div>
     </div>
   );
 }
 
-// ─── Leaked Memo Panel ─────────────────────────────────────────────────────────
-function MemoPanel({ memo, acted, onAct, onDismiss }: {
+// ─── Physical Memo Paper (slides onto desk from left) ──────────────────────────
+function MemoPaper({ memo, acted, onAct, onDismiss }: {
   memo: LeakedMemo; acted: boolean; onAct: () => void; onDismiss: () => void;
 }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const isDirective = memo.alignmentReward === 'corporate';
+  const bgColor = isDirective ? 'bg-[#f5f0e0]' : 'bg-[#fffde6]';
+  const borderColor = isDirective ? 'border-slate-400/60' : 'border-amber-400/60';
+  const headerColor = isDirective ? 'text-slate-700' : 'text-amber-800';
+
   return (
     <motion.div
-      key={memo.id}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      className="border border-blue-600/60 bg-blue-950/40 rounded p-3 text-xs font-terminal"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5 text-blue-400 font-bold uppercase tracking-wider text-[10px]">
-          <FileText className="w-3 h-3" />
-          {memo.classification}
-        </div>
-        <button onClick={onDismiss} className="text-blue-700 hover:text-blue-400 text-[10px] transition-colors">✕</button>
-      </div>
-      <div className="text-blue-300/70 text-[10px] mb-2">
-        FROM: {memo.from}<br />
-        RE: {memo.subject}
-      </div>
-      <div className="flex flex-col gap-1 mb-3">
-        {memo.lines.map((line, i) => (
-          <p key={i} className="text-blue-200/80 leading-relaxed">{line}</p>
-        ))}
-      </div>
-      {!acted ? (
-        <div className="flex gap-2">
-          <button
-            onClick={onAct}
-            className="flex-1 py-1.5 bg-blue-700/40 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 text-[10px] uppercase tracking-wider transition-all rounded"
-          >
-            Act on Intel (+${memo.bonusIfActed})
-          </button>
-          <button
-            onClick={onDismiss}
-            className="flex-1 py-1.5 bg-transparent hover:bg-red-900/20 border border-red-800/40 text-red-500/60 text-[10px] uppercase tracking-wider transition-all rounded"
-          >
-            Discard
-          </button>
-        </div>
-      ) : (
-        <div className="py-1.5 text-center text-green-400/80 text-[10px] uppercase tracking-wider border border-green-700/40 rounded">
-          ✓ Intel Activated — Proceed Accordingly
-        </div>
+      drag
+      dragMomentum={false}
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={() => setIsDragging(false)}
+      initial={{ x: -420, y: 20, rotate: -6, opacity: 0 }}
+      animate={{ x: 20, y: 20, rotate: isDragging ? -1 : -4, opacity: 1 }}
+      exit={{ x: -420, rotate: -10, opacity: 0 }}
+      transition={{ type: 'spring', damping: 18, stiffness: 160, delay: 0.1 }}
+      whileDrag={{ scale: 1.03, rotate: -1, boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}
+      style={{ zIndex: 200 }}
+      className={cn(
+        "absolute cursor-grab active:cursor-grabbing w-[300px] rounded-sm shadow-[4px_6px_20px_rgba(0,0,0,0.5)]",
+        bgColor, "border", borderColor
       )}
+    >
+      {/* Tape strip at top */}
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-16 h-4 bg-amber-200/60 border border-amber-300/60 rounded-sm opacity-80" />
+
+      <div className="p-4 flex flex-col gap-2">
+        {/* Header */}
+        <div className={cn("font-mono text-[9px] font-bold uppercase tracking-widest border-b pb-2 mb-1", headerColor, `border-current/20`)}>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-[10px] font-bold">{memo.classification}</div>
+              <div className="opacity-60 font-normal text-[9px] mt-0.5">FROM: {memo.from}</div>
+              <div className="opacity-60 font-normal text-[9px]">RE: {memo.subject}</div>
+            </div>
+            <button
+              onClick={onDismiss}
+              className="text-current opacity-30 hover:opacity-80 transition-opacity text-base leading-none shrink-0 mt-0.5"
+            >✕</button>
+          </div>
+        </div>
+
+        {/* Lines */}
+        <div className="flex flex-col gap-1.5">
+          {memo.lines.map((line, i) => (
+            <p key={i} className="font-mono text-[10px] text-slate-700 leading-snug">{line}</p>
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        <div className="mt-2 flex gap-2">
+          {!acted ? (
+            <>
+              <button
+                onClick={onAct}
+                className={cn(
+                  "flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-wider rounded border transition-all",
+                  isDirective
+                    ? "bg-slate-200 hover:bg-slate-300 border-slate-400 text-slate-700"
+                    : "bg-amber-200 hover:bg-amber-300 border-amber-500 text-amber-800"
+                )}
+              >
+                Act on Intel (+${memo.bonusIfActed})
+              </button>
+              <button
+                onClick={onDismiss}
+                className="flex-1 py-1.5 text-[9px] font-mono uppercase tracking-wider rounded border border-slate-300 text-slate-500 hover:bg-slate-100 transition-all"
+              >
+                Discard
+              </button>
+            </>
+          ) : (
+            <div className="flex-1 py-1.5 text-center text-[9px] font-mono font-bold text-green-700 uppercase tracking-wider border border-green-400/50 rounded bg-green-50">
+              ✓ Intel Noted
+            </div>
+          )}
+        </div>
+      </div>
     </motion.div>
+  );
+}
+
+// ─── Rubber Stamp Button ───────────────────────────────────────────────────────
+function StampButton({ label, shortLabel, icon, color, shadowColor, ringColor, pulsing, disabled, onClick }: {
+  label: string; shortLabel?: string; icon: React.ReactNode;
+  color: string; shadowColor: string; ringColor?: string;
+  pulsing?: boolean; disabled?: boolean; onClick: () => void;
+}) {
+  const [pressed, setPressed] = useState(false);
+
+  const handleClick = () => {
+    if (disabled) return;
+    setPressed(true);
+    onClick();
+    setTimeout(() => setPressed(false), 300);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <span className="font-terminal text-[8px] uppercase tracking-widest opacity-40">STAMP</span>
+      <button
+        onClick={handleClick}
+        disabled={disabled}
+        style={{
+          transform: pressed ? 'translateY(7px)' : 'translateY(0)',
+          boxShadow: pressed
+            ? `0 1px 0 ${shadowColor}, 0 0 12px rgba(0,0,0,0.4)`
+            : `0 7px 0 ${shadowColor}, 0 2px 20px rgba(0,0,0,0.5)`,
+          transition: 'transform 80ms ease, box-shadow 80ms ease',
+        }}
+        className={cn(
+          "relative w-32 h-16 rounded-[3px] flex flex-col items-center justify-center gap-0.5",
+          "font-stamped text-white font-bold text-base tracking-widest",
+          "border-2",
+          color,
+          pulsing && !disabled && ringColor && `ring-2 ${ringColor} animate-pulse`,
+          disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
+        )}
+      >
+        {/* Ink texture overlay */}
+        <div className="absolute inset-0 rounded-[2px] opacity-20 pointer-events-none"
+          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'1\'/%3E%3C/svg%3E")', backgroundSize: '80px 80px' }} />
+        <span className="flex items-center gap-1.5 relative z-10">
+          {icon}
+          {shortLabel || label}
+        </span>
+        {pulsing && <span className="relative z-10 text-[8px] opacity-80 tracking-wider">ASSETS</span>}
+      </button>
+    </div>
   );
 }
 
@@ -276,7 +330,7 @@ function DayEndOverlay({ state, endDay }: {
   endDay: () => void;
 }) {
   const dailyEarnings = state.dailyLogs.reduce((acc, l) => acc + l.earnings, 0);
-  const humanCosts = state.dailyLogs.filter(l => l.humanCost);
+  const humanCosts    = state.dailyLogs.filter(l => l.humanCost);
 
   return (
     <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6">
@@ -284,7 +338,6 @@ function DayEndOverlay({ state, endDay }: {
         <div className="flex flex-col gap-4 overflow-y-auto">
           <h2 className="text-xl text-center font-bold tracking-widest">DAILY PERFORMANCE REPORT</h2>
 
-          {/* Decision log */}
           <div className="border border-amber-600/30 p-2 text-xs max-h-40 overflow-y-auto">
             <div className="grid grid-cols-4 border-b border-amber-600/50 pb-1.5 mb-1.5 font-bold opacity-70 uppercase tracking-wider text-[10px]">
               <span>Citizen</span><span>Action</span><span>Eval</span><span className="text-right">Pay</span>
@@ -292,22 +345,17 @@ function DayEndOverlay({ state, endDay }: {
             {state.dailyLogs.map((log, i) => (
               <div key={i} className="grid grid-cols-4 py-0.5 border-b border-amber-600/10 last:border-0">
                 <span className="opacity-80 truncate">{log.clientName}</span>
-                <span className={log.decision === 'APPROVE' ? 'text-green-400' : log.decision === 'FREEZE' ? 'text-blue-400' : 'text-red-400'}>
-                  {log.decision}
-                </span>
+                <span className={log.decision === 'APPROVE' ? 'text-green-400' : log.decision === 'FREEZE' ? 'text-blue-400' : 'text-red-400'}>{log.decision}</span>
                 <span className={log.wasCorrect ? 'text-green-400' : 'text-red-400'}>{log.wasCorrect ? '✓' : '✗'}</span>
                 <span className="text-right">{formatMoney(log.earnings)}</span>
               </div>
             ))}
           </div>
 
-          {/* Earnings + balance */}
           <div className="grid grid-cols-2 gap-3 bg-amber-500/10 p-3 border border-amber-500/30 text-xs">
             <div>
               <span className="block opacity-60 uppercase">Daily Earnings</span>
-              <span className={cn("text-2xl font-bold", dailyEarnings >= 0 ? 'text-green-400' : 'text-red-400')}>
-                {formatMoney(dailyEarnings)}
-              </span>
+              <span className={cn("text-2xl font-bold", dailyEarnings >= 0 ? 'text-green-400' : 'text-red-400')}>{formatMoney(dailyEarnings)}</span>
             </div>
             <div className="text-right">
               <span className="block opacity-60 uppercase">Total Balance</span>
@@ -315,19 +363,19 @@ function DayEndOverlay({ state, endDay }: {
             </div>
           </div>
 
-          {/* Alignment shift today */}
+          {/* Alignment shifts */}
           {(() => {
-            const todayCorp = state.dailyLogs.filter(l => l.alignmentShift === 'corporate').length;
-            const todayWhistle = state.dailyLogs.filter(l => l.alignmentShift === 'whistleblower').length;
-            const todaySurv = state.dailyLogs.filter(l => l.alignmentShift === 'survivalist').length;
+            const c = state.dailyLogs.filter(l => l.alignmentShift === 'corporate').length;
+            const w = state.dailyLogs.filter(l => l.alignmentShift === 'whistleblower').length;
+            const s = state.dailyLogs.filter(l => l.alignmentShift === 'survivalist').length;
             return (
               <div className="border border-amber-600/30 p-3 rounded text-xs">
                 <div className="opacity-50 uppercase tracking-wider mb-2 text-[10px]">Today's Alignment Shifts</div>
                 <div className="flex gap-4">
-                  {todayCorp > 0 && <span className="text-amber-400">+{todayCorp} Corporate</span>}
-                  {todayWhistle > 0 && <span className="text-blue-400">+{todayWhistle} Resistance</span>}
-                  {todaySurv > 0 && <span className="text-green-400">+{todaySurv} Survivalist</span>}
-                  {todayCorp + todayWhistle + todaySurv === 0 && <span className="opacity-40">No shifts recorded.</span>}
+                  {c > 0 && <span className="text-amber-400">+{c} Corporate</span>}
+                  {w > 0 && <span className="text-blue-400">+{w} Resistance</span>}
+                  {s > 0 && <span className="text-green-400">+{s} Survivalist</span>}
+                  {c + w + s === 0 && <span className="opacity-40">No shifts recorded.</span>}
                 </div>
               </div>
             );
@@ -339,19 +387,15 @@ function DayEndOverlay({ state, endDay }: {
               <div className="opacity-50 uppercase tracking-wider mb-2 text-[10px]">Moral Ledger — Human Cost</div>
               <div className="flex flex-col gap-1.5">
                 {humanCosts.map((log, i) => (
-                  <div key={i} className="border-l-2 pl-2 py-0.5 leading-relaxed"
-                    style={{ borderColor: log.humanCost?.isPositive ? '#22c55e66' : '#ef444466' }}>
+                  <div key={i} className="border-l-2 pl-2 py-0.5 leading-relaxed" style={{ borderColor: log.humanCost?.isPositive ? '#22c55e66' : '#ef444466' }}>
                     <span className="opacity-40 mr-1">{log.clientName}:</span>
-                    <span className={log.humanCost?.isPositive ? 'text-green-400/80' : 'text-red-400/80'}>
-                      {log.humanCost?.impact}
-                    </span>
+                    <span className={log.humanCost?.isPositive ? 'text-green-400/80' : 'text-red-400/80'}>{log.humanCost?.impact}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Active event reminder */}
           {state.activeEvent && (
             <div className="text-[10px] font-terminal text-amber-600/60 border border-amber-900/30 p-2 rounded text-center">
               {state.activeEvent.title} — effect applied this shift.
@@ -377,15 +421,26 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const [topZIndex, setTopZIndex] = useState(10);
   const [docZIndices, setDocZIndices] = useState<Record<string, number>>({});
   const [circledFields, setCircledFields] = useState<Set<string>>(new Set());
+  const [crtFlicker, setCRTFlicker] = useState(false);
+  const prevMemoId = useRef<string | null>(null);
 
-  const CLIENTS_PER_DAY = 4;
-  const processedCount = CLIENTS_PER_DAY - state.clientsQueue.length - (state.currentClient ? 1 : 0);
+  const processedCount = 4 - state.clientsQueue.length - (state.currentClient ? 1 : 0);
+
+  // CRT flicker when a new memo arrives
+  useEffect(() => {
+    const newId = state.activeMemo?.id || null;
+    if (newId && newId !== prevMemoId.current) {
+      setCRTFlicker(true);
+      setTimeout(() => setCRTFlicker(false), 500);
+    }
+    prevMemoId.current = newId;
+  }, [state.activeMemo?.id]);
 
   useEffect(() => {
     if (state.currentClient) {
-      const initialZ: Record<string, number> = {};
-      state.currentClient.documents.forEach((d, i) => { initialZ[d.id] = i + 1; });
-      setDocZIndices(initialZ);
+      const z: Record<string, number> = {};
+      state.currentClient.documents.forEach((d, i) => { z[d.id] = i + 1; });
+      setDocZIndices(z);
       setTopZIndex(state.currentClient.documents.length + 1);
       setCircledFields(new Set());
     } else {
@@ -406,15 +461,11 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     });
   }, []);
 
-  const handleDecision = (decision: 'APPROVE' | 'REJECT' | 'FREEZE') => {
-    processDecision(decision, circledFields.size);
-  };
-
   const isDeskDisabled = !!stampAction || !state.currentClient;
   const isContraband = !!state.currentClient?.isContraband;
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden crt-overlay desk-texture-bg">
+    <div className={cn("h-screen w-full flex flex-col overflow-hidden crt-overlay desk-texture-bg transition-all", crtFlicker && "brightness-150")}>
 
       {/* ── Status bar ─────────────────────────────────────────────────────── */}
       <div className="h-10 bg-desk-dark border-b border-amber-600/50 px-4 flex items-center justify-between shrink-0 z-40 shadow-xl shadow-black">
@@ -425,7 +476,6 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           </div>
         </div>
         <div className="flex items-center gap-5 font-terminal text-sm">
-          {/* Macro event badge */}
           {state.activeEvent && (
             <div className="flex items-center gap-1.5 text-orange-400 text-xs border border-orange-700/50 px-2 py-0.5 rounded">
               <AlertTriangle className="w-3 h-3" />
@@ -439,7 +489,6 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               <span>⊗</span> {circledFields.size} flagged
             </div>
           )}
-          {/* Alignment mini-bars */}
           <div className="flex items-center gap-1 text-[10px] font-terminal opacity-60">
             <span className="text-amber-400">{state.alignment.corporate}C</span>
             <span className="text-blue-400">{state.alignment.whistleblower}R</span>
@@ -481,6 +530,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
         <div className="flex-1 relative overflow-hidden">
           <Stamp type={stampAction} />
 
+          {/* Flagged field hint */}
           {circledFields.size > 0 && state.currentClient && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
               <div className="bg-red-900/80 border border-red-500/60 text-red-300 font-terminal text-[11px] px-3 py-1 rounded-full uppercase tracking-wider shadow">
@@ -489,6 +539,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             </div>
           )}
 
+          {/* Empty desk hint */}
           {!state.currentClient && state.status === 'PLAYING' && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-amber-500/30 font-terminal text-xl uppercase tracking-widest border border-amber-500/20 p-8 rounded">
@@ -497,88 +548,73 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             </div>
           )}
 
+          {/* Documents */}
           <div className={cn("absolute inset-0 transition-opacity duration-300", isDeskDisabled && "opacity-50 pointer-events-none")}>
             {state.currentClient?.documents.map((doc, idx) => (
               <DraggablePaper
                 key={state.currentClient!.id + doc.id}
                 doc={doc}
-                initialX={80 + (idx * 44)}
+                initialX={90 + (idx * 44)}
                 initialY={30 + (idx * 28)}
                 zIndex={docZIndices[doc.id] || 1}
                 onFocus={() => bringToFront(doc.id)}
                 circledFields={circledFields}
                 onCircle={handleCircle}
+                isNew={idx === 0}
               />
             ))}
           </div>
 
-          {/* Action buttons */}
+          {/* Physical Leaked Memo paper — slides onto desk from the left */}
+          <AnimatePresence>
+            {state.activeMemo && (
+              <MemoPaper
+                key={state.activeMemo.id}
+                memo={state.activeMemo}
+                acted={state.memoActed}
+                onAct={actOnMemo}
+                onDismiss={dismissMemo}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* ── Rubber Stamp buttons ─────────────────────────────────────────── */}
           {state.currentClient && (
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-3 z-40 items-end">
-              <button
-                onClick={() => handleDecision('APPROVE')}
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-5 z-40 items-end">
+              <StampButton
+                label="APPROVE"
+                icon={<CheckCircle2 className="w-4 h-4" />}
+                color="bg-green-700 border-green-900 hover:bg-green-600"
+                shadowColor="#064e3b"
                 disabled={isDeskDisabled}
-                className={cn(
-                  "w-36 h-14 rounded shadow-[0_6px_0_#064e3b] active:shadow-[0_1px_0_#064e3b] active:translate-y-[5px]",
-                  "bg-green-600 hover:bg-green-500 text-white font-bold font-stamped text-base tracking-widest",
-                  "border-2 border-green-800 transition-all duration-100 flex items-center justify-center gap-2",
-                  isDeskDisabled && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <CheckCircle2 className="w-4 h-4" /> APPROVE
-              </button>
-
-              <button
-                onClick={() => handleDecision('REJECT')}
+                onClick={() => processDecision('APPROVE', circledFields.size)}
+              />
+              <StampButton
+                label="REJECT"
+                icon={<XCircle className="w-4 h-4" />}
+                color="bg-red-700 border-red-900 hover:bg-red-600"
+                shadowColor="#7f1d1d"
                 disabled={isDeskDisabled}
-                className={cn(
-                  "w-36 h-14 rounded shadow-[0_6px_0_#7f1d1d] active:shadow-[0_1px_0_#7f1d1d] active:translate-y-[5px]",
-                  "bg-red-600 hover:bg-red-500 text-white font-bold font-stamped text-base tracking-widest",
-                  "border-2 border-red-800 transition-all duration-100 flex items-center justify-center gap-2",
-                  isDeskDisabled && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <XCircle className="w-4 h-4" /> REJECT
-              </button>
-
-              {/* Freeze Assets — always shown, highlighted if contraband client */}
-              <button
-                onClick={() => handleDecision('FREEZE')}
+                onClick={() => processDecision('REJECT', circledFields.size)}
+              />
+              <StampButton
+                label="FREEZE"
+                shortLabel="FREEZE"
+                icon={<Snowflake className="w-4 h-4" />}
+                color={cn("bg-blue-700 border-blue-900 hover:bg-blue-600", isContraband && "bg-blue-600 border-blue-400")}
+                shadowColor="#1e3a5f"
+                ringColor="ring-blue-400/40"
+                pulsing={isContraband}
                 disabled={isDeskDisabled}
-                className={cn(
-                  "w-36 rounded shadow-[0_6px_0_#1e3a5f] active:shadow-[0_1px_0_#1e3a5f] active:translate-y-[5px]",
-                  "bg-blue-700 text-white font-bold font-stamped text-base tracking-widest",
-                  "border-2 transition-all duration-100 flex flex-col items-center justify-center gap-0.5",
-                  isContraband
-                    ? "h-16 border-blue-400 hover:bg-blue-600 animate-pulse ring-2 ring-blue-400/40"
-                    : "h-14 border-blue-900 hover:bg-blue-600 opacity-70",
-                  isDeskDisabled && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <span className="flex items-center gap-1.5"><Snowflake className="w-4 h-4" /> FREEZE</span>
-                {isContraband && <span className="text-[9px] text-blue-200 uppercase tracking-wider font-terminal">Assets</span>}
-              </button>
+                onClick={() => processDecision('FREEZE', circledFields.size)}
+              />
             </div>
           )}
         </div>
 
-        {/* Right panel: Rulebook + Leaked Memo */}
-        <div className="w-72 border-l border-black/50 shadow-2xl z-30 flex flex-col bg-desk-dark/80 gap-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <Rulebook day={state.day} activeEvent={state.activeEvent} />
-          </div>
-          <AnimatePresence>
-            {state.activeMemo && (
-              <div className="border-t border-blue-900/60 p-3 shrink-0">
-                <MemoPanel
-                  memo={state.activeMemo}
-                  acted={state.memoActed}
-                  onAct={actOnMemo}
-                  onDismiss={dismissMemo}
-                />
-              </div>
-            )}
-          </AnimatePresence>
+        {/* Right panel: Rulebook only (memo is now on desk surface) */}
+        <div className="w-64 border-l border-black/50 shadow-2xl z-30 bg-desk-dark/80 overflow-y-auto">
+          <Rulebook day={state.day} activeEvent={state.activeEvent} />
         </div>
       </div>
 
