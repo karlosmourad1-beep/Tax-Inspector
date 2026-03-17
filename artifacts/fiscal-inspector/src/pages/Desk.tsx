@@ -470,7 +470,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
       {/* ── Status bar ─────────────────────────────────────────────────────── */}
       <div className="h-10 bg-desk-dark border-b border-amber-600/50 px-4 flex items-center justify-between shrink-0 z-40 shadow-xl shadow-black">
         <div className="flex items-center gap-4">
-          <div className="font-stamped text-lg text-amber-500 tracking-widest">FISCAL INSPECTOR</div>
+          <div className="font-stamped text-lg text-amber-500 tracking-widest">TAXES PLEASE</div>
           <div className="flex items-center gap-1.5 text-amber-400 font-terminal text-sm">
             <Clock className="w-4 h-4" /> DAY {state.day}
           </div>

@@ -14,7 +14,7 @@ export default function MainMenu({ engine }: { engine: ReturnType<typeof useGame
           <img src={`${import.meta.env.BASE_URL}images/seal.png`} alt="Seal" className="w-32 h-32 mb-8 opacity-80 mix-blend-screen" />
           
           <h1 className="font-stamped text-6xl text-amber-500 mb-2 tracking-widest drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">
-            FISCAL INSPECTOR
+            TAXES PLEASE
           </h1>
           <p className="font-terminal text-xl text-amber-600 mb-12 uppercase tracking-widest">
             Glory to the Tax Code

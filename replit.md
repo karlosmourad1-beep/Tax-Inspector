@@ -93,7 +93,7 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 
 ### `artifacts/fiscal-inspector` (`@workspace/fiscal-inspector`)
 
-Papers Please-style 2D finance auditing game. Frontend-only React + Vite app served at `/`.
+**"Taxes Please"** — Papers Please-style 2D finance auditing game. Frontend-only React + Vite app served at `/`.
 
 **Stack:** React, Vite, TypeScript, Framer Motion, Tailwind CSS, canvas-confetti, Lucide icons
 
