@@ -69,19 +69,46 @@ export function useGameEngine() {
         audioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
       const ctx = audioRef.current;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'square';
-      // Freeze sounds different (deeper)
-      const freq = type === 'FREEZE' ? 60 : type === 'APPROVE' ? 110 : 90;
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
-      gain.gain.setValueAtTime(0.9, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.18);
+      const now = ctx.currentTime;
+
+      const tone = (freq: number, endFreq: number, dur: number, vol: number, shape: OscillatorType, delay = 0) => {
+        const osc = ctx.createOscillator();
+        const g   = ctx.createGain();
+        osc.type = shape;
+        osc.frequency.setValueAtTime(freq, now + delay);
+        osc.frequency.exponentialRampToValueAtTime(endFreq, now + delay + dur);
+        g.gain.setValueAtTime(vol, now + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, now + delay + dur);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(now + delay);
+        osc.stop(now + delay + dur + 0.01);
+      };
+
+      if (type === 'APPROVE') {
+        // Deep rubber-stamp thud: low sine boom + quick mid pop
+        tone(90,  30,  0.22, 0.75, 'sine');
+        tone(240, 120, 0.07, 0.35, 'triangle');
+      } else if (type === 'REJECT') {
+        // Harsh descending buzz — decisive denial
+        tone(200, 55, 0.28, 0.65, 'sawtooth');
+        tone(170, 45, 0.22, 0.45, 'sawtooth', 0.06);
+      } else if (type === 'FREEZE') {
+        // Icy bell chord — C5 E5 G5 arpeggiated
+        ([523, 659, 784] as number[]).forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const g   = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now + i * 0.045);
+          g.gain.setValueAtTime(0, now + i * 0.045);
+          g.gain.linearRampToValueAtTime(0.30, now + i * 0.045 + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.045 + 0.55);
+          osc.connect(g);
+          g.connect(ctx.destination);
+          osc.start(now + i * 0.045);
+          osc.stop(now + i * 0.045 + 0.6);
+        });
+      }
     } catch (_) { /* ignore */ }
   }, []);
 

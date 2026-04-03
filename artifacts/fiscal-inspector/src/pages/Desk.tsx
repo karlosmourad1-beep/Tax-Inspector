@@ -128,11 +128,54 @@ function QueueThumb({ seed, isVIP, isActive, isDone }: {
 
 
 
+// ─── Citation sound (standalone, no engine dependency) ───────────────────────
+function playCitationSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const now = ctx.currentTime;
+
+    // Layer 1: brutal low impact thud
+    const thud = ctx.createOscillator();
+    const thudG = ctx.createGain();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(120, now);
+    thud.frequency.exponentialRampToValueAtTime(20, now + 0.3);
+    thudG.gain.setValueAtTime(0.9, now);
+    thudG.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    thud.connect(thudG); thudG.connect(ctx.destination);
+    thud.start(now); thud.stop(now + 0.32);
+
+    // Layer 2: harsh descending buzz
+    const buzz = ctx.createOscillator();
+    const buzzG = ctx.createGain();
+    buzz.type = 'sawtooth';
+    buzz.frequency.setValueAtTime(220, now + 0.02);
+    buzz.frequency.exponentialRampToValueAtTime(40, now + 0.35);
+    buzzG.gain.setValueAtTime(0.0, now);
+    buzzG.gain.linearRampToValueAtTime(0.55, now + 0.02);
+    buzzG.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    buzz.connect(buzzG); buzzG.connect(ctx.destination);
+    buzz.start(now); buzz.stop(now + 0.38);
+
+    // Layer 3: high crack on impact
+    const crack = ctx.createOscillator();
+    const crackG = ctx.createGain();
+    crack.type = 'triangle';
+    crack.frequency.setValueAtTime(900, now);
+    crack.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+    crackG.gain.setValueAtTime(0.4, now);
+    crackG.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    crack.connect(crackG); crackG.connect(ctx.destination);
+    crack.start(now); crack.stop(now + 0.08);
+  } catch (_) { /* ignore */ }
+}
+
 // ─── Citation Modal ───────────────────────────────────────────────────────────
 function CitationModal({ log, onContinue }: { log: DailyLog; onContinue: () => void }) {
   const [flash, setFlash] = useState(true);
 
   useEffect(() => {
+    playCitationSound();
     const t = setTimeout(() => setFlash(false), 180);
     return () => clearTimeout(t);
   }, []);
