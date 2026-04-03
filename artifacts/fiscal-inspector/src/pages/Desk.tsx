@@ -12,6 +12,170 @@ import {
   Snowflake, AlertTriangle, Eye, EyeOff, TrendingDown,
 } from 'lucide-react';
 
+// ─── Desk Lamp ─────────────────────────────────────────────────────────────────
+function DeskLamp() {
+  return (
+    <div className="absolute top-0 right-5 pointer-events-none z-10 select-none" aria-hidden>
+      {/* Ambient glow cone radiating from bulb downward */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: 62, right: -10,
+          width: 180, height: 130,
+          background: 'radial-gradient(ellipse 70% 60% at 50% 0%, rgba(253,230,100,0.13) 0%, transparent 80%)',
+          transform: 'rotate(-5deg)',
+        }}
+      />
+      <svg width="90" height="130" viewBox="0 0 90 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Base plate */}
+        <ellipse cx="45" cy="125" rx="24" ry="5" fill="#0f0a04" />
+        <rect x="32" y="118" width="26" height="8" rx="3" fill="#1a1208" />
+        {/* Vertical pole */}
+        <rect x="42" y="68" width="6" height="52" rx="3" fill="#231a0a" />
+        {/* Elbow joint */}
+        <circle cx="45" cy="68" r="6" fill="#2e2010" />
+        {/* Diagonal arm */}
+        <rect x="43" y="28" width="5" height="44" rx="2.5" fill="#231a0a"
+          transform="rotate(12 45 68)" />
+        {/* Shade — outer dark green */}
+        <path d="M12 30 Q45 8 78 30 L68 65 Q45 74 22 65 Z" fill="#14380e" stroke="#0a2208" strokeWidth="1.5" />
+        {/* Shade — inner lighter green */}
+        <path d="M16 31 Q45 12 74 31 L65 63 Q45 71 25 63 Z" fill="#1c4e14" opacity="0.7" />
+        {/* Shade rim highlight */}
+        <path d="M12 30 Q45 8 78 30" stroke="#2d6a1e" strokeWidth="1.5" fill="none" opacity="0.6" />
+        {/* Bottom rim */}
+        <path d="M22 65 Q45 74 68 65" stroke="#0a2208" strokeWidth="2" fill="none" />
+        {/* Bulb glow */}
+        <ellipse cx="45" cy="56" rx="10" ry="7" fill="#fde68a" opacity="0.95" />
+        <ellipse cx="45" cy="56" rx="18" ry="12" fill="#fde68a" opacity="0.12" />
+        <ellipse cx="45" cy="56" rx="26" ry="18" fill="#fbbf24" opacity="0.05" />
+        {/* Bolt on arm */}
+        <circle cx="47" cy="30" r="3" fill="#1a1208" />
+      </svg>
+    </div>
+  );
+}
+
+// ─── Steaming Coffee Mug ────────────────────────────────────────────────────────
+function CoffeeMug() {
+  return (
+    <div className="absolute bottom-24 left-4 pointer-events-none z-10 select-none flex flex-col items-center" aria-hidden>
+      {/* Steam wisps */}
+      <div className="relative flex gap-2.5 justify-center mb-0.5" style={{ height: 28 }}>
+        {[
+          { delay: 0,   height: 18, x: -2 },
+          { delay: 0.5, height: 24, x:  0 },
+          { delay: 0.9, height: 16, x:  2 },
+        ].map((s, i) => (
+          <motion.div
+            key={i}
+            style={{ width: 3, height: s.height, x: s.x, borderRadius: 99 }}
+            className="bg-amber-300/30"
+            animate={{
+              y: [0, -14, 0],
+              opacity: [0.0, 0.45, 0.0],
+              scaleX: [1, 1.8, 1],
+              rotate: [0, i % 2 === 0 ? 8 : -8, 0],
+            }}
+            transition={{ duration: 2.2, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
+          />
+        ))}
+      </div>
+      {/* Mug */}
+      <svg width="58" height="62" viewBox="0 0 58 62" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Shadow */}
+        <ellipse cx="28" cy="59" rx="20" ry="4" fill="#000" opacity="0.35" />
+        {/* Body */}
+        <path d="M9 16 L11 54 Q28 58 46 54 L48 16 Z" fill="#1c1409" />
+        {/* Body highlight */}
+        <path d="M10 16 L12 52 Q20 55 20 52 L18 16 Z" fill="#2a1f0e" opacity="0.4" />
+        {/* Top rim */}
+        <ellipse cx="28" cy="16" rx="20" ry="5.5" fill="#2a1e0c" stroke="#3d2d12" strokeWidth="1" />
+        {/* Coffee surface */}
+        <ellipse cx="28" cy="17" rx="17.5" ry="4.5" fill="#2e1306" />
+        <ellipse cx="26" cy="16.5" rx="8" ry="2" fill="#3d1a08" opacity="0.5" />
+        {/* Handle */}
+        <path d="M46 22 Q60 26 60 36 Q60 46 46 50" stroke="#2a1e0c" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <path d="M46 23 Q57 27 57 36 Q57 45 46 49" stroke="#1c1409" strokeWidth="3" fill="none" strokeLinecap="round" />
+        {/* "MINISTRY" label */}
+        <rect x="14" y="30" width="28" height="10" rx="1" fill="#0f0a04" opacity="0.4" />
+        <text x="16" y="39" fill="#5a3d18" fontSize="6.5" fontFamily="monospace" fontWeight="bold" letterSpacing="0.5">MINISTRY</text>
+        {/* Bottom band */}
+        <path d="M11 50 Q28 55 46 50 L46 54 Q28 58 11 54 Z" fill="#0f0a04" opacity="0.5" />
+      </svg>
+    </div>
+  );
+}
+
+// ─── Pen & Pencil Cup ──────────────────────────────────────────────────────────
+function PenCup() {
+  return (
+    <div className="absolute top-4 left-4 pointer-events-none z-10 select-none" aria-hidden>
+      <svg width="48" height="70" viewBox="0 0 48 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Shadow */}
+        <ellipse cx="24" cy="67" rx="14" ry="3.5" fill="#000" opacity="0.35" />
+        {/* Cup body */}
+        <path d="M8 28 L10 60 Q24 65 38 60 L40 28 Z" fill="#1a1208" stroke="#2d1f0c" strokeWidth="1" />
+        {/* Cup top rim */}
+        <ellipse cx="24" cy="28" rx="16" ry="4.5" fill="#2d2010" stroke="#3d2d14" strokeWidth="1" />
+        {/* Pencil 1 — yellow */}
+        <rect x="13" y="2" width="4" height="30" rx="1.5" fill="#c8920a" />
+        <polygon points="13,2 17,2 15,0" fill="#e8b012" />
+        <rect x="13" y="2" width="4" height="3" fill="#e8b012" opacity="0.5" />
+        <polygon points="13,30 17,30 15,36" fill="#f5deb3" />
+        <polygon points="14.5,34 15.5,34 15,36" fill="#1a1208" />
+        {/* Pen 2 — dark with clip */}
+        <rect x="20" y="1" width="3.5" height="32" rx="1.5" fill="#2a2a2a" />
+        <rect x="20" y="1" width="3.5" height="4" rx="1" fill="#888" />
+        <rect x="20.5" y="0" width="1.5" height="6" rx="0.5" fill="#aaa" />
+        <polygon points="20,33 23.5,33 21.75,38" fill="#2a2a2a" />
+        {/* Red pen 3 */}
+        <rect x="27" y="4" width="3.5" height="28" rx="1.5" fill="#7f1d1d" />
+        <rect x="27" y="4" width="3.5" height="4" rx="1" fill="#b91c1c" />
+        <polygon points="27,32 30.5,32 28.75,37" fill="#7f1d1d" />
+        {/* Ruler sticking out */}
+        <rect x="33" y="3" width="3" height="26" rx="0.5" fill="#8B7355" />
+        <rect x="33.5" y="5" width="2" height="1" rx="0.3" fill="#5D4E37" />
+        <rect x="33.5" y="9" width="2" height="1" rx="0.3" fill="#5D4E37" />
+        <rect x="33.5" y="13" width="2" height="1" rx="0.3" fill="#5D4E37" />
+        <rect x="33.5" y="17" width="2" height="1" rx="0.3" fill="#5D4E37" />
+        <rect x="33.5" y="21" width="2" height="1" rx="0.3" fill="#5D4E37" />
+      </svg>
+    </div>
+  );
+}
+
+// ─── Ashtray ────────────────────────────────────────────────────────────────────
+function Ashtray() {
+  return (
+    <div className="absolute bottom-24 right-8 pointer-events-none z-10 select-none" aria-hidden>
+      {/* Cigarette smoke */}
+      <motion.div
+        className="absolute bg-amber-200/20 rounded-full"
+        style={{ width: 2, height: 12, left: 22, bottom: 18 }}
+        animate={{ y: [0, -10, 0], opacity: [0.2, 0.6, 0.2], scaleX: [1, 2, 1] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <svg width="48" height="24" viewBox="0 0 48 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Shadow */}
+        <ellipse cx="24" cy="23" rx="18" ry="3" fill="#000" opacity="0.3" />
+        {/* Ashtray bowl */}
+        <path d="M4 8 Q24 16 44 8 L42 4 Q24 10 6 4 Z" fill="#1e1e1e" />
+        <ellipse cx="24" cy="6" rx="20" ry="5" fill="#1a1a1a" stroke="#333" strokeWidth="1" />
+        <ellipse cx="24" cy="6" rx="16" ry="3.5" fill="#111" />
+        {/* Notch cuts */}
+        <path d="M4 7 Q6 4 8 7" fill="#0a0a0a" />
+        <path d="M40 7 Q42 4 44 7" fill="#0a0a0a" />
+        {/* Cigarette butt */}
+        <rect x="18" y="4" width="14" height="2.5" rx="1.2" fill="#f5deb3" transform="rotate(-15 24 5)" />
+        <rect x="18" y="4" width="5" height="2.5" rx="1.2" fill="#888" transform="rotate(-15 24 5)" />
+        {/* Ash */}
+        <ellipse cx="22" cy="5.5" rx="3" ry="1" fill="#555" opacity="0.5" />
+      </svg>
+    </div>
+  );
+}
+
 // ─── Pixel person silhouette ───────────────────────────────────────────────────
 function PersonSilhouette({ seed, label, isActive = false, isGone = false, isVIP = false }: {
   seed: number; label?: string; isActive?: boolean; isGone?: boolean; isVIP?: boolean;
@@ -538,6 +702,12 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               </div>
             </div>
           )}
+
+          {/* ── Desk decorations ──────────────────────────────────────────── */}
+          <DeskLamp />
+          <CoffeeMug />
+          <PenCup />
+          <Ashtray />
 
           {/* Empty desk hint */}
           {!state.currentClient && state.status === 'PLAYING' && (
