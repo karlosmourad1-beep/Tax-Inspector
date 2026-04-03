@@ -1,0 +1,125 @@
+Redesign the entire UI of this game to feel like a focused document inspection desk, inspired by Papers Please. The current UI has improved but still has structural and gameplay problems.
+
+CRITICAL DESIGN RULE:
+Every UI element must serve one of these purposes:
+1. Help inspect documents
+2. Show rules or consequences
+3. Allow player actions
+
+Anything else should be removed.
+
+-------------------------
+LAYOUT CHANGES (MANDATORY)
+-------------------------
+
+1. REMOVE LEFT SIDEBAR
+- Delete the entire left panel.
+- It currently wastes space and shows redundant information.
+- Do NOT show the citizen name or portrait outside of documents.
+
+2. MAIN LAYOUT STRUCTURE
+Rebuild layout as:
+
+- Top bar (fixed)
+- Center desk (main gameplay)
+- Right panel (rules + info)
+- Bottom action bar (fixed)
+
+3. CENTER DESK (MOST IMPORTANT)
+- Expand the center area significantly.
+- This is the primary focus of the game.
+- Place all documents here (ID card, tax form, evidence notes).
+- Documents should feel like they are sitting on a desk.
+- Move documents closer together so they can be compared easily.
+- Slightly overlap or align them tightly.
+
+4. RIGHT PANEL (REBUILD IT)
+Make this a single, wider panel with clear sections:
+
+Section 1: Ministry Directives (small header text)
+Section 2: Active Rule (highlighted box, high importance)
+Section 3: Payout / Consequences (clear readable list)
+
+- Increase width so text is readable.
+- Use spacing and separators between sections.
+- Do NOT make this panel feel cramped.
+
+5. REMOVE BOTTOM-RIGHT MINI PANEL
+- The payout section should NOT exist as a tiny box.
+- Merge it into the right panel.
+
+6. TOP BAR CLEANUP
+- Group information clearly:
+  TAXES PLEASE | DAY 1/7 | $ MONEY | CITATIONS
+- Align everything horizontally and evenly spaced.
+
+7. BOTTOM ACTION BAR
+- Keep fixed at bottom.
+- Center buttons: Approve, Reject, Freeze
+- Make buttons slightly larger and evenly spaced.
+- Ensure consistent styling across buttons.
+
+-------------------------
+GAMEPLAY CLARITY FIXES
+-------------------------
+
+1. REMOVE REDUNDANT INFORMATION
+- Do NOT show citizen name outside documents.
+- Do NOT show identity info anywhere except the documents.
+- The player must compare documents to find mismatches.
+
+2. PORTRAIT SYSTEM FIX
+- Remove portrait card from sidebar (since sidebar is gone).
+- The ONLY portrait should exist inside the ID card.
+- Style it like an ID photo:
+  - grayscale or desaturated
+  - framed
+  - slightly imperfect
+
+3. DIALOGUE SYSTEM
+- Move dialogue into the desk area.
+- Display as a speech bubble near the documents OR top of desk.
+- It should feel connected to the current citizen, not a sidebar widget.
+
+4. QUEUE INDICATOR
+- Reduce queue to a small horizontal strip (top-left of desk or top bar).
+- Do NOT dedicate a full panel to it.
+
+-------------------------
+VISUAL DESIGN FIXES
+-------------------------
+
+1. REDUCE VISUAL NOISE
+- Lower opacity of background grid.
+- Remove unnecessary decorative elements that do not affect gameplay.
+
+2. STRONGER VISUAL HIERARCHY
+- Documents must be the most visually dominant elements.
+- Side panels must not compete with the desk.
+
+3. MAKE UI FEEL IN-WORLD
+- Panels should feel like physical or terminal elements, not website cards.
+- Use subtle borders, darker backgrounds, and consistent spacing.
+
+4. CONSISTENT COLOR USAGE
+- Use one primary accent (amber/orange).
+- Use green only for success (approve).
+- Use red only for errors (reject).
+- Avoid overly bright or saturated colors elsewhere.
+
+5. DOCUMENT EMPHASIS
+- Add subtle shadows under documents.
+- Slight rotation or layering is acceptable.
+- Make them feel like objects on a desk.
+
+-------------------------
+FINAL GOAL
+-------------------------
+
+The final UI should feel like:
+- A focused inspection workstation
+- Minimal, intentional, and immersive
+- All attention drawn to comparing documents
+- No wasted space or redundant panels
+
+If any UI element does not directly support gameplay, remove or redesign it.
