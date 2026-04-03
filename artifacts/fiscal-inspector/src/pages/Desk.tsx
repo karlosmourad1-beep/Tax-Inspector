@@ -6,10 +6,10 @@ import { Rulebook } from '@/components/workspace/Rulebook';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
-import { Client, DailyLog, LeakedMemo } from '@/types/game';
+import { DailyLog, LeakedMemo } from '@/types/game';
 import {
   Clock, ShieldAlert, DollarSign, CheckCircle2, XCircle,
-  Snowflake, AlertTriangle, TrendingDown, Eye, EyeOff,
+  Snowflake, AlertTriangle, TrendingDown,
 } from 'lucide-react';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
@@ -126,79 +126,6 @@ function QueueThumb({ seed, isVIP, isActive, isDone }: {
   );
 }
 
-// ─── Speech bubble (on desk surface) ────────────────────────────────────────
-function DeskSpeech({ client }: { client: Client | null }) {
-  const [lineIdx, setLineIdx] = useState(0);
-  const [showNote, setShowNote] = useState(false);
-
-  useEffect(() => {
-    if (!client) return;
-    setLineIdx(0);
-    setShowNote(false);
-    if (client.smallTalk.length <= 1) return;
-    const t = setInterval(() => setLineIdx(p => p + 1 < client.smallTalk.length ? p + 1 : p), 3500);
-    return () => clearInterval(t);
-  }, [client?.id]);
-
-  if (!client) return null;
-
-  const text = showNote && client.hiddenNote ? client.hiddenNote : (client.smallTalk[lineIdx] || '');
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.25 }}
-      className="absolute top-4 left-4 z-30 flex items-start gap-2 max-w-xs"
-      style={{ pointerEvents: 'none' }}
-    >
-      {/* Tiny portrait chip */}
-      <div className="shrink-0 rounded-sm overflow-hidden border mt-1" style={{ width: 26, height: 32, borderColor: C.border }}>
-        <PortraitSVG seed={client.avatarSeed} w={26} h={32} />
-      </div>
-
-      {/* Bubble */}
-      <div className="relative flex flex-col gap-1" style={{ pointerEvents: 'auto' }}>
-        <div
-          className="font-terminal text-[10px] leading-relaxed rounded px-3 py-2 border shadow-lg"
-          style={{
-            background: showNote && client.hiddenNote ? 'rgba(100,20,20,0.92)' : 'rgba(14,10,8,0.92)',
-            borderColor: showNote && client.hiddenNote ? '#b4473f66' : C.border + '88',
-            color: showNote && client.hiddenNote ? '#fca5a5' : C.text,
-            maxWidth: 200,
-          }}
-        >
-          <div className="text-[9px] uppercase tracking-widest mb-1" style={{ color: C.muted }}>
-            {client.name}{client.isVIP && <span className="ml-1 text-yellow-300">★</span>}
-          </div>
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={lineIdx + (showNote ? 'n' : '')}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              {showNote && client.hiddenNote && <span className="text-red-400 font-bold">[NOTE] </span>}
-              {text}
-            </motion.span>
-          </AnimatePresence>
-        </div>
-        {client.hiddenNote && (
-          <button
-            onClick={() => setShowNote(s => !s)}
-            className="flex items-center gap-1 font-terminal text-[9px] transition-colors px-1"
-            style={{ color: showNote ? '#f87171' : C.muted }}
-          >
-            {showNote ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
-            {showNote ? 'hide note' : 'show note'}
-          </button>
-        )}
-      </div>
-    </motion.div>
-  );
-}
 
 // ─── Physical Memo Paper ─────────────────────────────────────────────────────
 function MemoPaper({ memo, acted, onAct, onDismiss }: {
@@ -806,11 +733,6 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           {/* Stamp animation (centered over desk) */}
           <Stamp type={stampAction} />
 
-          {/* Speech bubble — top-left of desk */}
-          <AnimatePresence>
-            {hasClient && <DeskSpeech key={state.currentClient?.id} client={state.currentClient} />}
-          </AnimatePresence>
-
           {/* Flagged fields hint */}
           {circledFields.size > 0 && hasClient && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
@@ -867,7 +789,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
       </div>
 
       {/* ── BOTTOM ACTION BAR ────────────────────────────────────────────────── */}
-      <div className="shrink-0 h-[68px] flex items-center justify-center gap-4 z-40 px-6"
+      <div className="shrink-0 flex items-center justify-center gap-3 z-40 px-6 py-4"
            style={{ background: '#0d0906', borderTop: `1px solid ${C.border}` }}>
 
         {hasClient ? (
@@ -877,14 +799,14 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               onClick={() => processDecision('APPROVE', circledFields.size)}
               disabled={isDeskDisabled}
               className={cn(
-                'flex items-center gap-2 px-8 h-11 border font-terminal text-sm font-bold uppercase tracking-widest transition-all',
+                'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
                 isDeskDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
               )}
-              style={{ background: C.panel, borderColor: C.green, color: C.text }}
-              onMouseOver={e => { if (!isDeskDisabled) { e.currentTarget.style.background = 'rgba(63,163,92,0.12)'; e.currentTarget.style.color = C.green; } }}
-              onMouseOut={e => { e.currentTarget.style.background = C.panel; e.currentTarget.style.color = C.text; }}
+              style={{ background: C.panel, borderColor: C.green, color: C.green }}
+              onMouseOver={e => { if (!isDeskDisabled) e.currentTarget.style.background = 'rgba(63,163,92,0.15)'; }}
+              onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-5 h-5" />
               Approve
             </button>
 
@@ -893,14 +815,14 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               onClick={() => processDecision('REJECT', circledFields.size)}
               disabled={isDeskDisabled}
               className={cn(
-                'flex items-center gap-2 px-8 h-11 border font-terminal text-sm font-bold uppercase tracking-widest transition-all',
+                'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
                 isDeskDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
               )}
-              style={{ background: C.panel, borderColor: C.red, color: C.text }}
-              onMouseOver={e => { if (!isDeskDisabled) { e.currentTarget.style.background = 'rgba(180,71,63,0.12)'; e.currentTarget.style.color = C.red; } }}
-              onMouseOut={e => { e.currentTarget.style.background = C.panel; e.currentTarget.style.color = C.text; }}
+              style={{ background: C.panel, borderColor: C.red, color: C.red }}
+              onMouseOver={e => { if (!isDeskDisabled) e.currentTarget.style.background = 'rgba(180,71,63,0.15)'; }}
+              onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-5 h-5" />
               Reject
             </button>
 
@@ -909,36 +831,29 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               onClick={() => processDecision('FREEZE', circledFields.size)}
               disabled={isDeskDisabled}
               className={cn(
-                'flex items-center gap-2 px-8 h-11 border font-terminal text-sm font-bold uppercase tracking-widest transition-all',
+                'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
                 isContraband && !isDeskDisabled && 'animate-pulse',
                 isDeskDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
               )}
-              style={{ background: C.panel, borderColor: '#3a6abf', color: C.text }}
-              onMouseOver={e => { if (!isDeskDisabled) { e.currentTarget.style.background = 'rgba(58,106,191,0.12)'; e.currentTarget.style.color = '#7ab0f0'; } }}
-              onMouseOut={e => { e.currentTarget.style.background = C.panel; e.currentTarget.style.color = C.text; }}
+              style={{ background: C.panel, borderColor: '#3a6abf', color: '#7ab0f0' }}
+              onMouseOver={e => { if (!isDeskDisabled) e.currentTarget.style.background = 'rgba(58,106,191,0.15)'; }}
+              onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
             >
-              <Snowflake className="w-4 h-4" />
+              <Snowflake className="w-5 h-5" />
               Freeze
-              {isContraband && <span className="ml-1 text-blue-400 text-[10px]">!</span>}
+              {isContraband && <AlertTriangle className="w-4 h-4 ml-1 text-yellow-400" />}
             </button>
-
-            {circledFields.size > 0 && (
-              <div className="flex items-center gap-1.5 font-terminal text-[10px] ml-2" style={{ color: C.red }}>
-                <AlertTriangle className="w-3.5 h-3.5" />
-                {circledFields.size} circled
-              </div>
-            )}
           </>
         ) : (
           <button
             onClick={canCallNext ? callNextClient : undefined}
             disabled={!canCallNext}
             className={cn(
-              'flex items-center gap-2 px-10 h-11 border font-terminal text-sm font-bold uppercase tracking-widest transition-all',
+              'flex items-center gap-3 px-12 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
               canCallNext ? 'cursor-pointer' : 'opacity-30 cursor-not-allowed',
             )}
             style={{ background: C.panel, borderColor: canCallNext ? C.accent : C.border, color: canCallNext ? C.accent : C.muted }}
-            onMouseOver={e => { if (canCallNext) e.currentTarget.style.background = 'rgba(224,161,27,0.10)'; }}
+            onMouseOver={e => { if (canCallNext) e.currentTarget.style.background = 'rgba(224,161,27,0.12)'; }}
             onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
           >
             {canCallNext ? '▶  Call Next Citizen' : 'Queue Empty — Shift Complete'}
