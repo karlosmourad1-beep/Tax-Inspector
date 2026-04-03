@@ -130,76 +130,105 @@ function QueueThumb({ seed, isVIP, isActive, isDone }: {
 
 // ─── Citation Modal ───────────────────────────────────────────────────────────
 function CitationModal({ log, onContinue }: { log: DailyLog; onContinue: () => void }) {
+  const [flash, setFlash] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setFlash(false), 180);
+    return () => clearTimeout(t);
+  }, []);
+
+  const wrongLabel =
+    log.decision === 'APPROVE' ? 'INNOCENT FILING APPROVED' :
+    log.decision === 'REJECT'  ? 'VALID FILING REJECTED'    :
+                                 'WRONG CALL';
+
+  const shortReason = log.citationReason
+    ? log.citationReason.split('.')[0].replace(/^(The|This|An|A)\s/i, '').trim().toUpperCase()
+    : 'PROCESSING ERROR';
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="absolute inset-0 z-[200] flex items-center justify-center"
-      style={{ background: 'rgba(8,3,2,0.90)', backdropFilter: 'blur(3px)' }}
-    >
+    <>
+      {/* Red screen flash */}
+      {flash && (
+        <div
+          className="absolute inset-0 z-[300] pointer-events-none"
+          style={{ background: 'rgba(180,71,63,0.55)' }}
+        />
+      )}
+
+      {/* Shake + fade-in wrapper */}
       <motion.div
-        initial={{ scale: 0.88, y: 24 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.92, y: 16 }}
-        transition={{ type: 'spring', damping: 22, stiffness: 240 }}
-        className="w-[440px] border-2 flex flex-col"
-        style={{ background: '#140505', borderColor: C.red }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 z-[200] flex items-center justify-center"
+        style={{ background: 'rgba(6,1,1,0.92)', backdropFilter: 'blur(2px)' }}
       >
-        {/* Title bar */}
-        <div className="px-6 py-4 border-b flex items-center gap-3" style={{ borderColor: C.red + '66', background: 'rgba(180,71,63,0.18)' }}>
-          <ShieldAlert className="w-5 h-5 shrink-0" style={{ color: C.red }} />
-          <div>
-            <div className="font-stamped text-lg tracking-widest uppercase" style={{ color: C.red }}>
-              Citation Issued
-            </div>
-            <div className="font-terminal text-[10px] mt-0.5" style={{ color: '#e0a0a0' }}>
-              Ministry of Finance — Internal Affairs
-            </div>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="px-6 py-5 flex flex-col gap-4">
-          <div>
-            <div className="font-terminal text-[10px] uppercase tracking-widest mb-2" style={{ color: C.muted }}>
-              Violation
-            </div>
-            <p className="font-terminal text-sm leading-relaxed" style={{ color: '#f3dfb2' }}>
-              {log.citationReason ?? 'An error was made in processing this filing.'}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 border rounded-sm" style={{ borderColor: C.red + '44', background: 'rgba(180,71,63,0.08)' }}>
-              <div className="font-terminal text-[9px] uppercase tracking-wider mb-1" style={{ color: C.muted }}>Penalty</div>
-              <div className="font-terminal text-xl font-bold" style={{ color: C.red }}>{formatMoney(log.earnings)}</div>
-            </div>
-            <div className="p-3 border rounded-sm" style={{ borderColor: C.red + '44', background: 'rgba(180,71,63,0.08)' }}>
-              <div className="font-terminal text-[9px] uppercase tracking-wider mb-1" style={{ color: C.muted }}>Your Decision</div>
-              <div className="font-terminal text-xl font-bold" style={{ color: C.red }}>{log.decision}</div>
-            </div>
-          </div>
-
-          <div className="font-terminal text-[10px] leading-relaxed p-3 border rounded-sm" style={{ borderColor: '#6f4b1f44', color: '#c9aa7a', background: 'rgba(224,161,27,0.04)' }}>
-            Compare documents carefully before deciding. Use the circle tool to flag suspicious fields.
-          </div>
-        </div>
-
-        {/* Continue */}
-        <div className="px-6 pb-6">
-          <button
-            onClick={onContinue}
-            className="w-full py-3 font-terminal text-sm font-bold uppercase tracking-widest border transition-all"
-            style={{ borderColor: C.red, color: C.text, background: 'rgba(180,71,63,0.14)' }}
-            onMouseOver={e => (e.currentTarget.style.background = 'rgba(180,71,63,0.28)')}
-            onMouseOut={e => (e.currentTarget.style.background = 'rgba(180,71,63,0.14)')}
+        <motion.div
+          initial={{ x: 0 }}
+          animate={{ x: [0, -10, 10, -8, 8, -4, 4, 0] }}
+          transition={{ duration: 0.35, delay: 0.05 }}
+          className="flex flex-col items-center gap-0 w-[380px]"
+        >
+          {/* Title */}
+          <div
+            className="w-full text-center py-3 font-terminal text-xs font-bold uppercase tracking-[0.35em] border-t border-x"
+            style={{ borderColor: C.red, background: 'rgba(180,71,63,0.22)', color: C.red }}
           >
-            Acknowledged — Continue
-          </button>
-        </div>
+            <ShieldAlert className="inline w-3.5 h-3.5 mb-0.5 mr-1.5" />
+            Citation Issued
+          </div>
+
+          {/* Main panel */}
+          <div
+            className="w-full border-2 border-t-0 flex flex-col items-center gap-6 px-8 py-8"
+            style={{ background: '#100202', borderColor: C.red }}
+          >
+            {/* Mistake label */}
+            <div className="text-center">
+              <div className="font-stamped text-2xl tracking-widest uppercase" style={{ color: '#e07070' }}>
+                Wrong Decision
+              </div>
+              <div className="font-terminal text-sm mt-1 uppercase tracking-wider" style={{ color: '#c05050' }}>
+                {wrongLabel}
+              </div>
+            </div>
+
+            {/* Penalty — biggest element */}
+            <div className="flex flex-col items-center gap-1">
+              <div className="font-terminal text-[10px] uppercase tracking-widest" style={{ color: '#7a3030' }}>
+                Penalty
+              </div>
+              <div
+                className="font-stamped leading-none"
+                style={{ fontSize: '5rem', color: C.red, textShadow: `0 0 24px ${C.red}88` }}
+              >
+                {formatMoney(log.earnings)}
+              </div>
+            </div>
+
+            {/* Reason — short, no paragraph */}
+            <div
+              className="w-full text-center font-terminal text-xs uppercase tracking-wider px-4 py-2 border"
+              style={{ borderColor: C.red + '33', color: '#b06060', background: 'rgba(180,71,63,0.06)' }}
+            >
+              {shortReason}
+            </div>
+
+            {/* Button */}
+            <button
+              onClick={onContinue}
+              className="w-full py-3 font-terminal text-sm font-bold uppercase tracking-[0.3em] border transition-all"
+              style={{ borderColor: C.red, color: C.text, background: 'rgba(180,71,63,0.16)' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'rgba(180,71,63,0.32)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'rgba(180,71,63,0.16)')}
+            >
+              Continue
+            </button>
+          </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
+    </>
   );
 }
 
