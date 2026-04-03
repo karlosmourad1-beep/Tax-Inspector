@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameEngine, DAILY_GOALS } from '@/hooks/useGameEngine';
-import { TerminalPanel } from '@/components/workspace/TerminalPanel';
 import { Rulebook } from '@/components/workspace/Rulebook';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
-import { DailyLog, LeakedMemo } from '@/types/game';
+import { DailyLog } from '@/types/game';
+import { fieldGroup } from '@/components/forms/PaperForms';
 import {
   Clock, ShieldAlert, DollarSign, CheckCircle2, XCircle,
-  Snowflake, AlertTriangle, TrendingDown,
+  Snowflake, TrendingDown, FileText, AlertTriangle,
 } from 'lucide-react';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
@@ -127,70 +127,6 @@ function QueueThumb({ seed, isVIP, isActive, isDone }: {
 }
 
 
-// ─── Physical Memo Paper ─────────────────────────────────────────────────────
-function MemoPaper({ memo, acted, onAct, onDismiss }: {
-  memo: LeakedMemo; acted: boolean; onAct: () => void; onDismiss: () => void;
-}) {
-  const [isDragging, setIsDragging] = useState(false);
-  const isDirective = memo.alignmentReward === 'corporate';
-  const bg = isDirective ? '#f0ebe0' : '#fefce8';
-  const borderClr = isDirective ? '#94a3b888' : '#d9770688';
-  const hdrClr = isDirective ? '#374151' : '#92400e';
-
-  return (
-    <motion.div
-      drag dragMomentum={false}
-      onDragStart={() => setIsDragging(true)}
-      onDragEnd={() => setIsDragging(false)}
-      initial={{ x: -360, y: 90, rotate: -5, opacity: 0 }}
-      animate={{ x: 20, y: 90, rotate: isDragging ? -1 : -3, opacity: 1 }}
-      exit={{ x: -360, rotate: -8, opacity: 0 }}
-      transition={{ type: 'spring', damping: 18, stiffness: 160, delay: 0.1 }}
-      whileDrag={{ scale: 1.02, rotate: -1, boxShadow: '0 16px 40px rgba(0,0,0,0.6)' }}
-      style={{ zIndex: 200, background: bg, border: `1px solid ${borderClr}`, position: 'absolute' }}
-      className="cursor-grab active:cursor-grabbing w-[270px] rounded-sm shadow-[4px_8px_28px_rgba(0,0,0,0.55)]"
-    >
-      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-14 h-4 rounded-sm opacity-70"
-           style={{ background: '#fde68a', border: '1px solid #f59e0b' }} />
-      <div className="p-4 flex flex-col gap-2">
-        <div className="border-b pb-2 flex items-start justify-between gap-2"
-             style={{ borderColor: hdrClr + '30', color: hdrClr }}>
-          <div className="font-mono text-[9px]">
-            <div className="text-[10px] font-bold">{memo.classification}</div>
-            <div className="opacity-60 mt-0.5">FROM: {memo.from}</div>
-            <div className="opacity-60">RE: {memo.subject}</div>
-          </div>
-          <button onClick={onDismiss} className="opacity-30 hover:opacity-70 transition-opacity text-sm"
-                  style={{ color: hdrClr }}>✕</button>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {memo.lines.map((line, i) => (
-            <p key={i} className="font-mono text-[10px] leading-snug text-slate-700">{line}</p>
-          ))}
-        </div>
-        <div className="flex gap-2 mt-1">
-          {!acted ? (
-            <>
-              <button onClick={onAct}
-                className="flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-wider rounded border transition-all"
-                style={{ background: isDirective ? '#e2e8f0' : '#fef3c7', border: `1px solid ${isDirective ? '#94a3b8' : '#d97706'}`, color: hdrClr }}>
-                Act (+${memo.bonusIfActed})
-              </button>
-              <button onClick={onDismiss}
-                className="flex-1 py-1.5 text-[9px] font-mono uppercase tracking-wider rounded border border-slate-300 text-slate-500 hover:bg-slate-100 transition-all">
-                Discard
-              </button>
-            </>
-          ) : (
-            <div className="flex-1 py-1.5 text-center text-[9px] font-mono font-bold text-green-700 uppercase tracking-wider border border-green-400/50 rounded bg-green-50">
-              ✓ Intel Noted
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
 // ─── Citation Modal ───────────────────────────────────────────────────────────
 function CitationModal({ log, onContinue }: { log: DailyLog; onContinue: () => void }) {
@@ -484,104 +420,16 @@ function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'
   );
 }
 
-// ─── Day-End Summary ─────────────────────────────────────────────────────────
-function DayEndOverlay({ state, endDay }: {
-  state: ReturnType<typeof useGameEngine>['state'];
-  endDay: () => void;
-}) {
-  const dailyEarnings = state.dailyLogs.reduce((acc, l) => acc + l.earnings, 0);
-  const humanCosts    = state.dailyLogs.filter(l => l.humanCost);
-
-  return (
-    <div className="absolute inset-0 z-50 bg-black/88 backdrop-blur-sm flex items-center justify-center p-6">
-      <TerminalPanel title={`SHIFT END: DAY ${state.day}`} className="w-[520px] max-h-[88vh] border-amber-500 flex flex-col">
-        <div className="flex flex-col gap-4 overflow-y-auto">
-          <h2 className="text-lg text-center font-bold tracking-widest">DAILY PERFORMANCE REPORT</h2>
-
-          <div className="border border-amber-600/30 p-2 text-xs max-h-44 overflow-y-auto">
-            <div className="grid grid-cols-4 border-b border-amber-600/40 pb-1.5 mb-1.5 font-bold opacity-60 uppercase tracking-wider text-[9px]">
-              <span>Citizen</span><span>Action</span><span>Result</span><span className="text-right">Pay</span>
-            </div>
-            {state.dailyLogs.map((log, i) => (
-              <div key={i} className="grid grid-cols-4 py-0.5 border-b border-amber-600/10 last:border-0 text-xs">
-                <span className="opacity-80 truncate">{log.clientName}</span>
-                <span className={log.decision === 'APPROVE' ? 'text-green-400' : log.decision === 'FREEZE' ? 'text-blue-400' : 'text-red-400'}>{log.decision}</span>
-                <span className={log.wasCorrect ? 'text-green-400' : 'text-red-400'}>{log.wasCorrect ? '✓ Correct' : '✗ Error'}</span>
-                <span className="text-right">{formatMoney(log.earnings)}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 bg-amber-500/8 p-4 border border-amber-500/25">
-            <div>
-              <span className="block text-[10px] opacity-50 uppercase tracking-wider mb-1">Daily Earnings</span>
-              <span className={cn("text-2xl font-bold", dailyEarnings >= 0 ? 'text-green-400' : 'text-red-400')}>
-                {formatMoney(dailyEarnings)}
-              </span>
-            </div>
-            <div className="text-right">
-              <span className="block text-[10px] opacity-50 uppercase tracking-wider mb-1">Total Balance</span>
-              <span className="text-2xl font-bold" style={{ color: C.accent }}>{formatMoney(state.money)}</span>
-            </div>
-          </div>
-
-          {(() => {
-            const c = state.dailyLogs.filter(l => l.alignmentShift === 'corporate').length;
-            const w = state.dailyLogs.filter(l => l.alignmentShift === 'whistleblower').length;
-            const s = state.dailyLogs.filter(l => l.alignmentShift === 'survivalist').length;
-            if (c + w + s === 0) return null;
-            return (
-              <div className="border border-amber-600/25 p-3 text-xs">
-                <div className="text-[9px] opacity-40 uppercase tracking-wider mb-2">Alignment Shifts</div>
-                <div className="flex gap-5">
-                  {c > 0 && <span style={{ color: C.accent }}>+{c} Corporate</span>}
-                  {w > 0 && <span className="text-blue-400">+{w} Resistance</span>}
-                  {s > 0 && <span className="text-green-400">+{s} Survivalist</span>}
-                </div>
-              </div>
-            );
-          })()}
-
-          {humanCosts.length > 0 && (
-            <div className="border border-amber-600/25 p-3 text-xs">
-              <div className="text-[9px] opacity-40 uppercase tracking-wider mb-2">Human Cost</div>
-              {humanCosts.map((log, i) => (
-                <div key={i} className="border-l-2 pl-2 py-0.5 mb-1 leading-relaxed"
-                     style={{ borderColor: log.humanCost?.isPositive ? '#22c55e55' : '#ef444455' }}>
-                  <span className="opacity-40 mr-1">{log.clientName}:</span>
-                  <span className={log.humanCost?.isPositive ? 'text-green-400/80' : 'text-red-400/80'}>
-                    {log.humanCost?.impact}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <button onClick={endDay}
-            className="w-full py-3 font-bold text-sm uppercase tracking-widest transition-all"
-            style={{ background: C.accent, color: '#120d0a' }}
-            onMouseOver={e => (e.currentTarget.style.background = '#eab831')}
-            onMouseOut={e => (e.currentTarget.style.background = C.accent)}
-          >
-            {state.day >= 7 ? 'Submit Final Report' : 'Start Next Shift →'}
-          </button>
-        </div>
-      </TerminalPanel>
-    </div>
-  );
-}
 
 // ─── Main Desk Page ──────────────────────────────────────────────────────────
 export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngine> }) {
   const { state, stampAction, processDecision, callNextClient, endDay, actOnMemo, dismissMemo } = engine;
 
-  const [topZIndex, setTopZIndex]     = useState(10);
+  const [topZIndex, setTopZIndex]   = useState(10);
   const [docZIndices, setDocZIndices] = useState<Record<string, number>>({});
-  const [circledFields, setCircledFields] = useState<Set<string>>(new Set());
-  const [crtFlicker, setCRTFlicker]   = useState(false);
+  const [highlightGroup, setHighlightGroup] = useState<{ group: string; value: string } | null>(null);
   const [decisionFeedback, setDecisionFeedback] = useState<DailyLog | null>(null);
   const prevLogCount = useRef(0);
-  const prevMemoId = useRef<string | null>(null);
 
   const processedCount = 4 - state.clientsQueue.length - (state.currentClient ? 1 : 0);
 
@@ -595,23 +443,15 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   }, [state.dailyLogs.length]);
 
   useEffect(() => {
-    const newId = state.activeMemo?.id || null;
-    if (newId && newId !== prevMemoId.current) {
-      setCRTFlicker(true);
-      setTimeout(() => setCRTFlicker(false), 500);
-    }
-    prevMemoId.current = newId;
-  }, [state.activeMemo?.id]);
-
-  useEffect(() => {
     if (state.currentClient) {
       const z: Record<string, number> = {};
       state.currentClient.documents.forEach((d, i) => { z[d.id] = i + 1; });
       setDocZIndices(z);
       setTopZIndex(state.currentClient.documents.length + 1);
-      setCircledFields(new Set());
+      setHighlightGroup(null);
     } else {
       setDocZIndices({});
+      setHighlightGroup(null);
     }
   }, [state.currentClient?.id]);
 
@@ -620,18 +460,21 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     setDocZIndices(prev => ({ ...prev, [id]: topZIndex }));
   };
 
-  const handleCircle = useCallback((key: string) => {
-    setCircledFields(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
+  // Click a field → highlight matching values across all documents
+  const handleFieldClick = useCallback((key: string, value: string) => {
+    const suffix = key.split(':')[1];
+    const group = fieldGroup(suffix);
+    if (!group) return;
+    setHighlightGroup(prev =>
+      prev && prev.group === group && prev.value === value ? null : { group, value }
+    );
   }, []);
 
   const isDeskDisabled = !!stampAction || !state.currentClient;
   const isContraband   = !!state.currentClient?.isContraband;
   const hasClient      = !!state.currentClient;
   const canCallNext    = state.clientsQueue.length > 0;
+  const isDayEnd       = state.status === 'DAY_END';
 
   // Document initial positions — tight, so fields can be compared without dragging
   const DOC_POS = [
@@ -643,7 +486,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
   return (
     <div
-      className={cn('h-screen w-full flex flex-col overflow-hidden transition-all relative', crtFlicker && 'brightness-[1.4]')}
+      className="h-screen w-full flex flex-col overflow-hidden relative"
       style={{ background: C.bg, color: C.text }}
     >
 
@@ -651,7 +494,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
       <div className="shrink-0 z-40 flex items-center justify-between px-5 h-12"
            style={{ background: '#0d0906', borderBottom: `1px solid ${C.border}` }}>
 
-        {/* Left: title + queue strip */}
+        {/* Left: title + queue strip + memo chip */}
         <div className="flex items-center gap-4">
           <span className="font-stamped text-base tracking-widest" style={{ color: C.accent }}>
             TAXES PLEASE
@@ -682,36 +525,48 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               {state.activeEvent.title}
             </div>
           )}
+
+          {/* Inline memo chip — non-blocking, replaces the floating sticky note */}
+          {state.activeMemo && (
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded border font-terminal text-[10px]"
+                 style={{ borderColor: '#d97706aa', background: 'rgba(220,180,30,0.08)', color: '#fcd34d' }}>
+              <FileText className="w-3 h-3 shrink-0" />
+              <span className="max-w-[200px] truncate">{state.activeMemo.subject}</span>
+              {!state.memoActed ? (
+                <>
+                  <button onClick={actOnMemo}
+                    className="ml-1 px-1.5 py-0.5 border rounded text-[9px] font-bold uppercase tracking-wider transition-opacity hover:opacity-80"
+                    style={{ borderColor: '#d97706', color: '#fcd34d', background: 'rgba(220,150,0,0.15)' }}>
+                    Act
+                  </button>
+                  <button onClick={dismissMemo}
+                    className="px-1 text-[10px] opacity-40 hover:opacity-70 transition-opacity">
+                    ✕
+                  </button>
+                </>
+              ) : (
+                <span className="ml-1 text-green-400 text-[9px] font-bold">✓ Noted</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right: stats */}
         <div className="flex items-center gap-5">
-          {/* MONEY — most prominent stat */}
           <div className="flex items-center gap-2 px-3 py-1 border rounded" style={{ borderColor: C.green + '44', background: 'rgba(63,163,92,0.07)' }}>
             <DollarSign className="w-4 h-4" style={{ color: C.green }} />
             <span className="font-terminal text-xl font-bold leading-none" style={{ color: C.green }}>
               {formatMoney(state.money)}
             </span>
           </div>
-
-          {/* Day */}
           <div className="flex items-center gap-1.5 font-terminal text-xs" style={{ color: C.muted }}>
             <Clock className="w-3.5 h-3.5" />
             <span>DAY {state.day}/7</span>
           </div>
-
-          {/* Citations */}
           <div className="flex items-center gap-1.5 font-terminal text-xs" style={{ color: state.citations > 0 ? C.red : C.muted }}>
             <ShieldAlert className="w-3.5 h-3.5" />
-            <span>{state.citations}/5 cit.</span>
+            <span>{state.citations}/5</span>
           </div>
-
-          {/* Flagged fields count */}
-          {circledFields.size > 0 && (
-            <span className="font-terminal text-[10px]" style={{ color: C.red }}>
-              ⊗ {circledFields.size} flagged
-            </span>
-          )}
         </div>
       </div>
 
@@ -733,12 +588,12 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           {/* Stamp animation (centered over desk) */}
           <Stamp type={stampAction} />
 
-          {/* Flagged fields hint */}
-          {circledFields.size > 0 && hasClient && (
+          {/* Highlight hint */}
+          {highlightGroup && hasClient && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-              <div className="font-terminal text-[10px] px-3 py-1 rounded-full uppercase tracking-wider border"
-                   style={{ background: 'rgba(180,71,63,0.25)', borderColor: `${C.red}55`, color: '#fca5a5' }}>
-                {circledFields.size} flagged — reject for +${circledFields.size * 25} bonus
+              <div className="font-terminal text-[11px] px-3 py-1.5 rounded-full uppercase tracking-wider border"
+                   style={{ background: 'rgba(14,10,8,0.85)', borderColor: `${C.accent}55`, color: C.accent }}>
+                Comparing <strong>{highlightGroup.group}</strong> — green = match · red = mismatch
               </div>
             </div>
           )}
@@ -753,7 +608,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             </div>
           )}
 
-          {/* Documents — tighter layout for easy comparison */}
+          {/* Documents */}
           <div className={cn('absolute inset-0 transition-opacity duration-300', isDeskDisabled && 'opacity-40 pointer-events-none')}>
             {state.currentClient?.documents.map((doc, idx) => (
               <DraggablePaper
@@ -763,25 +618,12 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                 initialY={DOC_POS[idx]?.y ?? 60}
                 zIndex={docZIndices[doc.id] || 1}
                 onFocus={() => bringToFront(doc.id)}
-                circledFields={circledFields}
-                onCircle={handleCircle}
+                highlightGroup={highlightGroup}
+                onFieldClick={handleFieldClick}
                 isNew={idx === 0}
               />
             ))}
           </div>
-
-          {/* Memo paper — slides in from left */}
-          <AnimatePresence>
-            {state.activeMemo && (
-              <MemoPaper
-                key={state.activeMemo.id}
-                memo={state.activeMemo}
-                acted={state.memoActed}
-                onAct={actOnMemo}
-                onDismiss={dismissMemo}
-              />
-            )}
-          </AnimatePresence>
         </div>
 
         {/* ── RIGHT PANEL ────────────────────────────────────────────────────── */}
@@ -792,11 +634,21 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
       <div className="shrink-0 flex items-center justify-center gap-3 z-40 px-6 py-4"
            style={{ background: '#0d0906', borderTop: `1px solid ${C.border}` }}>
 
-        {hasClient ? (
+        {isDayEnd ? (
+          <button
+            onClick={endDay}
+            className="flex items-center gap-3 px-12 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest cursor-pointer transition-all"
+            style={{ background: C.panel, borderColor: C.accent, color: C.accent }}
+            onMouseOver={e => { e.currentTarget.style.background = 'rgba(224,161,27,0.12)'; }}
+            onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
+          >
+            {state.day >= 7 ? 'Submit Final Report →' : 'End Shift →'}
+          </button>
+        ) : hasClient ? (
           <>
             {/* Approve */}
             <button
-              onClick={() => processDecision('APPROVE', circledFields.size)}
+              onClick={() => processDecision('APPROVE', 0)}
               disabled={isDeskDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
@@ -812,7 +664,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
             {/* Reject */}
             <button
-              onClick={() => processDecision('REJECT', circledFields.size)}
+              onClick={() => processDecision('REJECT', 0)}
               disabled={isDeskDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
@@ -828,7 +680,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
             {/* Freeze */}
             <button
-              onClick={() => processDecision('FREEZE', circledFields.size)}
+              onClick={() => processDecision('FREEZE', 0)}
               disabled={isDeskDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
@@ -860,9 +712,6 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           </button>
         )}
       </div>
-
-      {/* ── Day-end overlay ──────────────────────────────────────────────────── */}
-      {state.status === 'DAY_END' && <DayEndOverlay state={state} endDay={endDay} />}
 
       {/* ── Decision feedback overlays ───────────────────────────────────────── */}
       <AnimatePresence>

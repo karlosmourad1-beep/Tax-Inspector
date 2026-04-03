@@ -9,21 +9,19 @@ interface DraggablePaperProps {
   initialY: number;
   zIndex: number;
   onFocus: () => void;
-  circledFields: Set<string>;
-  onCircle: (key: string) => void;
+  highlightGroup: { group: string; value: string } | null;
+  onFieldClick: (key: string, value: string) => void;
   isNew?: boolean;
 }
 
-// Derive a stable, deterministic rotation from the doc id so it doesn't
-// re-randomise on every render, but each paper has its own slant.
 function seedRotation(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffffffff;
-  return ((h % 500) / 1000) * (h % 2 === 0 ? 1 : -1); // –0.25 … +0.25 deg
+  return ((h % 500) / 1000) * (h % 2 === 0 ? 1 : -1);
 }
 
 export function DraggablePaper({
-  doc, initialX, initialY, zIndex, onFocus, circledFields, onCircle, isNew = false,
+  doc, initialX, initialY, zIndex, onFocus, highlightGroup, onFieldClick, isNew = false,
 }: DraggablePaperProps) {
   const [isDragging, setIsDragging] = useState(false);
   const rotation = useMemo(() => seedRotation(doc.id), [doc.id]);
@@ -54,7 +52,7 @@ export function DraggablePaper({
       style={{ zIndex }}
       className="absolute cursor-grab active:cursor-grabbing origin-center"
     >
-      <RenderForm doc={doc} circledFields={circledFields} onCircle={onCircle} />
+      <RenderForm doc={doc} highlightGroup={highlightGroup} onFieldClick={onFieldClick} />
     </motion.div>
   );
 }
