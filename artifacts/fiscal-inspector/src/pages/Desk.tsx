@@ -887,6 +887,15 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           />
         )}
       </AnimatePresence>
+
+      {/* ── SKIP DAY BUTTON (testing) ────────────────────────────────────────── */}
+      <button
+        onClick={endDay}
+        className="fixed bottom-4 left-4 px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 text-xs font-terminal uppercase tracking-wider z-50 transition-colors"
+        title="Skip to next day (testing)"
+      >
+        Skip Day →
+      </button>
     </div>
   );
 }
