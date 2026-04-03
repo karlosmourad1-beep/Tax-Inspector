@@ -9,6 +9,7 @@ import MainMenu from "./pages/MainMenu";
 import Desk from "./pages/Desk";
 import EndScreen from "./pages/EndScreen";
 import DayStartScreen from "./pages/DayStartScreen";
+import EveningScreen from "./pages/EveningScreen";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ function GameRouter() {
   if (status === 'TITLE') return <MainMenu engine={engine} />;
   if (status === 'DAY_START') return <DayStartScreen engine={engine} />;
   if (status === 'PLAYING' || status === 'DAY_END') return <Desk engine={engine} />;
+  if (status === 'EVENING') return <EveningScreen engine={engine} />;
   if (status === 'GAME_OVER' || status === 'VICTORY') return <EndScreen engine={engine} />;
   
   return <NotFound />;

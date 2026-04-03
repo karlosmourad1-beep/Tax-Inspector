@@ -3,6 +3,7 @@ import { GameState, DailyLog, AlignmentPath, DecisionType, WorldState } from '..
 import { generateDailyClients } from '../lib/generator';
 import { DAILY_EVENTS, calculateEnding, HUMAN_COSTS } from '../lib/narrative';
 import { pickRandom } from '../lib/utils';
+import { pickEveningEvent, RENT_BY_DAY, foodToMod, MAX_FOOD } from '../lib/eveningEvents';
 import confetti from 'canvas-confetti';
 
 const INITIAL_MONEY = 0;
@@ -54,6 +55,9 @@ export function useGameEngine() {
     activeMemo: null,
     memoActed: false,
     ending: null,
+    food: 3,
+    performanceMod: 1.0,
+    activeEveningEvent: null,
   });
 
   const [stampAction, setStampAction] = useState<DecisionType | null>(null);
@@ -97,6 +101,9 @@ export function useGameEngine() {
       activeMemo: null,
       memoActed: false,
       ending: null,
+      food: 3,
+      performanceMod: 1.0,
+      activeEveningEvent: null,
     }));
   }, []);
 
@@ -218,7 +225,7 @@ export function useGameEngine() {
           alignmentShift = prev.activeMemo.alignmentReward;
         }
 
-        const earnings = Math.round(baseEarnings * wageMult);
+        const earnings = Math.round(baseEarnings * wageMult * prev.performanceMod);
 
         const log: DailyLog = {
           clientId: client.id,
@@ -287,13 +294,78 @@ export function useGameEngine() {
 
   const endDay = useCallback(() => {
     setState(prev => {
+      // Pick an evening event for tonight's resource screen
+      const seed = prev.allTimeLogs.length;
+      const eveningEvent = pickEveningEvent(prev.day, seed);
+      return { ...prev, status: 'EVENING', activeEveningEvent: eveningEvent };
+    });
+  }, []);
+
+  const confirmEvening = useCallback((opts: {
+    extraFood: number;       // additional food bought (0-N)
+    buyBoost: boolean;       // buy performance boost ($40)
+    eventChoiceId?: string;  // id of chosen option (if choice event)
+  }) => {
+    setState(prev => {
+      const { extraFood, buyBoost, eventChoiceId } = opts;
+      const rent = RENT_BY_DAY[prev.day] ?? 60;
+      const foodCost = extraFood * 30;
+      const boostCost = buyBoost ? 40 : 0;
+
+      // Apply auto event or chosen event effect
+      let eventMoneyDelta = 0;
+      let eventFoodDelta  = 0;
+      let eventPerfDelta  = 0;
+      let eventAlignment: AlignmentPath | undefined;
+
+      const evt = prev.activeEveningEvent;
+      if (evt) {
+        if (evt.type === 'auto' && evt.autoEffect) {
+          eventMoneyDelta = evt.autoEffect.moneyDelta;
+          eventFoodDelta  = evt.autoEffect.foodDelta;
+          eventPerfDelta  = evt.autoEffect.perfDelta;
+        } else if (evt.type === 'choice' && eventChoiceId && evt.choices) {
+          const choice = evt.choices.find(c => c.id === eventChoiceId);
+          if (choice) {
+            eventMoneyDelta = choice.moneyDelta;
+            eventFoodDelta  = choice.foodDelta;
+            eventPerfDelta  = choice.perfDelta;
+            eventAlignment  = choice.alignment;
+          }
+        }
+      }
+
+      // Daily food consumption (always -1 ration)
+      const totalFoodDelta = eventFoodDelta + extraFood - 1;
+      const newFood = Math.max(0, Math.min(MAX_FOOD, prev.food + totalFoodDelta));
+      const newMoney = prev.money - rent - foodCost - boostCost + eventMoneyDelta;
+      const boostPerf = buyBoost ? 0.10 : 0;
+      const rawPerf = 1.0 + eventPerfDelta + boostPerf;
+      const newPerfMod = Math.max(0.5, Math.min(1.25, rawPerf)) * foodToMod(newFood);
+
+      const newAlignment = { ...prev.alignment };
+      if (eventAlignment) newAlignment[eventAlignment] += 1;
+
+      // Move to next day
       if (prev.day >= MAX_DAYS) {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-        const ending = calculateEnding(prev.money, prev.citations, prev.alignment, prev.worldState);
-        return { ...prev, status: 'VICTORY', ending };
+        const ending = calculateEnding(newMoney, prev.citations, newAlignment, prev.worldState);
+        return { ...prev, status: 'VICTORY', ending, money: newMoney, food: newFood, performanceMod: newPerfMod, alignment: newAlignment };
       }
+
       const nextDay = prev.day + 1;
-      return { ...prev, day: nextDay, status: 'DAY_START', activeEvent: DAILY_EVENTS[nextDay] || null };
+      return {
+        ...prev,
+        status: 'DAY_START',
+        day: nextDay,
+        money: newMoney,
+        food: newFood,
+        performanceMod: newPerfMod,
+        alignment: newAlignment,
+        activeEvent: DAILY_EVENTS[nextDay] || null,
+        activeEveningEvent: null,
+        dailyLogs: [],
+      };
     });
   }, []);
 
@@ -301,5 +373,5 @@ export function useGameEngine() {
     setState(prev => ({ ...prev, status: 'TITLE' }));
   }, []);
 
-  return { state, stampAction, startGame, startDay, callNextClient, processDecision, actOnMemo, dismissMemo, endDay, returnToMenu };
+  return { state, stampAction, startGame, startDay, callNextClient, processDecision, actOnMemo, dismissMemo, endDay, confirmEvening, returnToMenu };
 }

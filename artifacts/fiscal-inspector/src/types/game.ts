@@ -158,7 +158,27 @@ export interface WorldState {
   megaCorpApproved: boolean;
 }
 
-export type GameStatus = 'TITLE' | 'DAY_START' | 'PLAYING' | 'DAY_END' | 'GAME_OVER' | 'VICTORY';
+export type GameStatus = 'TITLE' | 'DAY_START' | 'PLAYING' | 'DAY_END' | 'EVENING' | 'GAME_OVER' | 'VICTORY';
+
+export interface EveningEventChoice {
+  id: string;
+  label: string;
+  description: string;
+  moneyDelta: number;
+  foodDelta: number;
+  perfDelta: number;
+  alignment?: AlignmentPath;
+}
+
+export interface EveningEvent {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  type: 'auto' | 'choice';
+  autoEffect?: { moneyDelta: number; foodDelta: number; perfDelta: number; label: string };
+  choices?: EveningEventChoice[];
+}
 
 export interface EndingData {
   id: string;
@@ -184,4 +204,7 @@ export interface GameState {
   activeMemo: LeakedMemo | null;
   memoActed: boolean;
   ending: EndingData | null;
+  food: number;
+  performanceMod: number;
+  activeEveningEvent: EveningEvent | null;
 }
