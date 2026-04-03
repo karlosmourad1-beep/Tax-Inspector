@@ -59,9 +59,9 @@ function EnvelopeSVG({ client }: { client: Client }) {
         {/* Main stamp */}
         {!hasBribe && (
           <>
-            <rect x="98" y="82" width="124" height="42" rx="3" fill="none" stroke="#6b0000" strokeWidth="2.5" />
-            <text x="160" y="99" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="9" fontWeight="bold" fill="#6b0000">MINISTRY</text>
-            <text x="160" y="114" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="8" fill="#6b0000">
+            <rect x="88" y="72" width="144" height="56" rx="3" fill="none" stroke="#6b0000" strokeWidth="3" />
+            <text x="160" y="98" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="14" fontWeight="bold" fill="#6b0000">MINISTRY</text>
+            <text x="160" y="118" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="11" fill="#6b0000">
               {isVIP ? 'PRIORITY INTAKE' : 'STANDARD INTAKE'}
             </text>
           </>
@@ -71,31 +71,31 @@ function EnvelopeSVG({ client }: { client: Client }) {
         {hasBribe && (
           <>
             {/* Cash edge peeking from flap */}
-            <rect x="118" y="4" width="84" height="16" rx="2" fill="#3a6a20" opacity="0.9" />
-            <text x="160" y="15" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="7" fill="#a0d070">¢ ¢ ¢</text>
+            <rect x="108" y="2" width="104" height="20" rx="2" fill="#3a6a20" opacity="0.9" />
+            <text x="160" y="17" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="10" fill="#a0d070" fontWeight="bold">¢ ¢ ¢</text>
             {/* Confidential stamp */}
-            <rect x="78" y="80" width="164" height="46" rx="3" fill="none" stroke="#7a3a00" strokeWidth="2.5" />
-            <text x="160" y="99" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="9" fontWeight="bold" fill="#7a3a00">CONFIDENTIAL</text>
-            <text x="160" y="115" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="7" fill="#7a3a00">SEALED — DO NOT OPEN</text>
+            <rect x="68" y="68" width="184" height="60" rx="3" fill="none" stroke="#7a3a00" strokeWidth="3" />
+            <text x="160" y="98" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="14" fontWeight="bold" fill="#7a3a00">CONFIDENTIAL</text>
+            <text x="160" y="119" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="10" fill="#7a3a00">SEALED — DO NOT OPEN</text>
           </>
         )}
 
         {/* Recurring — blue return stamp */}
         {isRecurring && !isVIP && (
           <>
-            <rect x="208" y="66" width="92" height="30" rx="3" fill="none" stroke="#3a6abf" strokeWidth="2" transform="rotate(-9,254,81)" />
-            <text x="254" y="78" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="7.5" fill="#6aabf0" transform="rotate(-9,254,78)">RETURN</text>
-            <text x="254" y="91" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="6.5" fill="#6aabf0" transform="rotate(-9,254,91)">CASE</text>
+            <rect x="200" y="62" width="108" height="36" rx="3" fill="none" stroke="#3a6abf" strokeWidth="2.5" transform="rotate(-9,254,80)" />
+            <text x="254" y="79" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="11" fontWeight="bold" fill="#6aabf0" transform="rotate(-9,254,79)">RETURN</text>
+            <text x="254" y="93" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="10" fill="#6aabf0" transform="rotate(-9,254,93)">CASE</text>
           </>
         )}
 
         {/* Postage box */}
-        <rect x="240" y="8" width="68" height="48" rx="2" fill="none" stroke={darkColor} strokeWidth="0.8" opacity="0.45" />
-        <text x="274" y="22" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="6" fill={darkColor} opacity="0.5">M.O.F.</text>
-        <text x="274" y="34" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="6" fill={darkColor} opacity="0.5">POSTMARK</text>
+        <rect x="235" y="6" width="76" height="54" rx="2" fill="none" stroke={darkColor} strokeWidth="1" opacity="0.45" />
+        <text x="273" y="22" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="8" fill={darkColor} opacity="0.5">M.O.F.</text>
+        <text x="273" y="36" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="8" fill={darkColor} opacity="0.5">POSTMARK</text>
 
         {/* Case number */}
-        <text x="14" y="198" fontFamily='"Courier New",monospace' fontSize="7" fill={darkColor} opacity="0.45">
+        <text x="14" y="198" fontFamily='"Courier New",monospace' fontSize="9" fill={darkColor} opacity="0.45">
           CASE NO. {client.id.slice(0, 12).toUpperCase()}
         </text>
       </svg>
