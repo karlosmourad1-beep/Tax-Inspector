@@ -78,7 +78,8 @@ export type FraudType =
   | 'money_laundering'
   | 'offshore_accounts'
   | 'insider_trading'
-  | 'shell_company_legal';
+  | 'shell_company_legal'
+  | 'bribe_attempt';
 
 export type DecisionType = 'APPROVE' | 'REJECT' | 'FREEZE';
 
@@ -151,6 +152,8 @@ export interface Client {
   recurringId?: RecurringCharId;
   disguise?: DisguiseType;
   appearanceNumber?: number;
+  hasBribe?: boolean;
+  brideAmount?: number;
 }
 
 export interface DailyLog {
@@ -166,6 +169,8 @@ export interface DailyLog {
   fraudType?: FraudType;
   isVIP?: boolean;
   recurringId?: RecurringCharId;
+  hasBribe?: boolean;
+  brideAmount?: number;
 }
 
 export interface WorldState {

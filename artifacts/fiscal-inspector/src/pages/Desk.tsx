@@ -5,7 +5,7 @@ import { Rulebook } from '@/components/workspace/Rulebook';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
-import { DailyLog } from '@/types/game';
+import { DailyLog, Client } from '@/types/game';
 import { fieldGroup } from '@/components/forms/PaperForms';
 import {
   Clock, ShieldAlert, DollarSign, CheckCircle2, XCircle,
@@ -24,6 +24,94 @@ const C = {
   text:   '#f3dfb2',
   desk:   'linear-gradient(170deg, #251a12 0%, #1a110c 100%)',
 };
+
+// ─── Envelope SVG (physical envelope animation) ──────────────────────────────
+function EnvelopeSVG({ client }: { client: Client }) {
+  const isVIP      = client.isVIP;
+  const hasBribe   = !!client.hasBribe;
+  const isRecurring = !!client.recurringId;
+
+  const baseColor  = isVIP ? '#c8b455' : hasBribe ? '#b89040' : '#c2a050';
+  const darkColor  = isVIP ? '#9a8028' : hasBribe ? '#8a6a28' : '#8a7030';
+  const lightColor = isVIP ? '#e0cc78' : hasBribe ? '#d4b058' : '#d4b860';
+
+  return (
+    <div style={{ position: 'relative', userSelect: 'none' }}>
+      <svg viewBox="0 0 320 210" width={320} height={210} style={{ display: 'block', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.7))' }}>
+        {/* Body */}
+        <rect x="0" y="30" width="320" height="180" rx="5" fill={baseColor} />
+
+        {/* Side triangles */}
+        <polygon points="0,30 160,132 320,30" fill={darkColor} opacity="0.55" />
+        <polygon points="0,210 160,132 320,210" fill={lightColor} opacity="0.35" />
+        <line x1="0" y1="30" x2="160" y2="132" stroke={darkColor} strokeWidth="0.7" opacity="0.5" />
+        <line x1="320" y1="30" x2="160" y2="132" stroke={darkColor} strokeWidth="0.7" opacity="0.5" />
+
+        {/* Top flap */}
+        <polygon points="0,30 160,132 320,30 320,0 0,0" fill={baseColor} />
+        <line x1="0" y1="30" x2="320" y2="30" stroke={darkColor} strokeWidth="0.9" opacity="0.55" />
+
+        {/* VIP gold border trim */}
+        {isVIP && (
+          <rect x="2" y="2" width="316" height="206" rx="4" fill="none" stroke="#c8a800" strokeWidth="2.5" />
+        )}
+
+        {/* Main stamp */}
+        {!hasBribe && (
+          <>
+            <rect x="98" y="82" width="124" height="42" rx="3" fill="none" stroke="#6b0000" strokeWidth="2.5" />
+            <text x="160" y="99" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="9" fontWeight="bold" fill="#6b0000">MINISTRY</text>
+            <text x="160" y="114" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="8" fill="#6b0000">
+              {isVIP ? 'PRIORITY INTAKE' : 'STANDARD INTAKE'}
+            </text>
+          </>
+        )}
+
+        {/* Bribe cues */}
+        {hasBribe && (
+          <>
+            {/* Cash edge peeking from flap */}
+            <rect x="118" y="4" width="84" height="16" rx="2" fill="#3a6a20" opacity="0.9" />
+            <text x="160" y="15" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="7" fill="#a0d070">¢ ¢ ¢</text>
+            {/* Confidential stamp */}
+            <rect x="78" y="80" width="164" height="46" rx="3" fill="none" stroke="#7a3a00" strokeWidth="2.5" />
+            <text x="160" y="99" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="9" fontWeight="bold" fill="#7a3a00">CONFIDENTIAL</text>
+            <text x="160" y="115" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="7" fill="#7a3a00">SEALED — DO NOT OPEN</text>
+          </>
+        )}
+
+        {/* Recurring — blue return stamp */}
+        {isRecurring && !isVIP && (
+          <>
+            <rect x="208" y="66" width="92" height="30" rx="3" fill="none" stroke="#3a6abf" strokeWidth="2" transform="rotate(-9,254,81)" />
+            <text x="254" y="78" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="7.5" fill="#6aabf0" transform="rotate(-9,254,78)">RETURN</text>
+            <text x="254" y="91" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="6.5" fill="#6aabf0" transform="rotate(-9,254,91)">CASE</text>
+          </>
+        )}
+
+        {/* Postage box */}
+        <rect x="240" y="8" width="68" height="48" rx="2" fill="none" stroke={darkColor} strokeWidth="0.8" opacity="0.45" />
+        <text x="274" y="22" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="6" fill={darkColor} opacity="0.5">M.O.F.</text>
+        <text x="274" y="34" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="6" fill={darkColor} opacity="0.5">POSTMARK</text>
+
+        {/* Case number */}
+        <text x="14" y="198" fontFamily='"Courier New",monospace' fontSize="7" fill={darkColor} opacity="0.45">
+          CASE NO. {client.id.slice(0, 12).toUpperCase()}
+        </text>
+      </svg>
+
+      {/* Click prompt */}
+      <div style={{
+        position: 'absolute', bottom: -30, left: 0, right: 0, textAlign: 'center',
+        fontFamily: '"Courier New",monospace', fontSize: 10,
+        color: C.accent, letterSpacing: '0.22em', opacity: 0.7,
+        textTransform: 'uppercase',
+      }}>
+        Click to open case
+      </div>
+    </div>
+  );
+}
 
 // ─── Portrait palettes (all desaturated) ────────────────────────────────────
 const SKINS  = ['#c9aa8a','#b59070','#9e7a58','#8a6445','#6b4a32','#d5c5a8','#a88a68','#7a5a3e'];
@@ -218,8 +306,9 @@ function CitationModal({ log, onContinue }: { log: DailyLog; onContinue: () => v
   }, []);
 
   const wrongLabel =
-    log.decision === 'APPROVE' ? 'INNOCENT FILING APPROVED' :
-    log.decision === 'REJECT'  ? 'VALID FILING REJECTED'    :
+    log.hasBribe && log.decision === 'APPROVE' ? 'BRIBE ACCEPTED — FRAUD APPROVED' :
+    log.decision === 'APPROVE' ? 'FRAUDULENT FILING APPROVED' :
+    log.decision === 'REJECT'  ? 'VALID FILING REJECTED'      :
                                  'WRONG CALL';
 
   const shortReason = log.citationReason
@@ -349,7 +438,7 @@ function CorrectFlash({ log, onDone }: { log: DailyLog; onDone: () => void }) {
 // ─── Fraud types that trigger escalation report ──────────────────────────────
 const MAJOR_FRAUD_TYPES = new Set([
   'money_laundering', 'offshore_accounts', 'insider_trading',
-  'capital_gains_misclass', 'shell_company_legal',
+  'capital_gains_misclass', 'shell_company_legal', 'bribe_attempt',
 ]);
 const isMajorFraudLog = (log: DailyLog) =>
   log.wasCorrect && (log.decision === 'FREEZE' || (log.decision === 'REJECT' && MAJOR_FRAUD_TYPES.has(log.fraudType ?? '')));
@@ -360,6 +449,7 @@ const FRAUD_LABELS: Record<string, string> = {
   insider_trading:         'Insider Trading',
   capital_gains_misclass:  'Capital Gains Misclassification',
   shell_company_legal:     'Shell Company — Regulatory Violation',
+  bribe_attempt:           'Bribery Attempt',
   name_mismatch:           'Identity Falsification',
   ssn_mismatch:            'SSN Fraud',
   w2_mismatch:             'Income Misreporting',
@@ -374,6 +464,7 @@ const FREEZE_OUTCOMES: Record<string, string> = {
   insider_trading:        'Trading records impounded. Securities Enforcement Division notified. Account access suspended.',
   capital_gains_misclass: 'Portfolio records seized. Tax liability recalculated and back-taxes levied.',
   shell_company_legal:    'Corporate accounts frozen. Regulatory compliance audit initiated. Board subpoenaed.',
+  bribe_attempt:          'Cash seized. Filing frozen. Bribery report filed with Ministry Internal Affairs. Criminal case opened against the filer.',
 };
 const REJECT_OUTCOMES: Record<string, string> = {
   money_laundering:       'Filing rejected. Evidence packet forwarded to Financial Intelligence Unit for further review.',
@@ -563,10 +654,11 @@ function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'
 export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngine> }) {
   const { state, stampAction, processDecision, callNextClient, endDay, actOnMemo, dismissMemo } = engine;
 
-  const [topZIndex, setTopZIndex]   = useState(10);
+  const [topZIndex, setTopZIndex]     = useState(10);
   const [docZIndices, setDocZIndices] = useState<Record<string, number>>({});
   const [highlightGroup, setHighlightGroup] = useState<{ group: string; value: string } | null>(null);
   const [decisionFeedback, setDecisionFeedback] = useState<DailyLog | null>(null);
+  const [envelopePhase, setEnvelopePhase] = useState<'sealed' | 'opening' | 'open'>('open');
   const prevLogCount = useRef(0);
 
   const processedCount = 4 - state.clientsQueue.length - (state.currentClient ? 1 : 0);
@@ -582,16 +674,24 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
   useEffect(() => {
     if (state.currentClient) {
+      setEnvelopePhase('sealed');
       const z: Record<string, number> = {};
       state.currentClient.documents.forEach((d, i) => { z[d.id] = i + 1; });
       setDocZIndices(z);
       setTopZIndex(state.currentClient.documents.length + 1);
       setHighlightGroup(null);
     } else {
+      setEnvelopePhase('open');
       setDocZIndices({});
       setHighlightGroup(null);
     }
   }, [state.currentClient?.id]);
+
+  const handleEnvelopeClick = useCallback(() => {
+    if (envelopePhase !== 'sealed') return;
+    setEnvelopePhase('opening');
+    setTimeout(() => setEnvelopePhase('open'), 680);
+  }, [envelopePhase]);
 
   const bringToFront = (id: string) => {
     setTopZIndex(z => z + 1);
@@ -608,7 +708,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     );
   }, []);
 
-  const isDeskDisabled = !!stampAction || !state.currentClient;
+  const isDeskDisabled = !!stampAction || !state.currentClient || envelopePhase !== 'open';
   const isContraband   = !!state.currentClient?.isContraband;
   const hasClient      = !!state.currentClient;
   const canCallNext    = state.clientsQueue.length > 0;
@@ -759,7 +859,14 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           )}
 
           {/* Documents */}
-          <div className={cn('absolute inset-0 transition-opacity duration-300', isDeskDisabled && 'opacity-40 pointer-events-none')}>
+          <div className={cn(
+            'absolute inset-0 transition-opacity duration-500',
+            envelopePhase !== 'open'
+              ? 'opacity-0 pointer-events-none'
+              : isDeskDisabled
+                ? 'opacity-40 pointer-events-none'
+                : 'opacity-100',
+          )}>
             {state.currentClient?.documents.map((doc, idx) => (
               <DraggablePaper
                 key={state.currentClient!.id + doc.id}
@@ -774,6 +881,39 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               />
             ))}
           </div>
+
+          {/* ── Envelope overlay ──────────────────────────────────────────────── */}
+          <AnimatePresence>
+            {state.currentClient && envelopePhase !== 'open' && (
+              <motion.div
+                key="envelope-bg"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="absolute inset-0 z-30 flex items-center justify-center"
+                style={{ background: 'rgba(8,5,3,0.78)', cursor: 'pointer' }}
+                onClick={handleEnvelopeClick}
+              >
+                <motion.div
+                  initial={{ x: 480, rotate: 12, opacity: 0 }}
+                  animate={{
+                    x:       envelopePhase === 'opening' ? -700 : 0,
+                    y:       envelopePhase === 'opening' ? -130 : 0,
+                    rotate:  envelopePhase === 'opening' ? -22  : 2,
+                    opacity: envelopePhase === 'opening' ? 0    : 1,
+                  }}
+                  transition={{
+                    type:      'spring',
+                    stiffness: envelopePhase === 'opening' ? 340 : 180,
+                    damping:   envelopePhase === 'opening' ? 30  : 22,
+                  }}
+                >
+                  <EnvelopeSVG client={state.currentClient} />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* ── RIGHT PANEL ────────────────────────────────────────────────────── */}

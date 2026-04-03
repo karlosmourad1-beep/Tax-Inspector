@@ -24,6 +24,15 @@ const SUSPECT_EXPENSE_CATEGORIES = [
   { description: "Personal Vehicle (100%)", pct: 0.15, isSuspect: true },
 ];
 
+const BRIBE_SMALL_TALK: string[][] = [
+  ["Take your time reviewing those.", "I'm a patient person."],
+  ["My previous filing officer was very... efficient.", "I hope you're equally professional."],
+  ["I included some additional correspondence.", "Consider it a courtesy — for your time."],
+  ["Is there somewhere private we could discuss this?", "Never mind. Just look carefully at the full submission."],
+  ["A colleague recommended this specific desk.", "Said the clerk here was very understanding."],
+  ["I'm not nervous, I just run warm.", "Look through everything carefully."],
+];
+
 const SMALL_TALK: string[][] = [
   ["Morning. Hope this is quick.", "I got a dentist appointment after this."],
   ["These forms took me all weekend.", "Coffee machine at work broke again too. Rough week."],
@@ -137,6 +146,8 @@ export function generateClient(day: number, idPrefix: string): Client {
   let expectedDecision: DecisionType = 'APPROVE';
   let hiddenNote: string | undefined;
   let finalExpense = expenseDoc;
+  let hasBribe = false;
+  let brideAmountVal = 0;
 
   if (isContraband) {
     fraudType = pickRandom(['money_laundering','offshore_accounts','insider_trading'] as FraudType[]);
@@ -186,6 +197,15 @@ export function generateClient(day: number, idPrefix: string): Client {
     }
   }
 
+  // Bribery: ~22% of non-contraband fraud cases from day 2 become bribe attempts
+  if (!isContraband && isFraud && day >= 2 && Math.random() < 0.22) {
+    hasBribe = true;
+    brideAmountVal = randomInt(3, 11) * 20; // ¢60–¢220
+    fraudType = 'bribe_attempt';
+    expectedDecision = 'FREEZE';
+    hiddenNote = `Inside the filing envelope: a sealed inner sleeve containing ¢${brideAmountVal} in cash. Handwritten note: "For your understanding. No record necessary."`;
+  }
+
   const documents: AnyDocument[] = [idDoc, taxDoc];
   if (day >= 2) documents.push(w2Doc);
   if (day >= 3) documents.push(finalExpense);
@@ -226,11 +246,17 @@ export function generateClient(day: number, idPrefix: string): Client {
 
   return {
     id: idPrefix, name: trueName, avatarSeed,
-    smallTalk: pickRandom(SMALL_TALK),
-    documents, isFraud, fraudType, isContraband, isVIP: false,
+    smallTalk: hasBribe ? pickRandom(BRIBE_SMALL_TALK) : pickRandom(SMALL_TALK),
+    documents, isFraud, fraudType,
+    isContraband: isContraband || hasBribe,
+    isVIP: false,
     hiddenNote, leakedMemo, expectedDecision,
+    hasBribe: hasBribe || undefined,
+    brideAmount: brideAmountVal || undefined,
     humanCostIfApproved: isFraud
-      ? "Fraudulent claim approved. Tax burden shifts to honest filers."
+      ? hasBribe
+        ? "Bribe accepted. Fraudulent filing cleared. The Ministry has been compromised."
+        : "Fraudulent claim approved. Tax burden shifts to honest filers."
       : "Clean approval. No downstream impact.",
     humanCostIfRejected: isFraud
       ? "Correct rejection. Filing flagged for secondary review."

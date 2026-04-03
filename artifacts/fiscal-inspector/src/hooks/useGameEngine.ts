@@ -61,6 +61,7 @@ const FRAUD_REASONS: Record<string, string> = {
   offshore_accounts:      'Undeclared offshore income detected — unreported assets.',
   insider_trading:        'Trading pattern on Schedule D suggests insider knowledge.',
   shell_company_legal:    'Shell company structure flagged — legal but requires review.',
+  bribe_attempt:          'Bribery detected — cash found inside filing. Must be frozen and reported.',
 };
 
 const INITIAL_WORLD: WorldState = {
@@ -280,6 +281,22 @@ export function useGameEngine() {
           }
         }
 
+        // ── Bribery overrides ──────────────────────────────────────────────────
+        if (client.hasBribe) {
+          if (!isCorrect && decision === 'APPROVE') {
+            // Player pockets the bribe — override to positive earnings, still cited
+            baseEarnings    = client.brideAmount ?? 100;
+            citationsAdded  = 1;
+            alignmentShift  = 'survivalist';
+            humanCostMsg    = "Bribe accepted. Fraudulent filing cleared without scrutiny. The Ministry has been compromised.";
+            citationReason  = `Bribery: ¢${client.brideAmount} accepted. Fraudulent filing approved without audit.`;
+          } else if (isCorrect && decision === 'FREEZE') {
+            // Extra reward for reporting bribery
+            baseEarnings  += 80;
+            humanCostMsg   = "Bribery reported and cash seized. Criminal case opened against the filer.";
+          }
+        }
+
         if (prev.memoActed && prev.activeMemo && decision === prev.activeMemo.suggestedAction && isCorrect) {
           baseEarnings += prev.activeMemo.bonusIfActed;
           alignmentShift = prev.activeMemo.alignmentReward;
@@ -302,6 +319,8 @@ export function useGameEngine() {
           fraudType:   client.fraudType,
           isVIP:       client.isVIP,
           recurringId: client.recurringId,
+          hasBribe:    client.hasBribe,
+          brideAmount: client.brideAmount,
         };
 
         const newCitations = prev.citations + citationsAdded;
