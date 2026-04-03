@@ -6,186 +6,32 @@ import { Rulebook } from '@/components/workspace/Rulebook';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
-import { Client, LeakedMemo, DecisionType } from '@/types/game';
+import { Client, LeakedMemo } from '@/types/game';
 import {
   Clock, ShieldAlert, DollarSign, CheckCircle2, XCircle, Users,
   Snowflake, AlertTriangle, Eye, EyeOff, TrendingDown,
 } from 'lucide-react';
 
-// ─── Desk Lamp ─────────────────────────────────────────────────────────────────
-function DeskLamp() {
-  return (
-    <div className="absolute top-0 right-5 pointer-events-none z-10 select-none" aria-hidden>
-      {/* Ambient glow cone radiating from bulb downward */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          top: 62, right: -10,
-          width: 180, height: 130,
-          background: 'radial-gradient(ellipse 70% 60% at 50% 0%, rgba(253,230,100,0.13) 0%, transparent 80%)',
-          transform: 'rotate(-5deg)',
-        }}
-      />
-      <svg width="90" height="130" viewBox="0 0 90 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Base plate */}
-        <ellipse cx="45" cy="125" rx="24" ry="5" fill="#0f0a04" />
-        <rect x="32" y="118" width="26" height="8" rx="3" fill="#1a1208" />
-        {/* Vertical pole */}
-        <rect x="42" y="68" width="6" height="52" rx="3" fill="#231a0a" />
-        {/* Elbow joint */}
-        <circle cx="45" cy="68" r="6" fill="#2e2010" />
-        {/* Diagonal arm */}
-        <rect x="43" y="28" width="5" height="44" rx="2.5" fill="#231a0a"
-          transform="rotate(12 45 68)" />
-        {/* Shade — outer dark green */}
-        <path d="M12 30 Q45 8 78 30 L68 65 Q45 74 22 65 Z" fill="#14380e" stroke="#0a2208" strokeWidth="1.5" />
-        {/* Shade — inner lighter green */}
-        <path d="M16 31 Q45 12 74 31 L65 63 Q45 71 25 63 Z" fill="#1c4e14" opacity="0.7" />
-        {/* Shade rim highlight */}
-        <path d="M12 30 Q45 8 78 30" stroke="#2d6a1e" strokeWidth="1.5" fill="none" opacity="0.6" />
-        {/* Bottom rim */}
-        <path d="M22 65 Q45 74 68 65" stroke="#0a2208" strokeWidth="2" fill="none" />
-        {/* Bulb glow */}
-        <ellipse cx="45" cy="56" rx="10" ry="7" fill="#fde68a" opacity="0.95" />
-        <ellipse cx="45" cy="56" rx="18" ry="12" fill="#fde68a" opacity="0.12" />
-        <ellipse cx="45" cy="56" rx="26" ry="18" fill="#fbbf24" opacity="0.05" />
-        {/* Bolt on arm */}
-        <circle cx="47" cy="30" r="3" fill="#1a1208" />
-      </svg>
-    </div>
-  );
-}
+// ─── Palette ────────────────────────────────────────────────────────────────
+const C = {
+  bg:     '#120d0a',
+  panel:  '#1b1410',
+  border: '#6f4b1f',
+  accent: '#e0a11b',
+  muted:  '#9c6b12',
+  green:  '#3fa35c',
+  red:    '#b4473f',
+  text:   '#f3dfb2',
+  desk:   'linear-gradient(160deg, #2a1d16 0%, #1e1510 100%)',
+};
 
-// ─── Steaming Coffee Mug ────────────────────────────────────────────────────────
-function CoffeeMug() {
-  return (
-    <div className="absolute bottom-24 left-4 pointer-events-none z-10 select-none flex flex-col items-center" aria-hidden>
-      {/* Steam wisps */}
-      <div className="relative flex gap-2.5 justify-center mb-0.5" style={{ height: 28 }}>
-        {[
-          { delay: 0,   height: 18, x: -2 },
-          { delay: 0.5, height: 24, x:  0 },
-          { delay: 0.9, height: 16, x:  2 },
-        ].map((s, i) => (
-          <motion.div
-            key={i}
-            style={{ width: 3, height: s.height, x: s.x, borderRadius: 99 }}
-            className="bg-amber-300/30"
-            animate={{
-              y: [0, -14, 0],
-              opacity: [0.0, 0.45, 0.0],
-              scaleX: [1, 1.8, 1],
-              rotate: [0, i % 2 === 0 ? 8 : -8, 0],
-            }}
-            transition={{ duration: 2.2, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
-          />
-        ))}
-      </div>
-      {/* Mug */}
-      <svg width="58" height="62" viewBox="0 0 58 62" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Shadow */}
-        <ellipse cx="28" cy="59" rx="20" ry="4" fill="#000" opacity="0.35" />
-        {/* Body */}
-        <path d="M9 16 L11 54 Q28 58 46 54 L48 16 Z" fill="#1c1409" />
-        {/* Body highlight */}
-        <path d="M10 16 L12 52 Q20 55 20 52 L18 16 Z" fill="#2a1f0e" opacity="0.4" />
-        {/* Top rim */}
-        <ellipse cx="28" cy="16" rx="20" ry="5.5" fill="#2a1e0c" stroke="#3d2d12" strokeWidth="1" />
-        {/* Coffee surface */}
-        <ellipse cx="28" cy="17" rx="17.5" ry="4.5" fill="#2e1306" />
-        <ellipse cx="26" cy="16.5" rx="8" ry="2" fill="#3d1a08" opacity="0.5" />
-        {/* Handle */}
-        <path d="M46 22 Q60 26 60 36 Q60 46 46 50" stroke="#2a1e0c" strokeWidth="5" fill="none" strokeLinecap="round" />
-        <path d="M46 23 Q57 27 57 36 Q57 45 46 49" stroke="#1c1409" strokeWidth="3" fill="none" strokeLinecap="round" />
-        {/* "MINISTRY" label */}
-        <rect x="14" y="30" width="28" height="10" rx="1" fill="#0f0a04" opacity="0.4" />
-        <text x="16" y="39" fill="#5a3d18" fontSize="6.5" fontFamily="monospace" fontWeight="bold" letterSpacing="0.5">MINISTRY</text>
-        {/* Bottom band */}
-        <path d="M11 50 Q28 55 46 50 L46 54 Q28 58 11 54 Z" fill="#0f0a04" opacity="0.5" />
-      </svg>
-    </div>
-  );
-}
-
-// ─── Pen & Pencil Cup ──────────────────────────────────────────────────────────
-function PenCup() {
-  return (
-    <div className="absolute top-4 left-4 pointer-events-none z-10 select-none" aria-hidden>
-      <svg width="48" height="70" viewBox="0 0 48 70" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Shadow */}
-        <ellipse cx="24" cy="67" rx="14" ry="3.5" fill="#000" opacity="0.35" />
-        {/* Cup body */}
-        <path d="M8 28 L10 60 Q24 65 38 60 L40 28 Z" fill="#1a1208" stroke="#2d1f0c" strokeWidth="1" />
-        {/* Cup top rim */}
-        <ellipse cx="24" cy="28" rx="16" ry="4.5" fill="#2d2010" stroke="#3d2d14" strokeWidth="1" />
-        {/* Pencil 1 — yellow */}
-        <rect x="13" y="2" width="4" height="30" rx="1.5" fill="#c8920a" />
-        <polygon points="13,2 17,2 15,0" fill="#e8b012" />
-        <rect x="13" y="2" width="4" height="3" fill="#e8b012" opacity="0.5" />
-        <polygon points="13,30 17,30 15,36" fill="#f5deb3" />
-        <polygon points="14.5,34 15.5,34 15,36" fill="#1a1208" />
-        {/* Pen 2 — dark with clip */}
-        <rect x="20" y="1" width="3.5" height="32" rx="1.5" fill="#2a2a2a" />
-        <rect x="20" y="1" width="3.5" height="4" rx="1" fill="#888" />
-        <rect x="20.5" y="0" width="1.5" height="6" rx="0.5" fill="#aaa" />
-        <polygon points="20,33 23.5,33 21.75,38" fill="#2a2a2a" />
-        {/* Red pen 3 */}
-        <rect x="27" y="4" width="3.5" height="28" rx="1.5" fill="#7f1d1d" />
-        <rect x="27" y="4" width="3.5" height="4" rx="1" fill="#b91c1c" />
-        <polygon points="27,32 30.5,32 28.75,37" fill="#7f1d1d" />
-        {/* Ruler sticking out */}
-        <rect x="33" y="3" width="3" height="26" rx="0.5" fill="#8B7355" />
-        <rect x="33.5" y="5" width="2" height="1" rx="0.3" fill="#5D4E37" />
-        <rect x="33.5" y="9" width="2" height="1" rx="0.3" fill="#5D4E37" />
-        <rect x="33.5" y="13" width="2" height="1" rx="0.3" fill="#5D4E37" />
-        <rect x="33.5" y="17" width="2" height="1" rx="0.3" fill="#5D4E37" />
-        <rect x="33.5" y="21" width="2" height="1" rx="0.3" fill="#5D4E37" />
-      </svg>
-    </div>
-  );
-}
-
-// ─── Ashtray ────────────────────────────────────────────────────────────────────
-function Ashtray() {
-  return (
-    <div className="absolute bottom-24 right-8 pointer-events-none z-10 select-none" aria-hidden>
-      {/* Cigarette smoke */}
-      <motion.div
-        className="absolute bg-amber-200/20 rounded-full"
-        style={{ width: 2, height: 12, left: 22, bottom: 18 }}
-        animate={{ y: [0, -10, 0], opacity: [0.2, 0.6, 0.2], scaleX: [1, 2, 1] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <svg width="48" height="24" viewBox="0 0 48 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Shadow */}
-        <ellipse cx="24" cy="23" rx="18" ry="3" fill="#000" opacity="0.3" />
-        {/* Ashtray bowl */}
-        <path d="M4 8 Q24 16 44 8 L42 4 Q24 10 6 4 Z" fill="#1e1e1e" />
-        <ellipse cx="24" cy="6" rx="20" ry="5" fill="#1a1a1a" stroke="#333" strokeWidth="1" />
-        <ellipse cx="24" cy="6" rx="16" ry="3.5" fill="#111" />
-        {/* Notch cuts */}
-        <path d="M4 7 Q6 4 8 7" fill="#0a0a0a" />
-        <path d="M40 7 Q42 4 44 7" fill="#0a0a0a" />
-        {/* Cigarette butt */}
-        <rect x="18" y="4" width="14" height="2.5" rx="1.2" fill="#f5deb3" transform="rotate(-15 24 5)" />
-        <rect x="18" y="4" width="5" height="2.5" rx="1.2" fill="#888" transform="rotate(-15 24 5)" />
-        {/* Ash */}
-        <ellipse cx="22" cy="5.5" rx="3" ry="1" fill="#555" opacity="0.5" />
-      </svg>
-    </div>
-  );
-}
-
-// ─── Pixel person silhouette ───────────────────────────────────────────────────
-function PersonSilhouette({ seed, label, isActive = false, isGone = false, isVIP = false }: {
-  seed: number; label?: string; isActive?: boolean; isGone?: boolean; isVIP?: boolean;
-}) {
+// ─── Mini person silhouette for queue ───────────────────────────────────────
+function MiniSilhouette({ seed, isVIP, isActive }: { seed: number; isVIP?: boolean; isActive?: boolean }) {
   const hue      = (seed * 47) % 360;
   const shirtHue = (seed * 83 + 120) % 360;
   return (
-    <div className={cn("flex flex-col items-center gap-0.5 transition-all duration-300", isGone && "opacity-0 pointer-events-none")}>
-      <svg width="36" height="52" viewBox="0 0 36 52" fill="none">
-        {isVIP && <polygon points="18,0 20,6 26,6 21,10 23,16 18,12 13,16 15,10 10,6 16,6" fill="gold" opacity="0.9" />}
+    <div className="relative shrink-0">
+      <svg width="28" height="40" viewBox="0 0 36 52" fill="none">
         <ellipse cx="18" cy="11" rx="8" ry="9" fill={`hsl(${hue},40%,60%)`} />
         <ellipse cx="18" cy="4" rx="8" ry="4" fill={`hsl(${hue},30%,30%)`} />
         <rect x="9" y="20" width="18" height="18" rx="2" fill={`hsl(${shirtHue},50%,45%)`} />
@@ -193,86 +39,27 @@ function PersonSilhouette({ seed, label, isActive = false, isGone = false, isVIP
         <rect x="27" y="20" width="8" height="14" rx="3" fill={`hsl(${shirtHue},45%,40%)`} />
         <rect x="10" y="38" width="7" height="13" rx="2" fill={`hsl(${hue},20%,25%)`} />
         <rect x="19" y="38" width="7" height="13" rx="2" fill={`hsl(${hue},20%,25%)`} />
-        {isActive && <rect x="24" y="30" width="10" height="8" rx="1" fill="#8B7355" stroke="#5D4E37" strokeWidth="1" />}
-        {isActive && <ellipse cx="18" cy="50" rx="14" ry="3" fill="rgba(245,158,11,0.4)" />}
       </svg>
-      {label && (
-        <span className={cn(
-          "text-[9px] font-terminal tracking-wider truncate max-w-[44px] text-center leading-tight",
-          isActive ? (isVIP ? "text-yellow-300" : "text-amber-400") : "text-amber-700/60"
-        )}>{label.split(' ')[0]}</span>
+      {isVIP && <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 text-yellow-300 text-[8px]">★</span>}
+      {isActive && (
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.2, repeat: Infinity }}
+          style={{ background: `radial-gradient(circle, rgba(224,161,27,0.25) 0%, transparent 70%)` }}
+        />
       )}
     </div>
   );
 }
 
-// ─── People Lineup ─────────────────────────────────────────────────────────────
-function PeopleLineup({ queue, currentClient, processedCount }: {
-  queue: Client[]; currentClient: Client | null; processedCount: number;
-}) {
-  return (
-    <div className="h-[18vh] bg-gradient-to-b from-black/60 to-black/30 border-b border-amber-900/50 flex items-end pb-2 px-6 overflow-hidden relative">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_80px,rgba(245,158,11,0.03)_80px,rgba(245,158,11,0.03)_81px)]" />
-        <div className="absolute bottom-0 left-0 right-0 h-4 bg-amber-900/20" />
-        <div className="absolute bottom-14 left-0 right-0 h-0.5 bg-amber-800/30" />
-      </div>
-      <div className="absolute top-2 left-4 font-terminal text-[10px] text-amber-700/50 tracking-widest uppercase">
-        Waiting Area — Citizens In Queue
-      </div>
-      <div className="relative flex items-end gap-3 z-10 ml-4">
-        {Array.from({ length: processedCount }).map((_, i) => (
-          <div key={`gone-${i}`} className="w-10 flex flex-col items-center gap-1 opacity-20">
-            <div className="w-8 h-12 border border-dashed border-amber-700/40 rounded-t-full" />
-          </div>
-        ))}
-        {currentClient && (
-          <motion.div key={currentClient.id + '-lineup'} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="relative">
-            <PersonSilhouette seed={currentClient.avatarSeed} label={currentClient.name} isActive isVIP={currentClient.isVIP} />
-            <div className={cn("absolute -top-1 -right-1 w-3 h-3 rounded-full animate-ping", currentClient.isVIP ? "bg-yellow-300" : "bg-amber-400")} />
-          </motion.div>
-        )}
-        {queue.map((c, i) => (
-          <motion.div key={c.id + '-lineup'} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-            <PersonSilhouette seed={c.avatarSeed} isVIP={c.isVIP} />
-          </motion.div>
-        ))}
-        {Array.from({ length: Math.max(0, 4 - processedCount - (currentClient ? 1 : 0) - queue.length) }).map((_, i) => (
-          <div key={`empty-${i}`} className="w-10 h-14 border border-dashed border-amber-900/20 rounded-t-full opacity-20" />
-        ))}
-      </div>
-      {currentClient && (
-        <motion.div animate={{ y: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.2 }} className="absolute bottom-1 left-[68px] text-amber-500/60 font-bold text-xs">▼</motion.div>
-      )}
-    </div>
-  );
-}
-
-// ─── Chat Bubble ───────────────────────────────────────────────────────────────
-function ChatBubble({ text, isNote = false }: { text: string; isNote?: boolean }) {
-  return (
-    <motion.div
-      key={text}
-      initial={{ opacity: 0, y: 6, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -4, scale: 0.95 }}
-      transition={{ duration: 0.25 }}
-      className={cn(
-        "relative rounded-lg px-4 py-2 max-w-[360px] font-terminal text-xs leading-relaxed shadow-lg",
-        isNote ? "bg-red-950/80 border border-red-600/50 text-red-200 italic" : "bg-amber-950/80 border border-amber-700/50 text-amber-200"
-      )}
-    >
-      <div className="absolute -left-2 top-4 w-0 h-0 border-t-4 border-t-transparent border-r-8 border-r-amber-700/50 border-b-4 border-b-transparent" />
-      <div className="absolute -left-[6px] top-[17px] w-0 h-0 border-t-[3px] border-t-transparent border-r-[7px] border-r-amber-950/80 border-b-[3px] border-b-transparent" />
-      {isNote && <span className="text-red-400 font-bold not-italic">[NOTE FOUND] </span>}
-      {text}
-    </motion.div>
-  );
-}
-
-// ─── Client Booth ──────────────────────────────────────────────────────────────
-function ClientBooth({ client, onCallNext, queueLength, canCallNext }: {
-  client: Client | null; onCallNext: () => void; queueLength: number; canCallNext: boolean;
+// ─── Left Panel: Queue + Citizen ─────────────────────────────────────────────
+function LeftPanel({ client, queue, processedCount, onCallNext, canCallNext }: {
+  client: Client | null;
+  queue: Client[];
+  processedCount: number;
+  onCallNext: () => void;
+  canCallNext: boolean;
 }) {
   const [lineIdx, setLineIdx] = useState(0);
   const [showNote, setShowNote] = useState(false);
@@ -286,81 +73,157 @@ function ClientBooth({ client, onCallNext, queueLength, canCallNext }: {
     return () => clearInterval(t);
   }, [client?.id]);
 
-  const currentText = showNote && client?.hiddenNote ? client.hiddenNote : client?.smallTalk[lineIdx] || '';
+  const currentText = showNote && client?.hiddenNote ? client.hiddenNote : (client?.smallTalk[lineIdx] || '');
 
   return (
-    <div className="h-[18vh] bg-gradient-to-b from-black/40 to-black/20 border-b border-amber-900/40 flex items-center px-6 gap-6 relative overflow-hidden">
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-amber-900/40 border-r border-amber-800/30" />
-      <div className="absolute bottom-0 left-0 right-0 h-3 bg-amber-900/30 border-t border-amber-800/20" />
-      <AnimatePresence mode="wait">
-        {client ? (
-          <motion.div key={client.id + '-booth'} initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 30, opacity: 0 }} transition={{ type: 'spring', damping: 20, stiffness: 200 }} className="flex items-center gap-5 z-10 w-full">
-            <div className="shrink-0 relative">
-              <svg width="52" height="72" viewBox="0 0 36 52" fill="none">
-                <ellipse cx="18" cy="11" rx="8" ry="9" fill={`hsl(${(client.avatarSeed * 47) % 360},40%,60%)`} />
-                <ellipse cx="18" cy="4" rx="8" ry="4" fill={`hsl(${(client.avatarSeed * 47) % 360},30%,30%)`} />
-                <rect x="9" y="20" width="18" height="18" rx="2" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},50%,45%)`} />
-                <rect x="1" y="20" width="8" height="14" rx="3" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},45%,40%)`} />
-                <rect x="27" y="20" width="8" height="14" rx="3" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},45%,40%)`} />
-                <rect x="10" y="38" width="7" height="13" rx="2" fill={`hsl(${(client.avatarSeed * 47) % 360},20%,25%)`} />
-                <rect x="19" y="38" width="7" height="13" rx="2" fill={`hsl(${(client.avatarSeed * 47) % 360},20%,25%)`} />
-                <rect x="24" y="30" width="10" height="8" rx="1" fill="#8B7355" stroke="#5D4E37" strokeWidth="1" />
-              </svg>
-              {client.isVIP && <div className="absolute -top-1 -right-1 text-yellow-300 text-xs font-bold">★</div>}
+    <div className="w-56 shrink-0 flex flex-col overflow-hidden border-r" style={{ background: C.panel, borderColor: C.border }}>
+
+      {/* Queue row */}
+      <div className="p-3 border-b shrink-0" style={{ borderColor: C.border + '88' }}>
+        <div className="text-[9px] uppercase tracking-widest mb-2 font-terminal" style={{ color: C.muted }}>
+          <Users className="w-2.5 h-2.5 inline mr-1" />
+          Queue
+        </div>
+        <div className="flex gap-2 items-end flex-wrap">
+          {/* Processed slots */}
+          {Array.from({ length: processedCount }).map((_, i) => (
+            <div key={`done-${i}`} className="w-7 h-10 rounded-sm border border-dashed opacity-20" style={{ borderColor: C.border }} />
+          ))}
+          {/* Active client */}
+          {client && (
+            <div className="relative">
+              <MiniSilhouette seed={client.avatarSeed} isVIP={client.isVIP} isActive />
+              <motion.div
+                className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                style={{ background: C.accent }}
+                animate={{ scale: [1, 1.4, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
             </div>
-            <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+          )}
+          {/* Waiting */}
+          {queue.map(c => (
+            <MiniSilhouette key={c.id} seed={c.avatarSeed} isVIP={c.isVIP} />
+          ))}
+          {/* Empty slots */}
+          {Array.from({ length: Math.max(0, 4 - processedCount - (client ? 1 : 0) - queue.length) }).map((_, i) => (
+            <div key={`empty-${i}`} className="w-7 h-10 rounded-sm border border-dashed opacity-10" style={{ borderColor: C.border }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Citizen area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <AnimatePresence mode="wait">
+          {client ? (
+            <motion.div
+              key={client.id}
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 16 }}
+              transition={{ type: 'spring', damping: 20 }}
+              className="flex flex-col gap-3 p-4 flex-1"
+            >
+              {/* Portrait */}
               <div className="flex items-center gap-2">
-                <span className="font-terminal text-xs text-amber-500/70 uppercase tracking-widest truncate">
-                  {client.name}
+                <svg width="52" height="72" viewBox="0 0 36 52" fill="none" className="shrink-0">
+                  <ellipse cx="18" cy="11" rx="8" ry="9" fill={`hsl(${(client.avatarSeed * 47) % 360},40%,60%)`} />
+                  <ellipse cx="18" cy="4" rx="8" ry="4" fill={`hsl(${(client.avatarSeed * 47) % 360},30%,30%)`} />
+                  <rect x="9" y="20" width="18" height="18" rx="2" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},50%,45%)`} />
+                  <rect x="1" y="20" width="8" height="14" rx="3" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},45%,40%)`} />
+                  <rect x="27" y="20" width="8" height="14" rx="3" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},45%,40%)`} />
+                  <rect x="10" y="38" width="7" height="13" rx="2" fill={`hsl(${(client.avatarSeed * 47) % 360},20%,25%)`} />
+                  <rect x="19" y="38" width="7" height="13" rx="2" fill={`hsl(${(client.avatarSeed * 47) % 360},20%,25%)`} />
+                  <rect x="24" y="30" width="10" height="8" rx="1" fill="#8B7355" stroke="#5D4E37" strokeWidth="1" />
+                </svg>
+                <div className="min-w-0">
+                  <div className="font-terminal text-[10px] font-bold truncate" style={{ color: C.accent }}>
+                    {client.name}
+                    {client.isVIP && <span className="ml-1 text-yellow-300">★</span>}
+                  </div>
                   {client.isVIP && client.vipData && (
-                    <span className="ml-2 text-yellow-400/80">· {client.vipData.title}, {client.vipData.organization}</span>
+                    <div className="font-terminal text-[9px] truncate" style={{ color: C.muted }}>
+                      {client.vipData.organization}
+                    </div>
                   )}
-                </span>
-                {client.hiddenNote && (
-                  <button onClick={() => setShowNote(s => !s)} className="shrink-0 text-red-400/60 hover:text-red-400 transition-colors" title="Toggle hidden note">
-                    {showNote ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  {client.hiddenNote && (
+                    <button
+                      onClick={() => setShowNote(s => !s)}
+                      className="mt-1 flex items-center gap-1 font-terminal text-[9px] transition-colors"
+                      style={{ color: showNote ? '#f87171' : '#6f4b1f' }}
+                    >
+                      {showNote ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+                      {showNote ? 'hide note' : 'show note'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Dialogue bubble */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={client.id + lineIdx + (showNote ? 'n' : '')}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="rounded p-3 text-[11px] font-terminal leading-relaxed border"
+                  style={{
+                    background: showNote && client.hiddenNote ? 'rgba(127,29,29,0.3)' : 'rgba(0,0,0,0.3)',
+                    borderColor: showNote && client.hiddenNote ? '#b4473f66' : C.border + '55',
+                    color: showNote && client.hiddenNote ? '#fca5a5' : C.text,
+                  }}
+                >
+                  {showNote && client.hiddenNote && (
+                    <span className="text-red-400 font-bold">[NOTE] </span>
+                  )}
+                  {currentText}
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex-1 flex flex-col items-center justify-center gap-4 p-4"
+            >
+              <div className="w-16 h-20 border-2 border-dashed rounded-t-full flex items-end justify-center pb-2 opacity-20" style={{ borderColor: C.border }}>
+                <span className="text-3xl" style={{ color: C.muted }}>?</span>
+              </div>
+              <div className="text-center">
+                <p className="font-terminal text-[10px] mb-3" style={{ color: C.muted }}>
+                  {canCallNext ? 'Next citizen ready' : 'Queue empty'}
+                </p>
+                {canCallNext && (
+                  <button
+                    onClick={onCallNext}
+                    className="px-4 py-2 font-terminal text-xs uppercase tracking-widest border transition-all"
+                    style={{ borderColor: C.accent, color: C.accent, background: 'rgba(224,161,27,0.06)' }}
+                    onMouseOver={e => (e.currentTarget.style.background = 'rgba(224,161,27,0.12)')}
+                    onMouseOut={e => (e.currentTarget.style.background = 'rgba(224,161,27,0.06)')}
+                  >
+                    ▶ Call Next
                   </button>
                 )}
               </div>
-              <AnimatePresence mode="wait">
-                <ChatBubble key={client.id + '-' + lineIdx + (showNote ? '-note' : '')} text={currentText} isNote={showNote && !!client.hiddenNote} />
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div key="empty-booth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-4 z-10">
-            <div className="w-14 h-16 border-2 border-dashed border-amber-800/30 rounded-t-full flex items-end justify-center pb-1">
-              <span className="text-amber-800/30 text-2xl">?</span>
-            </div>
-            <button
-              onClick={onCallNext}
-              disabled={!canCallNext}
-              className={cn(
-                "px-6 py-3 font-terminal text-sm uppercase tracking-widest border transition-all",
-                canCallNext ? "border-amber-500 text-amber-400 hover:bg-amber-500/10 cursor-pointer" : "border-amber-900/40 text-amber-900/40 cursor-not-allowed"
-              )}
-            >
-              {canCallNext ? '▶ Call Next Citizen' : 'Queue Empty — End Shift'}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <div className="absolute top-2 right-4 flex items-center gap-1 text-amber-700/50 font-terminal text-[10px] uppercase tracking-widest">
-        <Users className="w-3 h-3" /> {queueLength} waiting
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
-// ─── Physical Memo Paper (slides onto desk from left) ──────────────────────────
+// ─── Physical Memo Paper ─────────────────────────────────────────────────────
 function MemoPaper({ memo, acted, onAct, onDismiss }: {
   memo: LeakedMemo; acted: boolean; onAct: () => void; onDismiss: () => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const isDirective = memo.alignmentReward === 'corporate';
-  const bgColor = isDirective ? 'bg-[#f5f0e0]' : 'bg-[#fffde6]';
-  const borderColor = isDirective ? 'border-slate-400/60' : 'border-amber-400/60';
-  const headerColor = isDirective ? 'text-slate-700' : 'text-amber-800';
+  const bgColor = isDirective ? '#f5f0e0' : '#fffde6';
+  const borderColor = isDirective ? '#94a3b888' : '#d97706aa';
+  const headerColor = isDirective ? '#374151' : '#92400e';
 
   return (
     <motion.div
@@ -368,57 +231,38 @@ function MemoPaper({ memo, acted, onAct, onDismiss }: {
       dragMomentum={false}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={() => setIsDragging(false)}
-      initial={{ x: -420, y: 20, rotate: -6, opacity: 0 }}
-      animate={{ x: 20, y: 20, rotate: isDragging ? -1 : -4, opacity: 1 }}
-      exit={{ x: -420, rotate: -10, opacity: 0 }}
+      initial={{ x: -380, y: 20, rotate: -5, opacity: 0 }}
+      animate={{ x: 20, y: 20, rotate: isDragging ? -1 : -3, opacity: 1 }}
+      exit={{ x: -380, rotate: -8, opacity: 0 }}
       transition={{ type: 'spring', damping: 18, stiffness: 160, delay: 0.1 }}
-      whileDrag={{ scale: 1.03, rotate: -1, boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}
-      style={{ zIndex: 200 }}
-      className={cn(
-        "absolute cursor-grab active:cursor-grabbing w-[300px] rounded-sm shadow-[4px_6px_20px_rgba(0,0,0,0.5)]",
-        bgColor, "border", borderColor
-      )}
+      whileDrag={{ scale: 1.02, rotate: -1, boxShadow: '0 16px 40px rgba(0,0,0,0.6)' }}
+      style={{ zIndex: 200, background: bgColor, border: `1px solid ${borderColor}`, position: 'absolute' }}
+      className="cursor-grab active:cursor-grabbing w-[280px] rounded-sm shadow-[4px_6px_24px_rgba(0,0,0,0.55)]"
     >
-      {/* Tape strip at top */}
-      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-16 h-4 bg-amber-200/60 border border-amber-300/60 rounded-sm opacity-80" />
-
-      <div className="p-4 flex flex-col gap-2">
-        {/* Header */}
-        <div className={cn("font-mono text-[9px] font-bold uppercase tracking-widest border-b pb-2 mb-1", headerColor, `border-current/20`)}>
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="text-[10px] font-bold">{memo.classification}</div>
-              <div className="opacity-60 font-normal text-[9px] mt-0.5">FROM: {memo.from}</div>
-              <div className="opacity-60 font-normal text-[9px]">RE: {memo.subject}</div>
-            </div>
-            <button
-              onClick={onDismiss}
-              className="text-current opacity-30 hover:opacity-80 transition-opacity text-base leading-none shrink-0 mt-0.5"
-            >✕</button>
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-14 h-4 rounded-sm opacity-70" style={{ background: '#fde68a', border: '1px solid #f59e0b' }} />
+      <div className="p-4 flex flex-col gap-2.5">
+        <div className="border-b pb-2 flex items-start justify-between gap-2" style={{ borderColor: headerColor + '33', color: headerColor }}>
+          <div className="font-mono text-[9px]">
+            <div className="text-[10px] font-bold">{memo.classification}</div>
+            <div className="opacity-60 mt-0.5">FROM: {memo.from}</div>
+            <div className="opacity-60">RE: {memo.subject}</div>
           </div>
+          <button onClick={onDismiss} className="opacity-30 hover:opacity-70 transition-opacity text-sm" style={{ color: headerColor }}>✕</button>
         </div>
-
-        {/* Lines */}
         <div className="flex flex-col gap-1.5">
           {memo.lines.map((line, i) => (
-            <p key={i} className="font-mono text-[10px] text-slate-700 leading-snug">{line}</p>
+            <p key={i} className="font-mono text-[10px] leading-snug text-slate-700">{line}</p>
           ))}
         </div>
-
-        {/* Action buttons */}
-        <div className="mt-2 flex gap-2">
+        <div className="flex gap-2 mt-1">
           {!acted ? (
             <>
               <button
                 onClick={onAct}
-                className={cn(
-                  "flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-wider rounded border transition-all",
-                  isDirective
-                    ? "bg-slate-200 hover:bg-slate-300 border-slate-400 text-slate-700"
-                    : "bg-amber-200 hover:bg-amber-300 border-amber-500 text-amber-800"
-                )}
+                className="flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-wider rounded border transition-all"
+                style={{ background: isDirective ? '#e2e8f0' : '#fef3c7', border: `1px solid ${isDirective ? '#94a3b8' : '#d97706'}`, color: isDirective ? '#374151' : '#92400e' }}
               >
-                Act on Intel (+${memo.bonusIfActed})
+                Act (+${memo.bonusIfActed})
               </button>
               <button
                 onClick={onDismiss}
@@ -438,57 +282,7 @@ function MemoPaper({ memo, acted, onAct, onDismiss }: {
   );
 }
 
-// ─── Rubber Stamp Button ───────────────────────────────────────────────────────
-function StampButton({ label, shortLabel, icon, color, shadowColor, ringColor, pulsing, disabled, onClick }: {
-  label: string; shortLabel?: string; icon: React.ReactNode;
-  color: string; shadowColor: string; ringColor?: string;
-  pulsing?: boolean; disabled?: boolean; onClick: () => void;
-}) {
-  const [pressed, setPressed] = useState(false);
-
-  const handleClick = () => {
-    if (disabled) return;
-    setPressed(true);
-    onClick();
-    setTimeout(() => setPressed(false), 300);
-  };
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="font-terminal text-[8px] uppercase tracking-widest opacity-40">STAMP</span>
-      <button
-        onClick={handleClick}
-        disabled={disabled}
-        style={{
-          transform: pressed ? 'translateY(7px)' : 'translateY(0)',
-          boxShadow: pressed
-            ? `0 1px 0 ${shadowColor}, 0 0 12px rgba(0,0,0,0.4)`
-            : `0 7px 0 ${shadowColor}, 0 2px 20px rgba(0,0,0,0.5)`,
-          transition: 'transform 80ms ease, box-shadow 80ms ease',
-        }}
-        className={cn(
-          "relative w-32 h-16 rounded-[3px] flex flex-col items-center justify-center gap-0.5",
-          "font-stamped text-white font-bold text-base tracking-widest",
-          "border-2",
-          color,
-          pulsing && !disabled && ringColor && `ring-2 ${ringColor} animate-pulse`,
-          disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
-        )}
-      >
-        {/* Ink texture overlay */}
-        <div className="absolute inset-0 rounded-[2px] opacity-20 pointer-events-none"
-          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'1\'/%3E%3C/svg%3E")', backgroundSize: '80px 80px' }} />
-        <span className="flex items-center gap-1.5 relative z-10">
-          {icon}
-          {shortLabel || label}
-        </span>
-        {pulsing && <span className="relative z-10 text-[8px] opacity-80 tracking-wider">ASSETS</span>}
-      </button>
-    </div>
-  );
-}
-
-// ─── Day-End Summary ───────────────────────────────────────────────────────────
+// ─── Day-End Summary ─────────────────────────────────────────────────────────
 function DayEndOverlay({ state, endDay }: {
   state: ReturnType<typeof useGameEngine>['state'];
   endDay: () => void;
@@ -527,7 +321,6 @@ function DayEndOverlay({ state, endDay }: {
             </div>
           </div>
 
-          {/* Alignment shifts */}
           {(() => {
             const c = state.dailyLogs.filter(l => l.alignmentShift === 'corporate').length;
             const w = state.dailyLogs.filter(l => l.alignmentShift === 'whistleblower').length;
@@ -545,7 +338,6 @@ function DayEndOverlay({ state, endDay }: {
             );
           })()}
 
-          {/* Moral Ledger */}
           {humanCosts.length > 0 && (
             <div className="border border-amber-600/30 p-3 rounded text-xs">
               <div className="opacity-50 uppercase tracking-wider mb-2 text-[10px]">Moral Ledger — Human Cost</div>
@@ -557,12 +349,6 @@ function DayEndOverlay({ state, endDay }: {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {state.activeEvent && (
-            <div className="text-[10px] font-terminal text-amber-600/60 border border-amber-900/30 p-2 rounded text-center">
-              {state.activeEvent.title} — effect applied this shift.
             </div>
           )}
 
@@ -578,7 +364,41 @@ function DayEndOverlay({ state, endDay }: {
   );
 }
 
-// ─── Main Desk Page ────────────────────────────────────────────────────────────
+// ─── Action button for bottom bar ────────────────────────────────────────────
+function ActionBtn({
+  label, icon, borderColor, hoverBg, disabled, pulsing, onClick, children,
+}: {
+  label: string; icon: React.ReactNode;
+  borderColor: string; hoverBg: string;
+  disabled?: boolean; pulsing?: boolean;
+  onClick: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex items-center justify-center gap-2 min-w-[140px] h-11 px-6 border font-terminal text-sm font-bold uppercase tracking-widest transition-all",
+        pulsing && !disabled && "animate-pulse",
+        disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer",
+      )}
+      style={{
+        background: C.panel,
+        borderColor: disabled ? C.border : borderColor,
+        color: disabled ? C.muted : C.text,
+      }}
+      onMouseOver={e => { if (!disabled) e.currentTarget.style.background = hoverBg; }}
+      onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
+    >
+      {icon}
+      {label}
+      {children}
+    </button>
+  );
+}
+
+// ─── Main Desk Page ──────────────────────────────────────────────────────────
 export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngine> }) {
   const { state, stampAction, processDecision, callNextClient, endDay, actOnMemo, dismissMemo } = engine;
 
@@ -590,7 +410,6 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
   const processedCount = 4 - state.clientsQueue.length - (state.currentClient ? 1 : 0);
 
-  // CRT flicker when a new memo arrives
   useEffect(() => {
     const newId = state.activeMemo?.id || null;
     if (newId && newId !== prevMemoId.current) {
@@ -626,94 +445,100 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   }, []);
 
   const isDeskDisabled = !!stampAction || !state.currentClient;
-  const isContraband = !!state.currentClient?.isContraband;
+  const isContraband   = !!state.currentClient?.isContraband;
+  const hasClient      = !!state.currentClient;
+  const canCallNext    = state.clientsQueue.length > 0;
 
   return (
-    <div className={cn("h-screen w-full flex flex-col overflow-hidden crt-overlay desk-texture-bg transition-all", crtFlicker && "brightness-150")}>
-
-      {/* ── Status bar ─────────────────────────────────────────────────────── */}
-      <div className="h-10 bg-desk-dark border-b border-amber-600/50 px-4 flex items-center justify-between shrink-0 z-40 shadow-xl shadow-black">
-        <div className="flex items-center gap-4">
-          <div className="font-stamped text-lg text-amber-500 tracking-widest">TAXES PLEASE</div>
-          <div className="flex items-center gap-1.5 text-amber-400 font-terminal text-sm">
-            <Clock className="w-4 h-4" /> DAY {state.day}
+    <div
+      className={cn("h-screen w-full flex flex-col overflow-hidden transition-all", crtFlicker && "brightness-150")}
+      style={{ background: C.bg, color: C.text, fontFamily: 'inherit' }}
+    >
+      {/* ── TOP BAR ─────────────────────────────────────────────────────────── */}
+      <div
+        className="h-12 flex items-center justify-between px-5 shrink-0 z-40"
+        style={{ background: '#0e0a08', borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center gap-5">
+          <span className="font-stamped text-lg tracking-widest" style={{ color: C.accent }}>TAXES PLEASE</span>
+          <div className="flex items-center gap-1.5 font-terminal text-xs" style={{ color: C.muted }}>
+            <Clock className="w-3.5 h-3.5" />
+            <span>DAY {state.day} / 7</span>
           </div>
-        </div>
-        <div className="flex items-center gap-5 font-terminal text-sm">
           {state.activeEvent && (
-            <div className="flex items-center gap-1.5 text-orange-400 text-xs border border-orange-700/50 px-2 py-0.5 rounded">
-              <AlertTriangle className="w-3 h-3" />
-              {state.activeEvent.type === 'market_shock' && 'MARKET SHOCK'}
-              {state.activeEvent.type === 'hyperinflation' && 'HYPERINFLATION'}
-              {state.activeEvent.type === 'audit_sweep' && 'AUDIT SWEEP'}
+            <div className="flex items-center gap-1.5 font-terminal text-[10px] px-2 py-1 rounded border" style={{ color: '#e0901b', borderColor: '#e0901b44', background: 'rgba(224,144,27,0.08)' }}>
+              <TrendingDown className="w-3 h-3" />
+              {state.activeEvent.title}
             </div>
           )}
+        </div>
+        <div className="flex items-center gap-5 font-terminal text-xs">
           {circledFields.size > 0 && (
-            <div className="flex items-center gap-1 text-red-400 text-xs">
+            <div className="flex items-center gap-1" style={{ color: C.red }}>
               <span>⊗</span> {circledFields.size} flagged
             </div>
           )}
-          <div className="flex items-center gap-1 text-[10px] font-terminal opacity-60">
-            <span className="text-amber-400">{state.alignment.corporate}C</span>
-            <span className="text-blue-400">{state.alignment.whistleblower}R</span>
-            <span className="text-green-400">{state.alignment.survivalist}S</span>
+          <div className="flex items-center gap-1 text-[10px]" style={{ color: C.muted }}>
+            <span style={{color:'#d97706'}}>{state.alignment.corporate}C</span>
+            <span className="mx-0.5">·</span>
+            <span style={{color:'#6aabf0'}}>{state.alignment.whistleblower}R</span>
+            <span className="mx-0.5">·</span>
+            <span style={{color:C.green}}>{state.alignment.survivalist}S</span>
           </div>
-          <div className="flex items-center gap-1.5 text-green-400">
-            <DollarSign className="w-4 h-4" /> {formatMoney(state.money)}
+          <div className="flex items-center gap-1.5" style={{ color: C.green }}>
+            <DollarSign className="w-3.5 h-3.5" />
+            {formatMoney(state.money)}
           </div>
-          <div className={cn("flex items-center gap-1.5", state.citations > 0 ? "text-red-400" : "text-amber-400/50")}>
-            <ShieldAlert className="w-4 h-4" /> {state.citations}/5
+          <div className="flex items-center gap-1.5" style={{ color: state.citations > 0 ? C.red : C.muted }}>
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>{state.citations}/5 citations</span>
           </div>
         </div>
       </div>
 
-      {/* ── Macro event ticker ──────────────────────────────────────────────── */}
-      {state.activeEvent && (
-        <div className="bg-orange-950/60 border-b border-orange-700/50 px-6 py-1.5 flex items-center gap-3 text-orange-300 font-terminal text-[11px] shrink-0">
-          <TrendingDown className="w-3.5 h-3.5 shrink-0" />
-          <span className="font-bold uppercase tracking-wider mr-2">{state.activeEvent.title}:</span>
-          <span className="opacity-80">{state.activeEvent.ruleAddendum}</span>
-        </div>
-      )}
+      {/* ── MAIN AREA ────────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
 
-      {/* ── People lineup ────────────────────────────────────────────────────── */}
-      <PeopleLineup queue={state.clientsQueue} currentClient={state.currentClient} processedCount={processedCount} />
+        {/* LEFT: Citizen + Queue */}
+        <LeftPanel
+          client={state.currentClient}
+          queue={state.clientsQueue}
+          processedCount={processedCount}
+          onCallNext={callNextClient}
+          canCallNext={canCallNext}
+        />
 
-      {/* ── Client booth ─────────────────────────────────────────────────────── */}
-      <ClientBooth
-        client={state.currentClient}
-        onCallNext={callNextClient}
-        queueLength={state.clientsQueue.length}
-        canCallNext={state.clientsQueue.length > 0}
-      />
+        {/* CENTER: Document desk */}
+        <div className="flex-1 relative overflow-hidden" style={{ background: C.desk }}>
+          {/* Very subtle grid — 8% opacity only */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `
+                linear-gradient(rgba(111,75,31,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(111,75,31,0.08) 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px',
+            }}
+          />
 
-      {/* ── Desk workspace ───────────────────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden relative min-h-0">
-
-        {/* Document surface */}
-        <div className="flex-1 relative overflow-hidden">
+          {/* Stamp animation */}
           <Stamp type={stampAction} />
 
-          {/* Flagged field hint */}
+          {/* Flagged field badge */}
           {circledFields.size > 0 && state.currentClient && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-              <div className="bg-red-900/80 border border-red-500/60 text-red-300 font-terminal text-[11px] px-3 py-1 rounded-full uppercase tracking-wider shadow">
-                {circledFields.size} flagged — reject for +${circledFields.size * 25} bonus
+              <div className="font-terminal text-[11px] px-3 py-1 rounded-full uppercase tracking-wider shadow border" style={{ background: 'rgba(180,71,63,0.3)', borderColor: `${C.red}66`, color: '#fca5a5' }}>
+                {circledFields.size} field{circledFields.size > 1 ? 's' : ''} flagged — reject for +${circledFields.size * 25} bonus
               </div>
             </div>
           )}
 
-          {/* ── Desk decorations ──────────────────────────────────────────── */}
-          <DeskLamp />
-          <CoffeeMug />
-          <PenCup />
-          <Ashtray />
-
           {/* Empty desk hint */}
           {!state.currentClient && state.status === 'PLAYING' && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-amber-500/30 font-terminal text-xl uppercase tracking-widest border border-amber-500/20 p-8 rounded">
-                Desk Clear — Call Next Citizen
+              <div className="font-terminal text-xs uppercase tracking-widest opacity-20 border border-dashed p-6 rounded" style={{ borderColor: C.border, color: C.muted }}>
+                {canCallNext ? 'Call next citizen to begin' : 'All citizens processed'}
               </div>
             </div>
           )}
@@ -724,8 +549,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               <DraggablePaper
                 key={state.currentClient!.id + doc.id}
                 doc={doc}
-                initialX={90 + (idx * 44)}
-                initialY={30 + (idx * 28)}
+                initialX={80 + idx * 40}
+                initialY={24 + idx * 24}
                 zIndex={docZIndices[doc.id] || 1}
                 onFocus={() => bringToFront(doc.id)}
                 circledFields={circledFields}
@@ -735,7 +560,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             ))}
           </div>
 
-          {/* Physical Leaked Memo paper — slides onto desk from the left */}
+          {/* Memo paper */}
           <AnimatePresence>
             {state.activeMemo && (
               <MemoPaper
@@ -747,48 +572,74 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               />
             )}
           </AnimatePresence>
-
-          {/* ── Rubber Stamp buttons ─────────────────────────────────────────── */}
-          {state.currentClient && (
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-5 z-40 items-end">
-              <StampButton
-                label="APPROVE"
-                icon={<CheckCircle2 className="w-4 h-4" />}
-                color="bg-green-700 border-green-900 hover:bg-green-600"
-                shadowColor="#064e3b"
-                disabled={isDeskDisabled}
-                onClick={() => processDecision('APPROVE', circledFields.size)}
-              />
-              <StampButton
-                label="REJECT"
-                icon={<XCircle className="w-4 h-4" />}
-                color="bg-red-700 border-red-900 hover:bg-red-600"
-                shadowColor="#7f1d1d"
-                disabled={isDeskDisabled}
-                onClick={() => processDecision('REJECT', circledFields.size)}
-              />
-              <StampButton
-                label="FREEZE"
-                shortLabel="FREEZE"
-                icon={<Snowflake className="w-4 h-4" />}
-                color={cn("bg-blue-700 border-blue-900 hover:bg-blue-600", isContraband && "bg-blue-600 border-blue-400")}
-                shadowColor="#1e3a5f"
-                ringColor="ring-blue-400/40"
-                pulsing={isContraband}
-                disabled={isDeskDisabled}
-                onClick={() => processDecision('FREEZE', circledFields.size)}
-              />
-            </div>
-          )}
         </div>
 
-        {/* Right panel: Rulebook only (memo is now on desk surface) */}
-        <div className="w-64 border-l border-black/50 shadow-2xl z-30 bg-desk-dark/80 overflow-y-auto">
+        {/* RIGHT: Rulebook */}
+        <div className="w-72 shrink-0 border-l overflow-y-auto z-30" style={{ background: C.panel, borderColor: C.border }}>
+          <div className="px-4 pt-3 pb-1 border-b font-terminal text-[9px] uppercase tracking-widest" style={{ borderColor: C.border + '88', color: C.muted }}>
+            Ministry Directives
+          </div>
           <Rulebook day={state.day} activeEvent={state.activeEvent} />
         </div>
+
       </div>
 
-      {/* ── Day End overlay ─────────────────────────────────────────────────── */}
+      {/* ── BOTTOM ACTION BAR ────────────────────────────────────────────────── */}
+      <div
+        className="h-[68px] flex items-center justify-center gap-3 shrink-0 z-40 px-5"
+        style={{ background: '#0e0a08', borderTop: `1px solid ${C.border}` }}
+      >
+        {hasClient ? (
+          <>
+            <ActionBtn
+              label="Approve"
+              icon={<CheckCircle2 className="w-4 h-4" />}
+              borderColor={C.green}
+              hoverBg="rgba(63,163,92,0.12)"
+              disabled={isDeskDisabled}
+              onClick={() => processDecision('APPROVE', circledFields.size)}
+            />
+            <ActionBtn
+              label="Reject"
+              icon={<XCircle className="w-4 h-4" />}
+              borderColor={C.red}
+              hoverBg="rgba(180,71,63,0.12)"
+              disabled={isDeskDisabled}
+              onClick={() => processDecision('REJECT', circledFields.size)}
+            />
+            <ActionBtn
+              label="Freeze"
+              icon={<Snowflake className="w-4 h-4" />}
+              borderColor="#3a6abf"
+              hoverBg="rgba(58,106,191,0.12)"
+              disabled={isDeskDisabled}
+              pulsing={isContraband}
+              onClick={() => processDecision('FREEZE', circledFields.size)}
+            >
+              {isContraband && (
+                <span className="ml-1 text-[9px] text-blue-400 uppercase tracking-widest animate-pulse">!</span>
+              )}
+            </ActionBtn>
+            {circledFields.size > 0 && (
+              <div className="ml-4 font-terminal text-[10px] flex items-center gap-1" style={{ color: C.red }}>
+                <AlertTriangle className="w-3 h-3" />
+                {circledFields.size} circled
+              </div>
+            )}
+          </>
+        ) : (
+          <ActionBtn
+            label={canCallNext ? '▶  Call Next Citizen' : 'Queue Empty — End Shift'}
+            icon={<Users className="w-4 h-4" />}
+            borderColor={canCallNext ? C.accent : C.border}
+            hoverBg={canCallNext ? 'rgba(224,161,27,0.10)' : 'transparent'}
+            disabled={!canCallNext && state.clientsQueue.length === 0 && !hasClient}
+            onClick={canCallNext ? callNextClient : () => {}}
+          />
+        )}
+      </div>
+
+      {/* ── Day End overlay ──────────────────────────────────────────────────── */}
       {state.status === 'DAY_END' && <DayEndOverlay state={state} endDay={endDay} />}
     </div>
   );

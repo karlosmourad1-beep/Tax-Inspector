@@ -1,0 +1,288 @@
+Right now it looks ugly for a few specific reasons, not because the concept is bad:
+
+Too much empty space
+The desk area is huge, while the important things are scattered far apart.
+Weak visual hierarchy
+The player’s eye does not know where to look first. The queue, desk, directives, lamp, and buttons all compete equally.
+Everything is on one flat plane
+There is not enough separation between:
+background
+gameplay surface
+documents
+controls
+side info panel
+The orange grid overlay is overpowering
+The aesthetic is cool in theory, but it is so strong that it makes text harder to read and makes the whole game feel noisy.
+The document workflow is unclear
+In a Papers Please style game, the fun comes from a very readable work loop:
+call person
+inspect docs
+compare values
+stamp decision
+
+Your screen should make that loop obvious.
+
+What to change first
+1. Split the screen into 3 strong zones
+
+A much better layout would be:
+
+Top bar
+Day, money, strikes, quota
+Center gameplay area
+Left: citizen + dialogue
+Middle: desk + documents
+Right: rules / checklist
+Bottom action bar
+Approve / Reject / Flag / Next Citizen
+
+That alone will improve the game a lot.
+
+Recommended layout
+
+Think of it like this:
+
+---------------------------------------------------------
+TOP BAR: Title | Day | Money | Mistakes | Quota
+---------------------------------------------------------
+LEFT PANEL      | DESK / DOCUMENT AREA      | RIGHT PANEL
+Citizen sprite  | draggable papers          | rules/checklist
+Dialogue box    | compare values            | suspicious clues
+Queue preview   | stamp / calculator        | current objective
+---------------------------------------------------------
+BOTTOM ACTION BAR: Approve | Reject | Audit | Next
+---------------------------------------------------------
+What should visually happen
+Background
+
+Keep the regime / ministry vibe, but make the background quieter:
+
+near-black brown background
+faint grid at 10 to 15 percent opacity
+subtle vignette
+maybe one accent glow, not everywhere
+Desk
+
+Make the center desk the star of the screen:
+
+large wood or dark matte panel
+documents sit on top of it
+soft shadow under papers
+slight rotation on papers for realism
+Right panel
+
+Your “Ministry Directives” should look like a pinned briefing panel:
+
+fixed width
+stronger box styling
+readable text
+current rule highlighted in yellow
+completed checks with muted green
+Buttons
+
+Current buttons are too big and too harsh. Make them cleaner:
+
+same height
+aligned in a row
+small icon + label
+hover feedback
+disable state when unavailable
+Visual style direction
+
+You should keep the retro-authoritarian style, but simplify it.
+
+Better palette
+
+Use fewer colors:
+
+background: #120d0a
+panel: #1b1410
+border: #6f4b1f
+accent amber: #e0a11b
+muted amber: #9c6b12
+success green: #3fa35c
+reject red: #b4473f
+text: #f3dfb2
+
+Right now the orange is everywhere. That is the biggest style problem.
+
+Typography
+
+The title font is fine for branding, but not for everything.
+
+Use:
+
+a decorative font only for logo/title
+a clean monospace or terminal-style font for rules and documents
+a readable UI font for buttons and labels
+
+A common mistake is forcing one stylized font onto the whole screen.
+
+Biggest layout fixes on your current screen
+Start screen
+
+The title screen is actually the strongest-looking screen you have, but:
+
+the instruction box is too small and too low-contrast
+the button is too far from the text
+the top emblem feels disconnected
+
+Fix:
+
+center everything tighter vertically
+make instruction box lighter and more readable
+reduce empty space between title and content
+Main screen before calling citizen
+
+Current issue:
+
+the center is mostly dead space
+decorative items do not help gameplay
+“Call Next Citizen” exists twice visually
+
+Fix:
+
+remove the giant empty center message
+keep only one primary call-to-action
+bring the queue and desk closer together
+Inspection screen
+
+This is the most important one.
+
+Current problems:
+
+the two papers are too far apart
+action buttons feel detached
+dialogue box is floating awkwardly
+right panel is too skinny for useful reading
+
+Fix:
+
+papers should overlap slightly or sit close together on the desk
+action buttons should sit directly below the papers
+citizen portrait and speech should be grouped on the left
+right panel should be wider and scrollable if needed
+Best gameplay-first arrangement for the inspection screen
+
+Use this structure:
+
+---------------------------------------------------------
+TOP BAR
+---------------------------------------------------------
+LEFT COLUMN       CENTER DESK                     RIGHT COLUMN
+Citizen portrait  [ID card] [Tax form]            Active Rule
+Name + speech     draggable docs                  Checklist
+Queue count       comparison highlights           Warnings
+---------------------------------------------------------
+BOTTOM BAR
+[Approve] [Reject] [Flag for Audit] [Next Citizen]
+---------------------------------------------------------
+Specific design rules to follow
+Use 8px or 12px spacing consistently
+Keep all interactive controls aligned to a grid
+Limit yourself to 1 main accent color
+Use borders only where they separate function
+Add shadows to papers, not to everything
+Make text larger than you think you need
+Do not center everything; game UIs usually work better with anchored panels
+A strong CSS direction
+
+If your app is React or plain HTML/CSS, I would structure the main gameplay screen with CSS Grid.
+
+Example:
+
+.game-shell {
+  display: grid;
+  grid-template-rows: 56px 1fr 72px;
+  height: 100vh;
+  background: #120d0a;
+  color: #f3dfb2;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #6f4b1f;
+  background: #0e0a08;
+}
+
+.main-area {
+  display: grid;
+  grid-template-columns: 260px 1fr 320px;
+  gap: 16px;
+  padding: 16px;
+}
+
+.left-panel,
+.right-panel {
+  background: #1b1410;
+  border: 1px solid #6f4b1f;
+  padding: 16px;
+}
+
+.desk-area {
+  position: relative;
+  background: linear-gradient(to bottom, #2a1d16, #1e1510);
+  border: 1px solid #6f4b1f;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.bottom-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid #6f4b1f;
+  background: #0e0a08;
+}
+
+.action-btn {
+  min-width: 140px;
+  height: 44px;
+  border: 1px solid #6f4b1f;
+  background: #24180f;
+  color: #f3dfb2;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.action-btn:hover {
+  background: #332216;
+}
+
+.action-btn.approve {
+  border-color: #3fa35c;
+}
+
+.action-btn.reject {
+  border-color: #b4473f;
+}
+What I would remove entirely
+
+From the screenshots, I would remove or tone down:
+
+giant always-visible grid lines
+decorative objects that do not help interaction
+duplicate “call next citizen” prompts
+large empty desk text
+tiny hard-to-read directive text
+What I would add
+subtle paper shadows
+a highlighted mismatch effect when fields do not match
+a focused comparison mode
+hover states on documents
+a compact queue indicator
+a clearer “current task” panel
+Best next step
+
+The fastest path is:
+
+Fix layout before styling
+Reduce visual noise
+Make the document desk the center of attention
+Move actions into a fixed bottom bar
+Use the right panel only for rules and checklist
