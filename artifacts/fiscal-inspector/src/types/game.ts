@@ -143,6 +143,7 @@ export interface DailyLog {
   citations: number;
   humanCost?: HumanCostEntry;
   alignmentShift?: AlignmentPath;
+  citationReason?: string;
 }
 
 export interface WorldState {

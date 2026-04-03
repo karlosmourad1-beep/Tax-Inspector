@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGameEngine } from '@/hooks/useGameEngine';
+import { useGameEngine, DAILY_GOALS } from '@/hooks/useGameEngine';
 import { TerminalPanel } from '@/components/workspace/TerminalPanel';
 import { Rulebook } from '@/components/workspace/Rulebook';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
-import { Client, LeakedMemo } from '@/types/game';
+import { Client, DailyLog, LeakedMemo } from '@/types/game';
 import {
   Clock, ShieldAlert, DollarSign, CheckCircle2, XCircle,
   Snowflake, AlertTriangle, TrendingDown, Eye, EyeOff,
@@ -265,14 +265,126 @@ function MemoPaper({ memo, acted, onAct, onDismiss }: {
   );
 }
 
+// ─── Citation Modal ───────────────────────────────────────────────────────────
+function CitationModal({ log, onContinue }: { log: DailyLog; onContinue: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-[200] flex items-center justify-center"
+      style={{ background: 'rgba(8,3,2,0.90)', backdropFilter: 'blur(3px)' }}
+    >
+      <motion.div
+        initial={{ scale: 0.88, y: 24 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.92, y: 16 }}
+        transition={{ type: 'spring', damping: 22, stiffness: 240 }}
+        className="w-[440px] border-2 flex flex-col"
+        style={{ background: '#140505', borderColor: C.red }}
+      >
+        {/* Title bar */}
+        <div className="px-6 py-4 border-b flex items-center gap-3" style={{ borderColor: C.red + '66', background: 'rgba(180,71,63,0.18)' }}>
+          <ShieldAlert className="w-5 h-5 shrink-0" style={{ color: C.red }} />
+          <div>
+            <div className="font-stamped text-lg tracking-widest uppercase" style={{ color: C.red }}>
+              Citation Issued
+            </div>
+            <div className="font-terminal text-[10px] mt-0.5" style={{ color: '#e0a0a0' }}>
+              Ministry of Finance — Internal Affairs
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 flex flex-col gap-4">
+          <div>
+            <div className="font-terminal text-[10px] uppercase tracking-widest mb-2" style={{ color: C.muted }}>
+              Violation
+            </div>
+            <p className="font-terminal text-sm leading-relaxed" style={{ color: '#f3dfb2' }}>
+              {log.citationReason ?? 'An error was made in processing this filing.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 border rounded-sm" style={{ borderColor: C.red + '44', background: 'rgba(180,71,63,0.08)' }}>
+              <div className="font-terminal text-[9px] uppercase tracking-wider mb-1" style={{ color: C.muted }}>Penalty</div>
+              <div className="font-terminal text-xl font-bold" style={{ color: C.red }}>{formatMoney(log.earnings)}</div>
+            </div>
+            <div className="p-3 border rounded-sm" style={{ borderColor: C.red + '44', background: 'rgba(180,71,63,0.08)' }}>
+              <div className="font-terminal text-[9px] uppercase tracking-wider mb-1" style={{ color: C.muted }}>Your Decision</div>
+              <div className="font-terminal text-xl font-bold" style={{ color: C.red }}>{log.decision}</div>
+            </div>
+          </div>
+
+          <div className="font-terminal text-[10px] leading-relaxed p-3 border rounded-sm" style={{ borderColor: '#6f4b1f44', color: '#c9aa7a', background: 'rgba(224,161,27,0.04)' }}>
+            Compare documents carefully before deciding. Use the circle tool to flag suspicious fields.
+          </div>
+        </div>
+
+        {/* Continue */}
+        <div className="px-6 pb-6">
+          <button
+            onClick={onContinue}
+            className="w-full py-3 font-terminal text-sm font-bold uppercase tracking-widest border transition-all"
+            style={{ borderColor: C.red, color: C.text, background: 'rgba(180,71,63,0.14)' }}
+            onMouseOver={e => (e.currentTarget.style.background = 'rgba(180,71,63,0.28)')}
+            onMouseOut={e => (e.currentTarget.style.background = 'rgba(180,71,63,0.14)')}
+          >
+            Acknowledged — Continue
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Correct decision flash ───────────────────────────────────────────────────
+function CorrectFlash({ log, onDone }: { log: DailyLog; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1400);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  const isFreeze = log.decision === 'FREEZE';
+  const color = isFreeze ? '#6aabf0' : C.green;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.2 }}
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[190] pointer-events-none"
+    >
+      <div className="font-stamped text-4xl uppercase tracking-[0.25em] px-10 py-5 border-4 shadow-2xl"
+           style={{
+             color,
+             borderColor: color,
+             background: 'rgba(0,0,0,0.75)',
+             boxShadow: `0 0 40px ${color}55, 0 0 80px ${color}22`,
+           }}>
+        {log.decision === 'APPROVE' ? '✓ APPROVED' : log.decision === 'REJECT' ? '✓ REJECTED' : '✓ FROZEN'}
+      </div>
+      <div className="text-center mt-2 font-terminal text-sm" style={{ color }}>
+        +{formatMoney(log.earnings)}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Right Panel ─────────────────────────────────────────────────────────────
 function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'] }) {
+  const dailyGoal   = DAILY_GOALS[state.day] ?? 300;
+  const dailyEarned = state.dailyLogs.reduce((a, l) => a + l.earnings, 0);
+
   return (
-    <div className="w-80 shrink-0 flex flex-col overflow-hidden border-l"
+    <div className="w-96 shrink-0 flex flex-col overflow-hidden border-l"
          style={{ background: C.panel, borderColor: C.border }}>
 
       {/* Section header */}
-      <div className="px-5 pt-4 pb-2 border-b" style={{ borderColor: C.border + '55' }}>
+      <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: C.border + '44' }}>
         <div className="font-stamped text-xs tracking-widest uppercase" style={{ color: C.muted }}>
           Ministry Directives
         </div>
@@ -280,7 +392,12 @@ function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <Rulebook day={state.day} activeEvent={state.activeEvent} />
+        <Rulebook
+          day={state.day}
+          activeEvent={state.activeEvent}
+          dailyGoal={dailyGoal}
+          dailyEarned={dailyEarned}
+        />
       </div>
     </div>
   );
@@ -381,9 +498,20 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const [docZIndices, setDocZIndices] = useState<Record<string, number>>({});
   const [circledFields, setCircledFields] = useState<Set<string>>(new Set());
   const [crtFlicker, setCRTFlicker]   = useState(false);
+  const [decisionFeedback, setDecisionFeedback] = useState<DailyLog | null>(null);
+  const prevLogCount = useRef(0);
   const prevMemoId = useRef<string | null>(null);
 
   const processedCount = 4 - state.clientsQueue.length - (state.currentClient ? 1 : 0);
+
+  // Detect new decisions → trigger feedback
+  useEffect(() => {
+    if (state.dailyLogs.length > prevLogCount.current) {
+      const last = state.dailyLogs[state.dailyLogs.length - 1];
+      setDecisionFeedback(last);
+      prevLogCount.current = state.dailyLogs.length;
+    }
+  }, [state.dailyLogs.length]);
 
   useEffect(() => {
     const newId = state.activeMemo?.id || null;
@@ -424,17 +552,17 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const hasClient      = !!state.currentClient;
   const canCallNext    = state.clientsQueue.length > 0;
 
-  // Document initial positions — close together for easy comparison
+  // Document initial positions — tight, so fields can be compared without dragging
   const DOC_POS = [
-    { x: 36,  y: 70  },
-    { x: 180, y: 52  },
-    { x: 326, y: 84  },
-    { x: 472, y: 68  },
+    { x: 24,  y: 60  },
+    { x: 160, y: 44  },
+    { x: 300, y: 72  },
+    { x: 440, y: 56  },
   ];
 
   return (
     <div
-      className={cn('h-screen w-full flex flex-col overflow-hidden transition-all', crtFlicker && 'brightness-[1.4]')}
+      className={cn('h-screen w-full flex flex-col overflow-hidden transition-all relative', crtFlicker && 'brightness-[1.4]')}
       style={{ background: C.bg, color: C.text }}
     >
 
@@ -476,29 +604,33 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
         </div>
 
         {/* Right: stats */}
-        <div className="flex items-center gap-6 font-terminal text-xs">
-          <div className="flex items-center gap-1.5" style={{ color: C.muted }}>
-            <Clock className="w-3.5 h-3.5" />
-            <span>DAY {state.day} / 7</span>
+        <div className="flex items-center gap-5">
+          {/* MONEY — most prominent stat */}
+          <div className="flex items-center gap-2 px-3 py-1 border rounded" style={{ borderColor: C.green + '44', background: 'rgba(63,163,92,0.07)' }}>
+            <DollarSign className="w-4 h-4" style={{ color: C.green }} />
+            <span className="font-terminal text-xl font-bold leading-none" style={{ color: C.green }}>
+              {formatMoney(state.money)}
+            </span>
           </div>
+
+          {/* Day */}
+          <div className="flex items-center gap-1.5 font-terminal text-xs" style={{ color: C.muted }}>
+            <Clock className="w-3.5 h-3.5" />
+            <span>DAY {state.day}/7</span>
+          </div>
+
+          {/* Citations */}
+          <div className="flex items-center gap-1.5 font-terminal text-xs" style={{ color: state.citations > 0 ? C.red : C.muted }}>
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>{state.citations}/5 cit.</span>
+          </div>
+
+          {/* Flagged fields count */}
           {circledFields.size > 0 && (
             <span className="font-terminal text-[10px]" style={{ color: C.red }}>
               ⊗ {circledFields.size} flagged
             </span>
           )}
-          <div className="flex items-center gap-1" style={{ color: C.muted, fontSize: 10 }}>
-            <span style={{ color: '#d97706' }}>{state.alignment.corporate}C</span>·
-            <span style={{ color: '#6aabf0' }}>{state.alignment.whistleblower}R</span>·
-            <span style={{ color: C.green }}>{state.alignment.survivalist}S</span>
-          </div>
-          <div className="flex items-center gap-1.5" style={{ color: C.green }}>
-            <DollarSign className="w-3.5 h-3.5" />
-            {formatMoney(state.money)}
-          </div>
-          <div className="flex items-center gap-1.5" style={{ color: state.citations > 0 ? C.red : C.muted }}>
-            <ShieldAlert className="w-3.5 h-3.5" />
-            {state.citations}/5
-          </div>
         </div>
       </div>
 
@@ -662,6 +794,24 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
       {/* ── Day-end overlay ──────────────────────────────────────────────────── */}
       {state.status === 'DAY_END' && <DayEndOverlay state={state} endDay={endDay} />}
+
+      {/* ── Decision feedback overlays ───────────────────────────────────────── */}
+      <AnimatePresence>
+        {decisionFeedback && !decisionFeedback.wasCorrect && (
+          <CitationModal
+            key="citation"
+            log={decisionFeedback}
+            onContinue={() => setDecisionFeedback(null)}
+          />
+        )}
+        {decisionFeedback && decisionFeedback.wasCorrect && (
+          <CorrectFlash
+            key="flash"
+            log={decisionFeedback}
+            onDone={() => setDecisionFeedback(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -10,6 +10,23 @@ const MAX_CITATIONS = 5;
 const MAX_DAYS = 7;
 const CLIENTS_PER_DAY = 4;
 
+// Daily goals by day index (1-7)
+export const DAILY_GOALS = [0, 200, 250, 300, 350, 400, 450, 500];
+
+const FRAUD_REASONS: Record<string, string> = {
+  name_mismatch:          'Name does not match across documents — identity fraud.',
+  ssn_mismatch:           'SSN does not match across documents — falsified identity.',
+  w2_mismatch:            'Reported gross income does not match W-2 wages.',
+  expense_mismatch:       'Expense deductions do not match the Expense Report total.',
+  math_error:             'Taxable Income calculation is incorrect (Gross − Deductions ≠ Taxable).',
+  tax_error:              'Tax Owed does not match the progressive bracket calculation.',
+  capital_gains_misclass: 'Capital gains misclassified on Schedule D — short-term filed as long-term.',
+  money_laundering:       'Suspicious transaction patterns indicate money laundering.',
+  offshore_accounts:      'Undeclared offshore income detected — unreported assets.',
+  insider_trading:        'Trading pattern on Schedule D suggests insider knowledge.',
+  shell_company_legal:    'Shell company structure flagged — legal but requires review.',
+};
+
 const INITIAL_WORLD: WorldState = {
   housingCrisisTriggered: false,
   whistleblowerNetworkActive: false,
@@ -151,32 +168,47 @@ export function useGameEngine() {
         let alignmentShift: AlignmentPath | undefined;
         let humanCostMsg: string | undefined;
 
+        let citationReason: string | undefined;
+
         if (isCorrect) {
           if (decision === 'APPROVE') {
             baseEarnings = 50;
-            alignmentShift = client.vipData?.isMegaCorp ? 'corporate' : 'corporate';
+            alignmentShift = 'corporate';
             humanCostMsg = pickRandom(HUMAN_COSTS.correct_approve);
           } else if (decision === 'REJECT') {
             const circledBonus = Math.min(circledCount, 4) * 25;
-            baseEarnings = 75 + circledBonus;
+            baseEarnings = 100 + circledBonus;
             alignmentShift = 'whistleblower';
             humanCostMsg = pickRandom(HUMAN_COSTS.correct_reject);
           } else if (decision === 'FREEZE') {
-            baseEarnings = 150;
+            baseEarnings = 200;
             alignmentShift = 'whistleblower';
             humanCostMsg = pickRandom(HUMAN_COSTS.freeze_correct);
           }
         } else {
           if (decision === 'APPROVE') {
-            baseEarnings = client.isContraband ? -50 : -25;
+            baseEarnings = client.isContraband ? -150 : -100;
             citationsAdded = event?.type === 'audit_sweep' ? 2 : 1;
             alignmentShift = 'survivalist';
             humanCostMsg = pickRandom(HUMAN_COSTS.approve_fraud);
-          } else {
-            baseEarnings = -10;
+            citationReason = client.fraudType !== 'none'
+              ? (FRAUD_REASONS[client.fraudType] ?? 'Fraud was present in this filing.')
+              : 'Contraband financial activity was approved.';
+          } else if (decision === 'REJECT') {
+            baseEarnings = -75;
             citationsAdded = 1;
             alignmentShift = 'survivalist';
             humanCostMsg = pickRandom(HUMAN_COSTS.reject_innocent);
+            citationReason = 'This filing contained no discrepancies — an innocent citizen was rejected.';
+          } else {
+            // Wrong FREEZE
+            baseEarnings = -75;
+            citationsAdded = 1;
+            alignmentShift = 'survivalist';
+            humanCostMsg = pickRandom(HUMAN_COSTS.reject_innocent);
+            citationReason = client.isContraband
+              ? 'Correct approach, but the standard decision was expected here.'
+              : 'This filing contained no contraband — freeze was unwarranted.';
           }
         }
 
@@ -199,6 +231,7 @@ export function useGameEngine() {
             ? { clientName: client.name, impact: humanCostMsg, isPositive: isCorrect }
             : undefined,
           alignmentShift,
+          citationReason,
         };
 
         const newCitations = prev.citations + citationsAdded;

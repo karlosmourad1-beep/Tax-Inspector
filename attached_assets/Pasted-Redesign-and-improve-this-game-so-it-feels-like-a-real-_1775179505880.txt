@@ -1,0 +1,219 @@
+Redesign and improve this game so it feels like a real document-inspection game with meaningful gameplay, clear feedback, and a stronger purpose.
+
+IMPORTANT:
+This game should not feel like a website dashboard. It should feel like a tense tax inspection desk where the player must balance speed, accuracy, and risk.
+
+CORE GAME PURPOSE:
+The point of the game is to audit tax documents under pressure. The entertainment should come from:
+1. Comparing documents carefully
+2. Catching mismatches and fraud
+3. Balancing speed vs accuracy
+4. Deciding whether to approve, reject, or freeze
+5. Managing money, citations, and daily goals
+6. Feeling pressure from time limits, consequences, and increasing difficulty
+
+The player should feel:
+- tension
+- uncertainty
+- pressure
+- satisfaction when catching fraud
+- frustration when making mistakes
+
+================================
+PART 1 - GAME DESIGN FIXES
+================================
+
+1. MAKE THE MONEY SYSTEM MATTER
+Right now money feels meaningless and too small to notice.
+Fix this by:
+- Making the money display much larger and more readable in the top bar
+- Using bigger reward and penalty values so the player feels the consequences
+
+Suggested values:
+- Correct Approve: +50 dollars
+- Correct Reject: +25 dollars
+- Correct Freeze: +100 dollars
+- Wrong Decision: -75 dollars and 1 citation
+
+2. ADD A DAILY GOAL
+The player should have a clear reason to care about money.
+Add a daily target such as:
+- Day 1 goal: Earn 300 dollars
+- If player fails the target, show a warning or failure state
+- If player gets too many citations, they lose
+
+3. ADD PRESSURE
+Right now the player can think forever, which removes tension.
+Add at least one of these:
+- a day timer
+- a citizen quota
+- both
+
+Examples:
+- Process 8 citizens before shift ends
+- Finish the day before time runs out
+
+4. MAKE DECISIONS MORE INTERESTING
+The game should not just be obvious approve or reject.
+Each citizen should create some uncertainty.
+Examples:
+- a small SSN mismatch
+- incorrect tax calculation
+- suspicious employer
+- suspicious deductions
+- leaked note warning the player about hidden fraud
+
+5. MAKE FREEZE A RISK/REWARD OPTION
+Freeze should not feel random.
+Define it clearly:
+- Freeze means launching an investigation
+- If correct, player gets the biggest reward
+- If wrong, player gets a strong penalty
+
+Freeze should be the high-risk, high-reward choice.
+
+6. ADD PROGRESSION
+As days increase:
+- rules should become more complex
+- fraud should become harder to spot
+- cases should become less obvious
+- player should feel difficulty rising
+
+================================
+PART 2 - UI / LAYOUT FIXES
+================================
+
+1. MAKE THE RIGHT PANEL WIDER
+The right panel is currently too narrow, too small, and hard to read.
+Increase its width significantly so text is readable without squinting.
+
+2. REBUILD RIGHT PANEL STRUCTURE
+The right panel should have clearly separated sections:
+- Ministry Directives
+- Active Rules
+- Payout / Consequences
+- Optional daily goal or shift status
+
+Use more spacing, stronger headings, and bigger text.
+
+3. MAKE MONEY HIGHLY VISIBLE
+The money in the top bar is too tiny and easy to miss.
+Make it large, bright, and prominent.
+It should be one of the easiest values to see on the screen.
+
+4. IMPROVE TOP BAR
+Group top bar information clearly:
+- title
+- day number
+- money
+- citations
+- quota or timer
+
+Make these easier to scan.
+
+5. MOVE DOCUMENTS CLOSER TOGETHER
+The tax form and ID card should feel like they are being compared on the same desk.
+Bring them closer together.
+Do not leave a large empty gap between them.
+
+6. KEEP THE DESK AS THE MAIN FOCUS
+The center area should dominate the screen.
+Documents should be the most visually important part of the interface.
+
+7. REMOVE OR REDUCE ANY USELESS UI
+Every visible part of the screen must do one of these:
+- help inspect documents
+- explain rules or consequences
+- allow player action
+
+Anything else should be removed or redesigned.
+
+8. MAKE THE WHOLE UI FEEL LIKE AN INSPECTION DESK
+Avoid making it feel like a generic web dashboard.
+Use:
+- physical document feel
+- darker in-world panels
+- subtle borders
+- readable text
+- strong focus on the desk
+
+================================
+PART 3 - FEEDBACK / CITATION SYSTEM
+================================
+
+PROBLEM:
+Right now when the player gets a citation, nothing really happens except a small number changing in the top right. This feels bad and weak. The player does not feel the mistake.
+
+FIX:
+Add immediate and obvious feedback for decisions.
+
+1. WRONG DECISION FEEDBACK
+When the player makes a wrong decision:
+- darken the background
+- show a centered popup/modal
+- pause gameplay until the popup is dismissed
+- use red error styling
+
+Popup should include:
+- Title: CITATION ISSUED
+- Reason: clear explanation of what was wrong
+- Penalty: money lost
+- Continue button
+
+Example:
+CITATION ISSUED
+Reason: SSN does not match across documents
+Penalty: -75 dollars
+[ Continue ]
+
+2. CORRECT DECISION FEEDBACK
+When the player makes a correct decision:
+- do not show a large popup
+- show a quick green confirmation message or flash
+- keep the game flow fast
+
+3. MAKE CITATIONS TEACH THE PLAYER
+The citation popup should clearly explain why the player was wrong.
+Examples:
+- Name mismatch between documents
+- SSN mismatch between ID and tax form
+- Incorrect tax calculation approved
+- Suspicious employer was ignored
+- Fraudulent filing was accepted
+
+This is important because it makes the game feel fair and educational.
+
+4. OPTIONAL EXTRA FEEDBACK
+If possible, add:
+- red screen flash or subtle shake for citations
+- green flash or checkmark for correct decisions
+- simple sound effects for success and error
+
+================================
+PART 4 - WHAT THE GAME SHOULD FEEL LIKE
+================================
+
+The final game should feel like:
+- a tense tax fraud inspection game
+- a balance of speed, accuracy, and judgment
+- a desk where the player compares documents and makes risky choices
+- a game where money, citations, and daily goals matter
+- a game that becomes harder over time
+
+This should feel like a real gameplay loop, not just a UI mockup.
+
+================================
+PART 5 - SUMMARY OF MOST IMPORTANT CHANGES
+================================
+
+Highest priority:
+1. Make the right panel larger and readable
+2. Make money much larger and more visible
+3. Make money and citations actually matter through bigger rewards and penalties
+4. Add a daily goal and/or time pressure
+5. Add citation popup feedback with clear reasons
+6. Make Freeze a meaningful high-risk option
+7. Bring documents closer together
+8. Make the game feel tense, not passive
+
+If any UI element does not help the player inspect documents, understand rules, or take action, remove it.
