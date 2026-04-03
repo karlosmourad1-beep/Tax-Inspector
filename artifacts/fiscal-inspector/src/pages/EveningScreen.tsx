@@ -164,9 +164,16 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
         </div>
 
         {/* ── CONTINUE ── */}
+        {remaining < 0 && (
+          <div className="w-full text-center font-terminal text-sm uppercase tracking-wider px-4 py-3 border"
+               style={{ borderColor: C.red + '66', background: 'rgba(180,71,63,0.08)', color: C.red }}>
+            Continuing with debt will have consequences
+          </div>
+        )}
+
         <motion.button
           onClick={handleConfirm}
-          disabled={confirmed || remaining < 0}
+          disabled={confirmed}
           whileTap={{ scale: 0.98 }}
           className="w-full py-5 font-terminal text-base font-bold uppercase tracking-[0.4em] border-2 transition-all disabled:opacity-40"
           style={{ borderColor: C.accent, background: 'rgba(224,161,27,0.08)', color: C.accent }}

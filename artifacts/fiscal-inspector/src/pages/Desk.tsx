@@ -472,6 +472,35 @@ function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'
     <div className="w-96 shrink-0 flex flex-col overflow-hidden border-l"
          style={{ background: C.panel, borderColor: C.border }}>
 
+      {/* Instructions Panel */}
+      <div className="shrink-0 px-5 py-4 border-b" style={{ borderColor: C.border + '44', background: 'rgba(63,163,92,0.04)' }}>
+        <div className="font-terminal text-[10px] uppercase tracking-widest mb-3" style={{ color: C.green }}>
+          How to Audit
+        </div>
+
+        <div className="space-y-2 text-[10px] font-terminal">
+          <div>
+            <div className="uppercase tracking-wider font-bold mb-1" style={{ color: C.accent }}>Check</div>
+            <div style={{ color: C.text }}>
+              • NAME MATCH<br/>
+              • SSN MATCH<br/>
+              • INCOME MATCH
+            </div>
+          </div>
+
+          <div className="border-t" style={{ borderColor: C.border + '33' }} />
+
+          <div>
+            <div className="uppercase tracking-wider font-bold mb-1" style={{ color: C.accent }}>Actions</div>
+            <div style={{ color: C.text }}>
+              ✓ APPROVE = match<br/>
+              ✗ REJECT = mismatch<br/>
+              ❄ FREEZE = fraud
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Section header */}
       <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: C.border + '44' }}>
         <div className="font-stamped text-xs tracking-widest uppercase" style={{ color: C.muted }}>

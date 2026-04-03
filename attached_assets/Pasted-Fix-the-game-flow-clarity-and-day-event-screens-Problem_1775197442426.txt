@@ -1,0 +1,157 @@
+Fix the game flow, clarity, and day event screens.
+
+Problems to fix:
+1. When all citizens are processed, the game leaves the desk empty and makes the player manually end the shift.
+2. Day event screens (like the stock market shock) are too small, too wordy, and do not feel important.
+3. Some warning labels are vague and confusing, such as "Suspicious line items".
+4. The player does not clearly know what they are supposed to check or what each action means.
+5. If the player goes into debt or cannot afford a choice, the game can get stuck and they cannot continue.
+
+--------------------------------
+1. AUTO-END THE SHIFT
+--------------------------------
+
+When all citizens are processed:
+- automatically end the shift
+- immediately transition to the end-of-day screen
+- do NOT leave the desk empty
+- do NOT require the player to manually click "End Shift" after the work is already done
+
+--------------------------------
+2. REVAMP DAY EVENT SCREENS
+--------------------------------
+
+Redesign all day-start event screens to be bold, simple, and readable.
+
+Current issue:
+- text is too small
+- too many words
+- not enough impact
+- player has to squint
+
+Use a much simpler format like:
+
+DAY 3
+
+MARKET CRASH
+
+WAGES -30%
+PENALTIES HIGHER
+
+[ START SHIFT ]
+
+Rules:
+- maximum 3 short lines
+- no paragraphs
+- very large text
+- strong contrast
+- no tiny explanatory text
+
+The player should understand the event in under 2 seconds.
+
+--------------------------------
+3. ADD A SHORT NEWSPAPER CUTSCENE
+--------------------------------
+
+Before major day events, add a very short world-event cutscene.
+
+Use a stylized newspaper spinning onto the screen with a bold headline.
+
+Example:
+- newspaper spins in
+- headline appears:
+  "MARKET PANIC"
+  or
+  "MINISTRY WARNS OF CRASH"
+- optional subheadline:
+  "Wages reduced nationwide"
+
+Then transition into the simple day screen.
+
+Important:
+- keep it short (2–4 seconds)
+- make it readable
+- do not use graphic or extreme disaster imagery
+- use this to make the event feel important
+
+--------------------------------
+4. REPLACE VAGUE WARNINGS
+--------------------------------
+
+Remove unclear warnings like:
+- "Suspicious line items"
+
+Replace them with short, specific labels that tell the player what to look for.
+
+Examples:
+- INCOME TOO HIGH
+- DEDUCTIONS UNUSUAL
+- EMPLOYER UNKNOWN
+- EXPENSES EXCESSIVE
+
+The player should immediately understand what is suspicious.
+
+--------------------------------
+5. ADD PERMANENT PLAYER INSTRUCTIONS
+--------------------------------
+
+The player currently does not clearly know what to do.
+
+Add a permanent minimal instruction panel on the gameplay screen that always shows:
+
+CHECK
+- NAME MATCH
+- SSN MATCH
+- INCOME MATCH
+
+ACTIONS
+- APPROVE = match
+- REJECT = mismatch
+- FREEZE = fraud
+
+Rules:
+- no paragraphs
+- no long explanations
+- keep it visible at all times
+- make it easy to read at a glance
+
+--------------------------------
+6. FIX DEBT / SOFTLOCK
+--------------------------------
+
+The player must never get stuck.
+
+If the player has no money or goes into debt:
+- always allow them to continue
+- allow skipping choices
+- or allow negative balance
+- but never trap the player on the screen
+
+Possible warning:
+NO FUNDS
+CONTINUING WITH CONSEQUENCES
+
+But the player must always be able to move on.
+
+--------------------------------
+7. READABILITY RULE
+--------------------------------
+
+All important text must be much larger.
+
+Increase font size for:
+- day event headlines
+- warnings
+- instruction labels
+- key gameplay text
+
+Nothing important should require squinting.
+
+Goal:
+Make the player always know:
+- what happened in the world
+- what to check
+- what each action means
+- what happens next
+
+And make sure the game never stalls or traps the player.

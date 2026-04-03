@@ -123,7 +123,7 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
           {fp('total', formatMoney(d.totalExpenses))}
           {d.lineItems.some(i => i.isSuspect) && (
             <div className="px-3 py-2 rounded border border-amber-600/50 bg-amber-50/50 text-amber-800 text-sm font-bold">
-              ⚠ Suspicious line items
+              ⚠ EXPENSES EXCESSIVE — verify breakdown
             </div>
           )}
         </FormWrapper>

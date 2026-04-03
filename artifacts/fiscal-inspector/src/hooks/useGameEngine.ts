@@ -325,15 +325,26 @@ export function useGameEngine() {
         }
 
         const nextQueue  = [...prev.clientsQueue];
-        const nextStatus = nextQueue.length === 0 ? 'DAY_END' : 'PLAYING';
-        const nextClient = nextStatus === 'PLAYING' ? nextQueue.shift() || null : null;
+        
+        // Auto-end shift when all clients processed
+        if (nextQueue.length === 0) {
+          return {
+            ...prev,
+            money: newMoney, citations: newCitations,
+            dailyLogs: newDailyLogs, allTimeLogs: newAllLogs,
+            alignment: newAlignment, worldState: newWorld,
+            status: 'EVENING', clientsQueue: nextQueue,
+            currentClient: null, activeMemo: null, memoActed: false,
+          };
+        }
 
+        const nextClient = nextQueue.shift() || null;
         return {
           ...prev,
           money: newMoney, citations: newCitations,
           dailyLogs: newDailyLogs, allTimeLogs: newAllLogs,
           alignment: newAlignment, worldState: newWorld,
-          status: nextStatus, clientsQueue: nextQueue,
+          status: 'PLAYING', clientsQueue: nextQueue,
           currentClient: nextClient,
           activeMemo: nextClient?.leakedMemo || null,
           memoActed: false,
