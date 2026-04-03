@@ -144,6 +144,8 @@ export interface DailyLog {
   humanCost?: HumanCostEntry;
   alignmentShift?: AlignmentPath;
   citationReason?: string;
+  fraudType?: FraudType;
+  isVIP?: boolean;
 }
 
 export interface WorldState {

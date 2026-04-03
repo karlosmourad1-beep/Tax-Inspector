@@ -374,6 +374,160 @@ function CorrectFlash({ log, onDone }: { log: DailyLog; onDone: () => void }) {
   );
 }
 
+// ─── Fraud types that trigger escalation report ──────────────────────────────
+const MAJOR_FRAUD_TYPES = new Set([
+  'money_laundering', 'offshore_accounts', 'insider_trading',
+  'capital_gains_misclass', 'shell_company_legal',
+]);
+const isMajorFraudLog = (log: DailyLog) =>
+  log.wasCorrect && (log.decision === 'FREEZE' || (log.decision === 'REJECT' && MAJOR_FRAUD_TYPES.has(log.fraudType ?? '')));
+
+const FRAUD_LABELS: Record<string, string> = {
+  money_laundering:        'Money Laundering',
+  offshore_accounts:       'Undeclared Offshore Assets',
+  insider_trading:         'Insider Trading',
+  capital_gains_misclass:  'Capital Gains Misclassification',
+  shell_company_legal:     'Shell Company — Regulatory Violation',
+  name_mismatch:           'Identity Falsification',
+  ssn_mismatch:            'SSN Fraud',
+  w2_mismatch:             'Income Misreporting',
+  expense_mismatch:        'Fraudulent Deductions',
+  math_error:              'Tax Calculation Fraud',
+  tax_error:               'Incorrect Tax Filing',
+};
+
+const FREEZE_OUTCOMES: Record<string, string> = {
+  money_laundering:       'Financial assets frozen. Criminal investigation launched. Case forwarded to Financial Crimes Unit.',
+  offshore_accounts:      'Offshore holdings seized. International compliance violation registered. Assets pending repatriation.',
+  insider_trading:        'Trading records impounded. Securities Enforcement Division notified. Account access suspended.',
+  capital_gains_misclass: 'Portfolio records seized. Tax liability recalculated and back-taxes levied.',
+  shell_company_legal:    'Corporate accounts frozen. Regulatory compliance audit initiated. Board subpoenaed.',
+};
+const REJECT_OUTCOMES: Record<string, string> = {
+  money_laundering:       'Filing rejected. Evidence packet forwarded to Financial Intelligence Unit for further review.',
+  offshore_accounts:      'Filing rejected. Undisclosed foreign accounts flagged for IRS international compliance review.',
+  insider_trading:        'Filing rejected. Suspicious trading data forwarded to Securities Enforcement Division.',
+  capital_gains_misclass: 'Filing rejected. Gain reclassification logged and sent to tax correction bureau.',
+  shell_company_legal:    'Filing rejected. Shell company structure flagged for regulatory compliance audit.',
+};
+const DEFAULT_OUTCOME = 'Filing flagged. Case forwarded to the Ministry audit division for further investigation.';
+
+// ─── Fraud Escalation Report ──────────────────────────────────────────────────
+function FraudEscalationModal({ log, onContinue }: { log: DailyLog; onContinue: () => void }) {
+  const fraudLabel   = FRAUD_LABELS[log.fraudType ?? '']   ?? 'Financial Irregularity';
+  const isFreeze     = log.decision === 'FREEZE';
+  const outcomeMap   = isFreeze ? FREEZE_OUTCOMES : REJECT_OUTCOMES;
+  const outcome      = outcomeMap[log.fraudType ?? ''] ?? DEFAULT_OUTCOME;
+  const caseNum      = `MF-${log.clientId.slice(-6).toUpperCase()}-${new Date().getFullYear()}`;
+  const accentColor  = isFreeze ? '#6aabf0' : '#e0a11b';
+  const accentBg     = isFreeze ? 'rgba(58,106,191,0.12)' : 'rgba(180,71,63,0.10)';
+  const borderColor  = isFreeze ? '#3a6abf' : C.red;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="absolute inset-0 z-[200] flex items-center justify-center"
+      style={{ background: 'rgba(4,1,0,0.94)', backdropFilter: 'blur(4px)' }}
+    >
+      <motion.div
+        initial={{ y: 32, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 16, opacity: 0 }}
+        transition={{ type: 'spring', damping: 24, stiffness: 220, delay: 0.05 }}
+        className="relative w-[520px] border-2 overflow-hidden"
+        style={{ background: '#0c0705', borderColor }}
+      >
+        {/* Big rotated stamp watermark */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+          <div
+            className="font-stamped text-7xl uppercase tracking-[0.2em] opacity-[0.06] rotate-[-18deg] whitespace-nowrap"
+            style={{ color: accentColor }}
+          >
+            {isFreeze ? 'ASSETS FROZEN' : 'FRAUD CONFIRMED'}
+          </div>
+        </div>
+
+        {/* Header bar */}
+        <div className="relative px-6 py-4 border-b flex items-start justify-between gap-4"
+             style={{ borderColor: borderColor + '55', background: accentBg }}>
+          <div>
+            <div className="font-terminal text-[9px] uppercase tracking-[0.25em] mb-1" style={{ color: accentColor, opacity: 0.7 }}>
+              Ministry of Finance — Fraud Enforcement Division
+            </div>
+            <div className="font-stamped text-xl tracking-widest uppercase" style={{ color: accentColor }}>
+              {isFreeze ? 'Assets Frozen' : 'Fraud Confirmed'}
+            </div>
+            <div className="font-terminal text-[9px] mt-1 opacity-50">Case No. {caseNum}</div>
+          </div>
+          {/* Stamp badge */}
+          <div className="shrink-0 w-16 h-16 border-2 rounded-full flex flex-col items-center justify-center text-center"
+               style={{ borderColor, background: accentBg }}>
+            <div className="font-stamped text-[9px] leading-tight uppercase tracking-wide" style={{ color: accentColor }}>
+              {isFreeze ? 'FROZEN' : 'FRAUD'}
+            </div>
+            <div className="font-stamped text-[8px] opacity-50 leading-tight" style={{ color: accentColor }}>
+              CONFIRMED
+            </div>
+          </div>
+        </div>
+
+        {/* Details grid */}
+        <div className="relative px-6 py-5 flex flex-col gap-4">
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="font-terminal text-[9px] uppercase tracking-widest mb-1" style={{ color: C.muted }}>Subject</div>
+              <div className="font-terminal text-sm font-bold" style={{ color: C.text }}>
+                {log.clientName}{log.isVIP && <span className="ml-1.5 text-yellow-300 text-[10px]">★ VIP</span>}
+              </div>
+            </div>
+            <div>
+              <div className="font-terminal text-[9px] uppercase tracking-widest mb-1" style={{ color: C.muted }}>Violation</div>
+              <div className="font-terminal text-sm font-bold" style={{ color: accentColor }}>{fraudLabel}</div>
+            </div>
+          </div>
+
+          <div>
+            <div className="font-terminal text-[9px] uppercase tracking-widest mb-1.5" style={{ color: C.muted }}>Outcome</div>
+            <p className="font-terminal text-xs leading-relaxed" style={{ color: '#d0bc96' }}>{outcome}</p>
+          </div>
+
+          <div className="flex items-center justify-between p-3 border rounded-sm" style={{ borderColor: accentColor + '33', background: accentBg }}>
+            <div>
+              <div className="font-terminal text-[9px] uppercase tracking-widest mb-0.5" style={{ color: C.muted }}>
+                {isFreeze ? 'Enforcement Bonus' : 'Detection Reward'}
+              </div>
+              <div className="font-terminal text-2xl font-bold" style={{ color: C.green }}>
+                {formatMoney(log.earnings)}
+              </div>
+            </div>
+            <div className="font-terminal text-[10px] text-right" style={{ color: C.muted }}>
+              <div>{isFreeze ? 'Correct FREEZE' : 'Correct REJECT'}</div>
+              <div className="mt-0.5" style={{ color: accentColor }}>Major Fraud</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Continue */}
+        <div className="relative px-6 pb-6 border-t pt-4" style={{ borderColor: borderColor + '33' }}>
+          <button
+            onClick={onContinue}
+            className="w-full py-3 font-terminal text-sm font-bold uppercase tracking-widest border transition-all"
+            style={{ borderColor, color: C.text, background: accentBg }}
+            onMouseOver={e => (e.currentTarget.style.opacity = '0.8')}
+            onMouseOut={e => (e.currentTarget.style.opacity = '1')}
+          >
+            Confirmed — Continue Shift
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Right Panel ─────────────────────────────────────────────────────────────
 function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'] }) {
   const dailyGoal   = DAILY_GOALS[state.day] ?? 300;
@@ -804,7 +958,14 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             onContinue={() => setDecisionFeedback(null)}
           />
         )}
-        {decisionFeedback && decisionFeedback.wasCorrect && (
+        {decisionFeedback && isMajorFraudLog(decisionFeedback) && (
+          <FraudEscalationModal
+            key="escalation"
+            log={decisionFeedback}
+            onContinue={() => setDecisionFeedback(null)}
+          />
+        )}
+        {decisionFeedback && decisionFeedback.wasCorrect && !isMajorFraudLog(decisionFeedback) && (
           <CorrectFlash
             key="flash"
             log={decisionFeedback}

@@ -232,6 +232,8 @@ export function useGameEngine() {
             : undefined,
           alignmentShift,
           citationReason,
+          fraudType: client.fraudType,
+          isVIP: client.isVIP,
         };
 
         const newCitations = prev.citations + citationsAdded;
