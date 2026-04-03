@@ -160,6 +160,18 @@ export interface WorldState {
 
 export type GameStatus = 'TITLE' | 'DAY_START' | 'PLAYING' | 'DAY_END' | 'EVENING' | 'GAME_OVER' | 'VICTORY';
 
+// ─── Family system ────────────────────────────────────────────────────────────
+export type FamilyMemberStatus = 'OK' | 'HUNGRY' | 'WEAK' | 'SICK' | 'CRITICAL';
+export type FamilyMemberRole   = 'wife' | 'son' | 'daughter' | 'dog';
+
+export interface FamilyMember {
+  id: string;
+  name: string;
+  role: FamilyMemberRole;
+  status: FamilyMemberStatus;
+  needsMedicine: boolean; // true when SICK or CRITICAL
+}
+
 export interface EveningEventChoice {
   id: string;
   label: string;
@@ -204,7 +216,7 @@ export interface GameState {
   activeMemo: LeakedMemo | null;
   memoActed: boolean;
   ending: EndingData | null;
-  food: number;
   performanceMod: number;
-  activeEveningEvent: EveningEvent | null;
+  family: FamilyMember[];
+  rentMissed: number;
 }

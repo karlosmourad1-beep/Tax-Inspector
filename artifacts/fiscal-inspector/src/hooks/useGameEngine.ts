@@ -1,18 +1,52 @@
 import { useState, useCallback, useRef } from 'react';
-import { GameState, DailyLog, AlignmentPath, DecisionType, WorldState } from '../types/game';
+import { GameState, DailyLog, AlignmentPath, DecisionType, WorldState, FamilyMember, FamilyMemberStatus } from '../types/game';
 import { generateDailyClients } from '../lib/generator';
 import { DAILY_EVENTS, calculateEnding, HUMAN_COSTS } from '../lib/narrative';
 import { pickRandom } from '../lib/utils';
-import { pickEveningEvent, RENT_BY_DAY, foodToMod, MAX_FOOD } from '../lib/eveningEvents';
+import { RENT_BY_DAY } from '../lib/eveningEvents';
 import confetti from 'canvas-confetti';
 
-const INITIAL_MONEY = 0;
-const MAX_CITATIONS = 5;
-const MAX_DAYS = 7;
+const INITIAL_MONEY  = 120;
+const MAX_CITATIONS  = 5;
+const MAX_DAYS       = 7;
 const CLIENTS_PER_DAY = 4;
 
-// Daily goals by day index (1-7)
 export const DAILY_GOALS = [0, 200, 250, 300, 350, 400, 450, 500];
+
+// ─── Costs ────────────────────────────────────────────────────────────────────
+export const FEED_COST     = 25;
+export const MEDICINE_COST = 45;
+
+// ─── Status progression ───────────────────────────────────────────────────────
+const STATUS_ORDER: FamilyMemberStatus[] = ['OK', 'HUNGRY', 'WEAK', 'SICK', 'CRITICAL'];
+
+function worsen(s: FamilyMemberStatus): FamilyMemberStatus {
+  const i = STATUS_ORDER.indexOf(s);
+  return STATUS_ORDER[Math.min(i + 1, STATUS_ORDER.length - 1)];
+}
+function improve(s: FamilyMemberStatus): FamilyMemberStatus {
+  const i = STATUS_ORDER.indexOf(s);
+  return STATUS_ORDER[Math.max(i - 1, 0)];
+}
+
+function familyPerfMod(family: FamilyMember[]): number {
+  let mod = 1.0;
+  for (const m of family) {
+    if (m.status === 'HUNGRY')   mod -= 0.05;
+    if (m.status === 'WEAK')     mod -= 0.10;
+    if (m.status === 'SICK')     mod -= 0.16;
+    if (m.status === 'CRITICAL') mod -= 0.22;
+  }
+  return Math.max(0.4, mod);
+}
+
+// ─── Initial family ───────────────────────────────────────────────────────────
+const INITIAL_FAMILY: FamilyMember[] = [
+  { id: 'wife',     name: 'Elena',  role: 'wife',     status: 'OK', needsMedicine: false },
+  { id: 'son',      name: 'Mark',   role: 'son',      status: 'OK', needsMedicine: false },
+  { id: 'daughter', name: 'Lily',   role: 'daughter', status: 'OK', needsMedicine: false },
+  { id: 'dog',      name: 'Rex',    role: 'dog',      status: 'OK', needsMedicine: false },
+];
 
 const FRAUD_REASONS: Record<string, string> = {
   name_mismatch:          'Name does not match across documents — identity fraud.',
@@ -29,13 +63,13 @@ const FRAUD_REASONS: Record<string, string> = {
 };
 
 const INITIAL_WORLD: WorldState = {
-  housingCrisisTriggered: false,
-  whistleblowerNetworkActive: false,
-  bankingSystemStrained: false,
-  insiderTradingExposed: false,
-  corruptDeveloperApproved: false,
-  robinHoodSpared: false,
-  megaCorpApproved: false,
+  housingCrisisTriggered:      false,
+  whistleblowerNetworkActive:  false,
+  bankingSystemStrained:       false,
+  insiderTradingExposed:       false,
+  corruptDeveloperApproved:    false,
+  robinHoodSpared:             false,
+  megaCorpApproved:            false,
 };
 
 export function useGameEngine() {
@@ -55,9 +89,9 @@ export function useGameEngine() {
     activeMemo: null,
     memoActed: false,
     ending: null,
-    food: 3,
     performanceMod: 1.0,
-    activeEveningEvent: null,
+    family: INITIAL_FAMILY.map(m => ({ ...m })),
+    rentMissed: 0,
   });
 
   const [stampAction, setStampAction] = useState<DecisionType | null>(null);
@@ -86,15 +120,12 @@ export function useGameEngine() {
       };
 
       if (type === 'APPROVE') {
-        // Deep rubber-stamp thud: low sine boom + quick mid pop
         tone(90,  30,  0.22, 0.75, 'sine');
         tone(240, 120, 0.07, 0.35, 'triangle');
       } else if (type === 'REJECT') {
-        // Harsh descending buzz — decisive denial
         tone(200, 55, 0.28, 0.65, 'sawtooth');
         tone(170, 45, 0.22, 0.45, 'sawtooth', 0.06);
       } else if (type === 'FREEZE') {
-        // Icy bell chord — C5 E5 G5 arpeggiated
         ([523, 659, 784] as number[]).forEach((f, i) => {
           const osc = ctx.createOscillator();
           const g   = ctx.createGain();
@@ -128,9 +159,9 @@ export function useGameEngine() {
       activeMemo: null,
       memoActed: false,
       ending: null,
-      food: 3,
       performanceMod: 1.0,
-      activeEveningEvent: null,
+      family: INITIAL_FAMILY.map(m => ({ ...m })),
+      rentMissed: 0,
     }));
   }, []);
 
@@ -189,39 +220,34 @@ export function useGameEngine() {
       setStampAction(null);
       setState(prev => {
         if (!prev.currentClient) return prev;
-        const client = prev.currentClient;
-        const event = prev.activeEvent;
+        const client  = prev.currentClient;
+        const event   = prev.activeEvent;
         const wageMult = event?.wageMultiplier ?? 1.0;
-
-        // For MegaCorp (shell_company_legal), APPROVE is the "correct" game answer
-        // but morally wrong — we track that in world state
         const isCorrect = client.expectedDecision === decision;
 
-        let baseEarnings = 0;
+        let baseEarnings   = 0;
         let citationsAdded = 0;
         let alignmentShift: AlignmentPath | undefined;
         let humanCostMsg: string | undefined;
-
         let citationReason: string | undefined;
 
         if (isCorrect) {
           if (decision === 'APPROVE') {
-            baseEarnings = 50;
+            baseEarnings = 30;
             alignmentShift = 'corporate';
             humanCostMsg = pickRandom(HUMAN_COSTS.correct_approve);
           } else if (decision === 'REJECT') {
-            const circledBonus = Math.min(circledCount, 4) * 25;
-            baseEarnings = 100 + circledBonus;
+            baseEarnings = 55;
             alignmentShift = 'whistleblower';
             humanCostMsg = pickRandom(HUMAN_COSTS.correct_reject);
           } else if (decision === 'FREEZE') {
-            baseEarnings = 200;
+            baseEarnings = 100;
             alignmentShift = 'whistleblower';
             humanCostMsg = pickRandom(HUMAN_COSTS.freeze_correct);
           }
         } else {
           if (decision === 'APPROVE') {
-            baseEarnings = client.isContraband ? -150 : -100;
+            baseEarnings = client.isContraband ? -80 : -60;
             citationsAdded = event?.type === 'audit_sweep' ? 2 : 1;
             alignmentShift = 'survivalist';
             humanCostMsg = pickRandom(HUMAN_COSTS.approve_fraud);
@@ -229,14 +255,13 @@ export function useGameEngine() {
               ? (FRAUD_REASONS[client.fraudType] ?? 'Fraud was present in this filing.')
               : 'Contraband financial activity was approved.';
           } else if (decision === 'REJECT') {
-            baseEarnings = -75;
+            baseEarnings = -50;
             citationsAdded = 1;
             alignmentShift = 'survivalist';
             humanCostMsg = pickRandom(HUMAN_COSTS.reject_innocent);
             citationReason = 'This filing contained no discrepancies — an innocent citizen was rejected.';
           } else {
-            // Wrong FREEZE
-            baseEarnings = -75;
+            baseEarnings = -50;
             citationsAdded = 1;
             alignmentShift = 'survivalist';
             humanCostMsg = pickRandom(HUMAN_COSTS.reject_innocent);
@@ -246,7 +271,6 @@ export function useGameEngine() {
           }
         }
 
-        // Memo intel bonus
         if (prev.memoActed && prev.activeMemo && decision === prev.activeMemo.suggestedAction && isCorrect) {
           baseEarnings += prev.activeMemo.bonusIfActed;
           alignmentShift = prev.activeMemo.alignmentReward;
@@ -255,36 +279,35 @@ export function useGameEngine() {
         const earnings = Math.round(baseEarnings * wageMult * prev.performanceMod);
 
         const log: DailyLog = {
-          clientId: client.id,
-          clientName: client.name,
+          clientId:    client.id,
+          clientName:  client.name,
           decision,
-          wasCorrect: isCorrect,
+          wasCorrect:  isCorrect,
           earnings,
-          citations: citationsAdded,
-          humanCost: humanCostMsg
+          citations:   citationsAdded,
+          humanCost:   humanCostMsg
             ? { clientName: client.name, impact: humanCostMsg, isPositive: isCorrect }
             : undefined,
           alignmentShift,
           citationReason,
           fraudType: client.fraudType,
-          isVIP: client.isVIP,
+          isVIP:     client.isVIP,
         };
 
         const newCitations = prev.citations + citationsAdded;
         const newMoney     = prev.money + earnings;
-
         const newAlignment = { ...prev.alignment };
         if (alignmentShift) newAlignment[alignmentShift] += 1;
 
         const newWorld = { ...prev.worldState };
         if (client.isVIP && client.vipData) {
           const flag = client.vipData.flagId;
-          if (flag === 'corrupt_developer' && decision === 'APPROVE') newWorld.corruptDeveloperApproved = true;
-          if (flag === 'corrupt_developer' && decision !== 'APPROVE') newWorld.housingCrisisTriggered = true;
+          if (flag === 'corrupt_developer'  && decision === 'APPROVE') newWorld.corruptDeveloperApproved = true;
+          if (flag === 'corrupt_developer'  && decision !== 'APPROVE') newWorld.housingCrisisTriggered   = true;
           if (flag === 'whistleblower_nurse' && decision === 'APPROVE') newWorld.whistleblowerNetworkActive = true;
-          if (flag === 'director_offshore'   && decision === 'FREEZE')  newWorld.insiderTradingExposed = true;
-          if (flag === 'robin_hood'          && decision === 'APPROVE') newWorld.robinHoodSpared = true;
-          if (flag === 'megacorp'            && decision === 'APPROVE') newWorld.megaCorpApproved = true;
+          if (flag === 'director_offshore'  && decision === 'FREEZE')  newWorld.insiderTradingExposed    = true;
+          if (flag === 'robin_hood'         && decision === 'APPROVE') newWorld.robinHoodSpared          = true;
+          if (flag === 'megacorp'           && decision === 'APPROVE') newWorld.megaCorpApproved         = true;
         }
 
         const newDailyLogs = [...prev.dailyLogs, log];
@@ -301,7 +324,7 @@ export function useGameEngine() {
           };
         }
 
-        const nextQueue = [...prev.clientsQueue];
+        const nextQueue  = [...prev.clientsQueue];
         const nextStatus = nextQueue.length === 0 ? 'DAY_END' : 'PLAYING';
         const nextClient = nextStatus === 'PLAYING' ? nextQueue.shift() || null : null;
 
@@ -320,64 +343,60 @@ export function useGameEngine() {
   }, [playThud]);
 
   const endDay = useCallback(() => {
-    setState(prev => {
-      // Pick an evening event for tonight's resource screen
-      const seed = prev.allTimeLogs.length;
-      const eveningEvent = pickEveningEvent(prev.day, seed);
-      return { ...prev, status: 'EVENING', activeEveningEvent: eveningEvent };
-    });
+    setState(prev => ({ ...prev, status: 'EVENING' }));
   }, []);
 
+  // ─── confirmEvening ─────────────────────────────────────────────────────────
   const confirmEvening = useCallback((opts: {
-    extraFood: number;       // additional food bought (0-N)
-    buyBoost: boolean;       // buy performance boost ($40)
-    eventChoiceId?: string;  // id of chosen option (if choice event)
+    fedIds:     string[];   // family member IDs the player chose to feed
+    treatedIds: string[];   // family member IDs the player chose to treat
   }) => {
     setState(prev => {
-      const { extraFood, buyBoost, eventChoiceId } = opts;
+      const { fedIds, treatedIds } = opts;
       const rent = RENT_BY_DAY[prev.day] ?? 60;
-      const foodCost = extraFood * 30;
-      const boostCost = buyBoost ? 40 : 0;
 
-      // Apply auto event or chosen event effect
-      let eventMoneyDelta = 0;
-      let eventFoodDelta  = 0;
-      let eventPerfDelta  = 0;
-      let eventAlignment: AlignmentPath | undefined;
+      const feedCost    = fedIds.length * FEED_COST;
+      const treatCost   = treatedIds.length * MEDICINE_COST;
+      const canPayRent  = prev.money >= rent;
+      const rentMissed  = canPayRent ? 0 : prev.rentMissed + 1;
+      const rentDeducted = canPayRent ? rent : 0;
 
-      const evt = prev.activeEveningEvent;
-      if (evt) {
-        if (evt.type === 'auto' && evt.autoEffect) {
-          eventMoneyDelta = evt.autoEffect.moneyDelta;
-          eventFoodDelta  = evt.autoEffect.foodDelta;
-          eventPerfDelta  = evt.autoEffect.perfDelta;
-        } else if (evt.type === 'choice' && eventChoiceId && evt.choices) {
-          const choice = evt.choices.find(c => c.id === eventChoiceId);
-          if (choice) {
-            eventMoneyDelta = choice.moneyDelta;
-            eventFoodDelta  = choice.foodDelta;
-            eventPerfDelta  = choice.perfDelta;
-            eventAlignment  = choice.alignment;
-          }
+      const newMoney = prev.money - rentDeducted - feedCost - treatCost;
+
+      // Update each family member's status
+      const newFamily: FamilyMember[] = prev.family.map(m => {
+        const fed     = fedIds.includes(m.id);
+        const treated = treatedIds.includes(m.id);
+
+        let newStatus = m.status;
+        if (treated && (m.status === 'SICK' || m.status === 'CRITICAL')) {
+          // medicine jumps two levels back
+          newStatus = improve(improve(m.status));
+        } else if (fed) {
+          newStatus = improve(m.status);
+        } else {
+          newStatus = worsen(m.status);
         }
-      }
 
-      // Daily food consumption (always -1 ration)
-      const totalFoodDelta = eventFoodDelta + extraFood - 1;
-      const newFood = Math.max(0, Math.min(MAX_FOOD, prev.food + totalFoodDelta));
-      const newMoney = prev.money - rent - foodCost - boostCost + eventMoneyDelta;
-      const boostPerf = buyBoost ? 0.10 : 0;
-      const rawPerf = 1.0 + eventPerfDelta + boostPerf;
-      const newPerfMod = Math.max(0.5, Math.min(1.25, rawPerf)) * foodToMod(newFood);
+        return {
+          ...m,
+          status: newStatus,
+          needsMedicine: newStatus === 'SICK' || newStatus === 'CRITICAL',
+        };
+      });
 
+      const newPerfMod = familyPerfMod(newFamily);
       const newAlignment = { ...prev.alignment };
-      if (eventAlignment) newAlignment[eventAlignment] += 1;
 
-      // Move to next day
       if (prev.day >= MAX_DAYS) {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
         const ending = calculateEnding(newMoney, prev.citations, newAlignment, prev.worldState);
-        return { ...prev, status: 'VICTORY', ending, money: newMoney, food: newFood, performanceMod: newPerfMod, alignment: newAlignment };
+        return {
+          ...prev,
+          status: 'VICTORY', ending,
+          money: newMoney, family: newFamily,
+          performanceMod: newPerfMod, rentMissed,
+        };
       }
 
       const nextDay = prev.day + 1;
@@ -386,11 +405,11 @@ export function useGameEngine() {
         status: 'DAY_START',
         day: nextDay,
         money: newMoney,
-        food: newFood,
+        family: newFamily,
         performanceMod: newPerfMod,
+        rentMissed,
         alignment: newAlignment,
         activeEvent: DAILY_EVENTS[nextDay] || null,
-        activeEveningEvent: null,
         dailyLogs: [],
       };
     });
@@ -400,5 +419,10 @@ export function useGameEngine() {
     setState(prev => ({ ...prev, status: 'TITLE' }));
   }, []);
 
-  return { state, stampAction, startGame, startDay, callNextClient, processDecision, actOnMemo, dismissMemo, endDay, confirmEvening, returnToMenu };
+  return {
+    state, stampAction,
+    startGame, startDay, callNextClient,
+    processDecision, actOnMemo, dismissMemo,
+    endDay, confirmEvening, returnToMenu,
+  };
 }
