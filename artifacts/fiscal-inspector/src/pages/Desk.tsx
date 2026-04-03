@@ -25,29 +25,153 @@ const C = {
   desk:   'linear-gradient(160deg, #2a1d16 0%, #1e1510 100%)',
 };
 
-// ─── Mini person silhouette for queue ───────────────────────────────────────
-function MiniSilhouette({ seed, isVIP, isActive }: { seed: number; isVIP?: boolean; isActive?: boolean }) {
-  const hue      = (seed * 47) % 360;
-  const shirtHue = (seed * 83 + 120) % 360;
+// ─── ID Portrait palettes (all desaturated / bureaucratic) ──────────────────
+const SKINS  = ['#c9aa8a','#b59070','#9e7a58','#8a6445','#6b4a32','#d5c5a8','#a88a68','#7a5a3e'];
+const HAIRS  = ['#1a1208','#2d200e','#4a3010','#1f1f20','#3d2c18','#8a7a62','#585040'];
+const SHIRTS = ['hsl(210,14%,22%)','hsl(0,0%,18%)','hsl(25,18%,22%)','hsl(100,8%,20%)','hsl(220,10%,26%)','hsl(0,6%,22%)'];
+
+// Shared portrait SVG — used at multiple sizes via w/h props
+function PortraitSVG({ seed, w, h }: { seed: number; w: number; h: number }) {
+  const skin  = SKINS[(seed * 13) % SKINS.length];
+  const hair  = HAIRS[(seed * 7)  % HAIRS.length];
+  const shirt = SHIRTS[(seed * 11) % SHIRTS.length];
+
+  const headRxArr = [13, 14, 16, 11];
+  const headRyArr = [16, 14, 13, 17];
+  const headRx = headRxArr[seed % 4];
+  const headRy = headRyArr[seed % 4];
+  const hairType  = (seed * 3) % 5;   // 0=short 1=medium 2=bald 3=swept 4=widow's peak
+  const accessory = (seed * 17) % 6;  // 0-2=none  3-4=glasses  5=hat
+  const hasGlasses = accessory === 3 || accessory === 4;
+  const hasHat     = accessory === 5;
+  const eyeHeavy   = (seed * 5) % 3 === 0;
+  const mouthDown  = (seed * 3) % 3 > 0;
+  const browStyle  = (seed * 23) % 3;  // 0=flat 1=arched 2=thick
+
+  const cx = 32, headCy = 38;
+  const eyeY = headCy - 1;
+  const filterId = `vg${seed}`;
+
   return (
-    <div className="relative shrink-0">
-      <svg width="28" height="40" viewBox="0 0 36 52" fill="none">
-        <ellipse cx="18" cy="11" rx="8" ry="9" fill={`hsl(${hue},40%,60%)`} />
-        <ellipse cx="18" cy="4" rx="8" ry="4" fill={`hsl(${hue},30%,30%)`} />
-        <rect x="9" y="20" width="18" height="18" rx="2" fill={`hsl(${shirtHue},50%,45%)`} />
-        <rect x="1" y="20" width="8" height="14" rx="3" fill={`hsl(${shirtHue},45%,40%)`} />
-        <rect x="27" y="20" width="8" height="14" rx="3" fill={`hsl(${shirtHue},45%,40%)`} />
-        <rect x="10" y="38" width="7" height="13" rx="2" fill={`hsl(${hue},20%,25%)`} />
-        <rect x="19" y="38" width="7" height="13" rx="2" fill={`hsl(${hue},20%,25%)`} />
-      </svg>
-      {isVIP && <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 text-yellow-300 text-[8px]">★</span>}
-      {isActive && (
-        <motion.div
-          className="absolute inset-0 rounded-full"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.2, repeat: Infinity }}
-          style={{ background: `radial-gradient(circle, rgba(224,161,27,0.25) 0%, transparent 70%)` }}
-        />
+    <svg width={w} height={h} viewBox="0 0 64 80"
+         style={{ filter: 'sepia(22%) contrast(0.88) saturate(0.72)', display: 'block' }}>
+      {/* Photo paper background */}
+      <rect width="64" height="80" fill="#cec1a6" />
+      {/* Vignette */}
+      <radialGradient id={filterId} cx="50%" cy="45%" r="65%">
+        <stop offset="55%" stopColor="transparent" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0.2)" />
+      </radialGradient>
+      <rect width="64" height="80" fill={`url(#${filterId})`} />
+
+      {/* Hat (drawn first, behind head) */}
+      {hasHat && <>
+        <rect x={cx - 18} y={headCy - headRy - 13} width="36" height="11" rx="2" fill={hair} />
+        <rect x={cx - 23} y={headCy - headRy - 3}  width="46" height="4"  rx="1" fill={hair} />
+      </>}
+
+      {/* Hair */}
+      {hairType === 0 && <ellipse cx={cx} cy={headCy - headRy + 4} rx={headRx + 1} ry={7} fill={hair} />}
+      {hairType === 1 && <ellipse cx={cx} cy={headCy - headRy + 2} rx={headRx + 2} ry={10} fill={hair} />}
+      {hairType === 2 && <ellipse cx={cx} cy={headCy - headRy + 1} rx={headRx - 2} ry={3} fill={hair} opacity="0.35" />}
+      {hairType === 3 && <>
+        <ellipse cx={cx - 3} cy={headCy - headRy + 3} rx={headRx + 3} ry={7} fill={hair} />
+        <path d={`M${cx + 5} ${headCy - headRy + 2} Q${cx + headRx + 2} ${headCy - headRy + 8} ${cx + headRx} ${headCy - headRy + 16}`} stroke={hair} strokeWidth="4" fill="none" />
+      </>}
+      {hairType === 4 && <>
+        <ellipse cx={cx} cy={headCy - headRy + 5} rx={headRx + 1} ry={8} fill={hair} />
+        <path d={`M${cx - 4} ${headCy - headRy + 8} L${cx} ${headCy - headRy + 14} L${cx + 4} ${headCy - headRy + 8}`} fill="#cec1a6" />
+      </>}
+
+      {/* Head */}
+      <ellipse cx={cx} cy={headCy} rx={headRx} ry={headRy} fill={skin} />
+
+      {/* Neck */}
+      <rect x={cx - 5} y={headCy + headRy - 2} width="10" height="10" fill={skin} />
+
+      {/* Shirt / shoulders */}
+      <path d={`M${cx - 28} 80 L${cx - 14} ${headCy + headRy + 5} L${cx} ${headCy + headRy + 9} L${cx + 14} ${headCy + headRy + 5} L${cx + 28} 80 Z`} fill={shirt} />
+      {/* Collar */}
+      <path d={`M${cx - 8} ${headCy + headRy + 4} L${cx} ${headCy + headRy + 13} L${cx + 8} ${headCy + headRy + 4}`} fill="#c4b79e" />
+
+      {/* Eyebrows */}
+      {browStyle === 0 && <>
+        <line x1={cx - 11} y1={eyeY - 7} x2={cx - 4} y2={eyeY - 7} stroke={hair} strokeWidth="1.5" strokeLinecap="round" />
+        <line x1={cx + 4}  y1={eyeY - 7} x2={cx + 11} y2={eyeY - 7} stroke={hair} strokeWidth="1.5" strokeLinecap="round" />
+      </>}
+      {browStyle === 1 && <>
+        <path d={`M${cx - 11} ${eyeY - 5} Q${cx - 7} ${eyeY - 9} ${cx - 3} ${eyeY - 8}`} stroke={hair} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <path d={`M${cx + 3}  ${eyeY - 8} Q${cx + 7} ${eyeY - 9} ${cx + 11} ${eyeY - 5}`} stroke={hair} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      </>}
+      {browStyle === 2 && <>
+        <line x1={cx - 11} y1={eyeY - 7} x2={cx - 4} y2={eyeY - 6} stroke={hair} strokeWidth="2.8" strokeLinecap="round" />
+        <line x1={cx + 4}  y1={eyeY - 6} x2={cx + 11} y2={eyeY - 7} stroke={hair} strokeWidth="2.8" strokeLinecap="round" />
+      </>}
+
+      {/* Eyes */}
+      <ellipse cx={cx - 7} cy={eyeY} rx="2.8" ry={eyeHeavy ? 1.7 : 2.2} fill="#1c1610" />
+      <ellipse cx={cx + 7} cy={eyeY} rx="2.8" ry={eyeHeavy ? 1.7 : 2.2} fill="#1c1610" />
+      <circle cx={cx - 6}  cy={eyeY - 0.7} r="0.75" fill="rgba(255,255,255,0.32)" />
+      <circle cx={cx + 7.8} cy={eyeY - 0.7} r="0.75" fill="rgba(255,255,255,0.32)" />
+
+      {/* Glasses */}
+      {hasGlasses && <>
+        <rect x={cx - 16} y={eyeY - 4} width="10" height="7" rx="2" fill="none" stroke="#1a1208" strokeWidth="1.3" />
+        <rect x={cx + 6}  y={eyeY - 4} width="10" height="7" rx="2" fill="none" stroke="#1a1208" strokeWidth="1.3" />
+        <line x1={cx - 6}  y1={eyeY} x2={cx + 6}  y2={eyeY} stroke="#1a1208" strokeWidth="1.3" />
+        <line x1={cx - 24} y1={eyeY} x2={cx - 16} y2={eyeY} stroke="#1a1208" strokeWidth="1" />
+        <line x1={cx + 16} y1={eyeY} x2={cx + 24} y2={eyeY} stroke="#1a1208" strokeWidth="1" />
+      </>}
+
+      {/* Nose */}
+      <path d={`M${cx} ${eyeY + 3} L${cx - 2} ${eyeY + 9} L${cx + 2} ${eyeY + 9}`}
+            fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="1" strokeLinecap="round" />
+
+      {/* Mouth — neutral flat or slight downturn */}
+      {mouthDown
+        ? <path d={`M${cx - 6} ${eyeY + 15} Q${cx} ${eyeY + 14} ${cx + 6} ${eyeY + 15}`}
+                stroke="#5a3a28" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+        : <line x1={cx - 6} y1={eyeY + 14} x2={cx + 6} y2={eyeY + 14}
+                stroke="#5a3a28" strokeWidth="1.3" strokeLinecap="round" />
+      }
+    </svg>
+  );
+}
+
+// ─── Large ID card — used for the active citizen in the left panel ───────────
+function IDCard({ seed, name, isVIP, orgName }: { seed: number; name: string; isVIP?: boolean; orgName?: string }) {
+  return (
+    <div className="relative border rounded-sm overflow-hidden shadow-lg shrink-0"
+         style={{ width: 72, background: '#c8bba0', borderColor: '#8a7a62' }}>
+      <PortraitSVG seed={seed} w={72} h={90} />
+      {/* Card footer with name strip */}
+      <div className="px-1.5 py-1 border-t" style={{ background: '#1b1410', borderColor: '#8a7a62' }}>
+        <div className="font-terminal text-[8px] truncate leading-tight" style={{ color: '#e0a11b' }}>
+          {isVIP && <span className="text-yellow-300 mr-1">★</span>}
+          {name.split(' ')[0].toUpperCase()}
+        </div>
+        {orgName && (
+          <div className="font-terminal text-[7px] truncate leading-tight" style={{ color: '#9c6b12' }}>
+            {orgName}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Queue thumbnail — tiny mugshot used in the queue strip ─────────────────
+function QueueThumb({ seed, isVIP, isActive }: { seed: number; isVIP?: boolean; isActive?: boolean }) {
+  return (
+    <div className="relative shrink-0 rounded-sm overflow-hidden border"
+         style={{
+           width: 26, height: 32,
+           borderColor: isActive ? '#e0a11b' : '#6f4b1f55',
+           boxShadow: isActive ? '0 0 6px rgba(224,161,27,0.4)' : 'none',
+         }}>
+      <PortraitSVG seed={seed} w={26} h={32} />
+      {isVIP && (
+        <span className="absolute top-0 right-0.5 text-yellow-300 leading-none" style={{ fontSize: 7 }}>★</span>
       )}
     </div>
   );
@@ -91,19 +215,11 @@ function LeftPanel({ client, queue, processedCount, onCallNext, canCallNext }: {
           ))}
           {/* Active client */}
           {client && (
-            <div className="relative">
-              <MiniSilhouette seed={client.avatarSeed} isVIP={client.isVIP} isActive />
-              <motion.div
-                className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
-                style={{ background: C.accent }}
-                animate={{ scale: [1, 1.4, 1] }}
-                transition={{ duration: 1, repeat: Infinity }}
-              />
-            </div>
+            <QueueThumb seed={client.avatarSeed} isVIP={client.isVIP} isActive />
           )}
           {/* Waiting */}
           {queue.map(c => (
-            <MiniSilhouette key={c.id} seed={c.avatarSeed} isVIP={c.isVIP} />
+            <QueueThumb key={c.id} seed={c.avatarSeed} isVIP={c.isVIP} />
           ))}
           {/* Empty slots */}
           {Array.from({ length: Math.max(0, 4 - processedCount - (client ? 1 : 0) - queue.length) }).map((_, i) => (
@@ -124,32 +240,31 @@ function LeftPanel({ client, queue, processedCount, onCallNext, canCallNext }: {
               transition={{ type: 'spring', damping: 20 }}
               className="flex flex-col gap-3 p-4 flex-1"
             >
-              {/* Portrait */}
-              <div className="flex items-center gap-2">
-                <svg width="52" height="72" viewBox="0 0 36 52" fill="none" className="shrink-0">
-                  <ellipse cx="18" cy="11" rx="8" ry="9" fill={`hsl(${(client.avatarSeed * 47) % 360},40%,60%)`} />
-                  <ellipse cx="18" cy="4" rx="8" ry="4" fill={`hsl(${(client.avatarSeed * 47) % 360},30%,30%)`} />
-                  <rect x="9" y="20" width="18" height="18" rx="2" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},50%,45%)`} />
-                  <rect x="1" y="20" width="8" height="14" rx="3" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},45%,40%)`} />
-                  <rect x="27" y="20" width="8" height="14" rx="3" fill={`hsl(${(client.avatarSeed * 83 + 120) % 360},45%,40%)`} />
-                  <rect x="10" y="38" width="7" height="13" rx="2" fill={`hsl(${(client.avatarSeed * 47) % 360},20%,25%)`} />
-                  <rect x="19" y="38" width="7" height="13" rx="2" fill={`hsl(${(client.avatarSeed * 47) % 360},20%,25%)`} />
-                  <rect x="24" y="30" width="10" height="8" rx="1" fill="#8B7355" stroke="#5D4E37" strokeWidth="1" />
-                </svg>
-                <div className="min-w-0">
-                  <div className="font-terminal text-[10px] font-bold truncate" style={{ color: C.accent }}>
+              {/* ID Card portrait + name */}
+              <div className="flex gap-3 items-start">
+                <IDCard
+                  seed={client.avatarSeed}
+                  name={client.name}
+                  isVIP={client.isVIP}
+                  orgName={client.vipData?.organization}
+                />
+                <div className="min-w-0 pt-1">
+                  <div className="font-terminal text-[11px] font-bold leading-tight" style={{ color: C.text }}>
                     {client.name}
-                    {client.isVIP && <span className="ml-1 text-yellow-300">★</span>}
+                    {client.isVIP && <span className="ml-1 text-yellow-300 text-[9px]">VIP</span>}
                   </div>
                   {client.isVIP && client.vipData && (
-                    <div className="font-terminal text-[9px] truncate" style={{ color: C.muted }}>
-                      {client.vipData.organization}
+                    <div className="font-terminal text-[9px] mt-0.5 leading-tight" style={{ color: C.muted }}>
+                      {client.vipData.title}
                     </div>
                   )}
+                  <div className="font-terminal text-[9px] mt-1 uppercase tracking-widest" style={{ color: '#6f4b1f' }}>
+                    Citizen
+                  </div>
                   {client.hiddenNote && (
                     <button
                       onClick={() => setShowNote(s => !s)}
-                      className="mt-1 flex items-center gap-1 font-terminal text-[9px] transition-colors"
+                      className="mt-2 flex items-center gap-1 font-terminal text-[9px] transition-colors"
                       style={{ color: showNote ? '#f87171' : '#6f4b1f' }}
                     >
                       {showNote ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
