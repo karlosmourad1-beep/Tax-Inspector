@@ -1,10 +1,11 @@
 import {
   Client, AnyDocument, TaxReturnDoc, W2Doc, ExpenseDoc, IDDoc, ScheduleDDoc,
-  FraudType, LeakedMemo, DecisionType
+  FraudType, LeakedMemo, DecisionType, RecurringCharId, RecurringCharState,
 } from '../types/game';
 import { randomInt, pickRandom } from './utils';
 import { VIP_CLIENTS, getVIPForDay } from './narrative';
 import { calculateOrdinaryTax, calculateCapitalGainsTax } from './taxBrackets';
+import { RECURRING_SCHEDULE, generateRecurringClient, defaultCharState } from './recurringChars';
 
 const FIRST_NAMES = ["James","Carla","David","Sarah","Michael","Elena","Robert","Maria","Wei","Aisha","Frank","Donna","Leon","Petra","Oscar","Nadia","Brett","Yuna","Hassan","Ingrid"];
 const LAST_NAMES  = ["Morton","Voss","Chen","Smith","Johnson","Garcia","Brown","Miller","Kim","Patel","Webb","Russo","Mori","Diaz","Novak","Flynn","Osei","Tanaka","Holt","Reyes"];
@@ -122,7 +123,7 @@ export function generateClient(day: number, idPrefix: string): Client {
   const trueTaxable = trueGross - trueDeductions;
   const { total: trueTaxOwed } = calculateOrdinaryTax(trueTaxable);
 
-  const idDoc: IDDoc = { id: `${idPrefix}-id`, type: 'ID', name: trueName, ssn: trueSSN, dob: trueDOB };
+  const idDoc: IDDoc = { id: `${idPrefix}-id`, type: 'ID', name: trueName, ssn: trueSSN, dob: trueDOB, avatarSeed };
   const w2Doc: W2Doc = { id: `${idPrefix}-w2`, type: 'W2', name: trueName, ssn: trueSSN, wages: trueGross, employer: trueEmployer };
   const expenseDoc = buildExpenseDoc(`${idPrefix}-exp`, trueName, trueDeductions);
   const taxDoc: TaxReturnDoc = {
@@ -249,7 +250,8 @@ export function generateVIPClient(day: number, vipKey: string): Client {
 
   const idDoc: IDDoc = {
     id: `vip-id`, type: 'ID', name: vip.name, ssn: trueSSN,
-    dob: `${randomInt(1,12)}/${randomInt(1,28)}/${randomInt(1955,1975)}`
+    dob: `${randomInt(1,12)}/${randomInt(1,28)}/${randomInt(1955,1975)}`,
+    avatarSeed: vip.avatarSeed,
   };
   const w2Doc: W2Doc = {
     id: `vip-w2`, type: 'W2', name: vip.name, ssn: trueSSN,
@@ -340,16 +342,46 @@ export function generateVIPClient(day: number, vipKey: string): Client {
   };
 }
 
-export function generateDailyClients(day: number, count: number): Client[] {
+export function generateDailyClients(
+  day: number,
+  count: number,
+  recurringChars: Record<RecurringCharId, RecurringCharState> = {} as Record<RecurringCharId, RecurringCharState>
+): Client[] {
   const clients: Client[] = [];
+
+  // Build a pool of special clients (VIP + recurring) to insert
+  const specialPool: Client[] = [];
+
+  // Add VIP if applicable
   const vipKey = getVIPForDay(day);
-  const vipPos = vipKey ? Math.floor(Math.random() * count) : -1;
-  for (let i = 0; i < count; i++) {
-    if (i === vipPos && vipKey) {
-      clients.push(generateVIPClient(day, vipKey));
-    } else {
-      clients.push(generateClient(day, `d${day}-c${i}`));
+  if (vipKey) specialPool.push(generateVIPClient(day, vipKey));
+
+  // Add recurring characters scheduled for today
+  const scheduledRecurring = RECURRING_SCHEDULE[day] ?? [];
+  for (const charId of scheduledRecurring) {
+    const charState = recurringChars[charId] ?? defaultCharState(charId);
+    if (!charState.disappeared) {
+      specialPool.push(generateRecurringClient(charId, charState, day));
     }
   }
-  return clients;
+
+  // Fill slots: place special clients at random positions, fill rest with random
+  const totalSpecial = Math.min(specialPool.length, count);
+  const randomCount  = count - totalSpecial;
+
+  // Generate random clients to fill remaining slots
+  const randomClients: Client[] = [];
+  for (let i = 0; i < randomCount; i++) {
+    randomClients.push(generateClient(day, `d${day}-c${i}`));
+  }
+
+  // Shuffle special clients into the queue
+  const allClients = [...specialPool.slice(0, totalSpecial), ...randomClients];
+  // Fisher-Yates shuffle
+  for (let i = allClients.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allClients[i], allClients[j]] = [allClients[j], allClients[i]];
+  }
+
+  return allClients;
 }

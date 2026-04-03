@@ -35,6 +35,8 @@ export interface IDDoc extends BaseDocument {
   name: string;
   ssn: string;
   dob: string;
+  avatarSeed?: number;
+  disguise?: string;
 }
 
 export interface ScheduleDDoc extends BaseDocument {
@@ -49,6 +51,20 @@ export interface ScheduleDDoc extends BaseDocument {
 }
 
 export type AnyDocument = TaxReturnDoc | W2Doc | ExpenseDoc | IDDoc | ScheduleDDoc;
+
+export type RecurringCharId = 'harold_bentley' | 'maria_lopez' | 'adrian_kell' | 'darius_reed' | 'vantex_corp';
+
+export type DisguiseType = 'none' | 'glasses' | 'hat' | 'mustache' | 'glasses_hat' | 'glasses_mustache' | 'corporate_badge';
+
+export interface RecurringCharState {
+  id: RecurringCharId;
+  timesApproved: number;
+  timesRejected: number;
+  timesFrozen: number;
+  lastSeenDay: number;
+  resolved: boolean;
+  disappeared: boolean;
+}
 
 export type FraudType =
   | 'none'
@@ -132,6 +148,9 @@ export interface Client {
   expectedDecision: DecisionType;
   humanCostIfApproved?: string;
   humanCostIfRejected?: string;
+  recurringId?: RecurringCharId;
+  disguise?: DisguiseType;
+  appearanceNumber?: number;
 }
 
 export interface DailyLog {
@@ -146,6 +165,7 @@ export interface DailyLog {
   citationReason?: string;
   fraudType?: FraudType;
   isVIP?: boolean;
+  recurringId?: RecurringCharId;
 }
 
 export interface WorldState {
@@ -219,4 +239,5 @@ export interface GameState {
   performanceMod: number;
   family: FamilyMember[];
   rentMissed: number;
+  recurringChars: Record<RecurringCharId, RecurringCharState>;
 }

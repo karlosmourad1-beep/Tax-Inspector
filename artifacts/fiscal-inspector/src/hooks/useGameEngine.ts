@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef } from 'react';
-import { GameState, DailyLog, AlignmentPath, DecisionType, WorldState, FamilyMember, FamilyMemberStatus } from '../types/game';
+import { GameState, DailyLog, AlignmentPath, DecisionType, WorldState, FamilyMember, FamilyMemberStatus, RecurringCharId, RecurringCharState } from '../types/game';
 import { generateDailyClients } from '../lib/generator';
 import { DAILY_EVENTS, calculateEnding, HUMAN_COSTS } from '../lib/narrative';
 import { pickRandom } from '../lib/utils';
 import { RENT_BY_DAY } from '../lib/eveningEvents';
+import { ALL_RECURRING_IDS, defaultCharState } from '../lib/recurringChars';
 import confetti from 'canvas-confetti';
 
 const INITIAL_MONEY  = 120;
@@ -72,6 +73,12 @@ const INITIAL_WORLD: WorldState = {
   megaCorpApproved:            false,
 };
 
+function buildInitialRecurringChars(): Record<RecurringCharId, RecurringCharState> {
+  return Object.fromEntries(
+    ALL_RECURRING_IDS.map(id => [id, defaultCharState(id)])
+  ) as Record<RecurringCharId, RecurringCharState>;
+}
+
 export function useGameEngine() {
   const [state, setState] = useState<GameState>({
     status: 'TITLE',
@@ -92,6 +99,7 @@ export function useGameEngine() {
     performanceMod: 1.0,
     family: INITIAL_FAMILY.map(m => ({ ...m })),
     rentMissed: 0,
+    recurringChars: buildInitialRecurringChars(),
   });
 
   const [stampAction, setStampAction] = useState<DecisionType | null>(null);
@@ -162,13 +170,14 @@ export function useGameEngine() {
       performanceMod: 1.0,
       family: INITIAL_FAMILY.map(m => ({ ...m })),
       rentMissed: 0,
+      recurringChars: buildInitialRecurringChars(),
     }));
   }, []);
 
   const startDay = useCallback(() => {
     setState(prev => {
       const event = DAILY_EVENTS[prev.day] || null;
-      const queue = generateDailyClients(prev.day, CLIENTS_PER_DAY);
+      const queue = generateDailyClients(prev.day, CLIENTS_PER_DAY, prev.recurringChars);
       const costDeduction = event?.costOfLiving || 0;
       return {
         ...prev,
@@ -290,8 +299,9 @@ export function useGameEngine() {
             : undefined,
           alignmentShift,
           citationReason,
-          fraudType: client.fraudType,
-          isVIP:     client.isVIP,
+          fraudType:   client.fraudType,
+          isVIP:       client.isVIP,
+          recurringId: client.recurringId,
         };
 
         const newCitations = prev.citations + citationsAdded;
@@ -310,22 +320,47 @@ export function useGameEngine() {
           if (flag === 'megacorp'           && decision === 'APPROVE') newWorld.megaCorpApproved         = true;
         }
 
+        // Track recurring character outcomes
+        let newRecurring = { ...prev.recurringChars };
+        if (client.recurringId) {
+          const cid = client.recurringId;
+          const cur = newRecurring[cid] ?? defaultCharState(cid);
+          const updated: RecurringCharState = {
+            ...cur,
+            lastSeenDay:   prev.day,
+            timesApproved: cur.timesApproved + (decision === 'APPROVE' ? 1 : 0),
+            timesRejected: cur.timesRejected + (decision === 'REJECT'  ? 1 : 0),
+            timesFrozen:   cur.timesFrozen   + (decision === 'FREEZE'  ? 1 : 0),
+          };
+          // Disappear logic: Harold/Maria give up after being rejected twice
+          if ((cid === 'harold_bentley' || cid === 'maria_lopez') && updated.timesRejected >= 2) {
+            updated.disappeared = true;
+          }
+          // Adrian: freeze resolves the arc
+          if (cid === 'adrian_kell' && decision === 'FREEZE') {
+            updated.resolved = true;
+            updated.disappeared = true;
+          }
+          newRecurring = { ...newRecurring, [cid]: updated };
+        }
+
         const newDailyLogs = [...prev.dailyLogs, log];
         const newAllLogs   = [...prev.allTimeLogs, log];
 
         if (newCitations >= MAX_CITATIONS) {
-          const ending = calculateEnding(newMoney, newCitations, newAlignment, newWorld);
+          const ending = calculateEnding(newMoney, newCitations, newAlignment, newWorld, newRecurring);
           return {
             ...prev,
             money: newMoney, citations: newCitations,
             dailyLogs: newDailyLogs, allTimeLogs: newAllLogs,
             alignment: newAlignment, worldState: newWorld,
+            recurringChars: newRecurring,
             status: 'GAME_OVER', currentClient: null, activeMemo: null, ending,
           };
         }
 
         const nextQueue  = [...prev.clientsQueue];
-        
+
         // Auto-end shift when all clients processed
         if (nextQueue.length === 0) {
           return {
@@ -333,6 +368,7 @@ export function useGameEngine() {
             money: newMoney, citations: newCitations,
             dailyLogs: newDailyLogs, allTimeLogs: newAllLogs,
             alignment: newAlignment, worldState: newWorld,
+            recurringChars: newRecurring,
             status: 'EVENING', clientsQueue: nextQueue,
             currentClient: null, activeMemo: null, memoActed: false,
           };
@@ -344,6 +380,7 @@ export function useGameEngine() {
           money: newMoney, citations: newCitations,
           dailyLogs: newDailyLogs, allTimeLogs: newAllLogs,
           alignment: newAlignment, worldState: newWorld,
+          recurringChars: newRecurring,
           status: 'PLAYING', clientsQueue: nextQueue,
           currentClient: nextClient,
           activeMemo: nextClient?.leakedMemo || null,
@@ -401,7 +438,7 @@ export function useGameEngine() {
 
       if (prev.day >= MAX_DAYS) {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-        const ending = calculateEnding(newMoney, prev.citations, newAlignment, prev.worldState);
+        const ending = calculateEnding(newMoney, prev.citations, newAlignment, prev.worldState, prev.recurringChars);
         return {
           ...prev,
           status: 'VICTORY', ending,

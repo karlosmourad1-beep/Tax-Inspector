@@ -30,21 +30,32 @@ const SKINS  = ['#c9aa8a','#b59070','#9e7a58','#8a6445','#6b4a32','#d5c5a8','#a8
 const HAIRS  = ['#1a1208','#2d200e','#4a3010','#1f1f20','#3d2c18','#8a7a62','#585040'];
 const SHIRTS = ['hsl(210,14%,22%)','hsl(0,0%,18%)','hsl(25,18%,22%)','hsl(100,8%,20%)','hsl(220,10%,26%)','hsl(0,6%,22%)'];
 
-function PortraitSVG({ seed, w, h }: { seed: number; w: number; h: number }) {
+function PortraitSVG({ seed, w, h, disguise }: { seed: number; w: number; h: number; disguise?: string }) {
   const skin  = SKINS[(seed * 13) % SKINS.length];
   const hair  = HAIRS[(seed * 7)  % HAIRS.length];
   const shirt = SHIRTS[(seed * 11) % SHIRTS.length];
   const headRx = [13, 14, 16, 11][seed % 4];
   const headRy = [16, 14, 13, 17][seed % 4];
   const hairType  = (seed * 3) % 5;
-  const accessory = (seed * 17) % 6;
-  const hasGlasses = accessory === 3 || accessory === 4;
-  const hasHat     = accessory === 5;
-  const eyeHeavy   = (seed * 5) % 3 === 0;
-  const mouthDown  = (seed * 3) % 3 > 0;
-  const browStyle  = (seed * 23) % 3;
+  const eyeHeavy  = (seed * 5) % 3 === 0;
+  const mouthDown = (seed * 3) % 3 > 0;
+  const browStyle = (seed * 23) % 3;
   const cx = 32, headCy = 38, eyeY = headCy - 1;
   const filterId = `vg${seed}`;
+
+  // Disguise overrides — recurring characters get forced accessories
+  const baseAccessory = (seed * 17) % 6;
+  const hasGlasses = disguise === 'glasses' || disguise === 'glasses_hat' || disguise === 'glasses_mustache' || disguise === 'corporate_badge'
+    ? true
+    : !disguise && (baseAccessory === 3 || baseAccessory === 4);
+  const hasHat = disguise === 'hat' || disguise === 'glasses_hat'
+    ? true
+    : !disguise && baseAccessory === 5;
+  const hasMustache = disguise === 'mustache' || disguise === 'glasses_mustache';
+  const hasBadge    = disguise === 'corporate_badge';
+  // Silly glasses style for disguises
+  const sillyGlasses = disguise === 'glasses_mustache' || disguise === 'glasses_hat';
+
   return (
     <svg width={w} height={h} viewBox="0 0 64 80"
          style={{ filter: 'sepia(22%) contrast(0.88) saturate(0.72)', display: 'block' }}>
@@ -89,25 +100,50 @@ function PortraitSVG({ seed, w, h }: { seed: number; w: number; h: number }) {
       <ellipse cx={cx+7} cy={eyeY} rx="2.8" ry={eyeHeavy ? 1.7 : 2.2} fill="#1c1610" />
       <circle cx={cx-6}  cy={eyeY-0.7} r="0.75" fill="rgba(255,255,255,0.32)" />
       <circle cx={cx+7.8} cy={eyeY-0.7} r="0.75" fill="rgba(255,255,255,0.32)" />
-      {hasGlasses && <>
+      {hasGlasses && !sillyGlasses && <>
         <rect x={cx-16} y={eyeY-4} width="10" height="7" rx="2" fill="none" stroke="#1a1208" strokeWidth="1.3" />
         <rect x={cx+6}  y={eyeY-4} width="10" height="7" rx="2" fill="none" stroke="#1a1208" strokeWidth="1.3" />
         <line x1={cx-6}  y1={eyeY} x2={cx+6}  y2={eyeY} stroke="#1a1208" strokeWidth="1.3" />
         <line x1={cx-24} y1={eyeY} x2={cx-16} y2={eyeY} stroke="#1a1208" strokeWidth="1" />
         <line x1={cx+16} y1={eyeY} x2={cx+24} y2={eyeY} stroke="#1a1208" strokeWidth="1" />
       </>}
-      <path d={`M${cx} ${eyeY+3} L${cx-2} ${eyeY+9} L${cx+2} ${eyeY+9}`} fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="1" strokeLinecap="round" />
-      {mouthDown
-        ? <path d={`M${cx-6} ${eyeY+15} Q${cx} ${eyeY+14} ${cx+6} ${eyeY+15}`} stroke="#5a3a28" strokeWidth="1.3" fill="none" strokeLinecap="round" />
-        : <line x1={cx-6} y1={eyeY+14} x2={cx+6} y2={eyeY+14} stroke="#5a3a28" strokeWidth="1.3" strokeLinecap="round" />
-      }
+      {sillyGlasses && <>
+        {/* Oversized round "silly" glasses */}
+        <circle cx={cx-7} cy={eyeY} r="5.5" fill="none" stroke="#1a1208" strokeWidth="1.8" />
+        <circle cx={cx+7} cy={eyeY} r="5.5" fill="none" stroke="#1a1208" strokeWidth="1.8" />
+        <line x1={cx-1.5} y1={eyeY} x2={cx+1.5} y2={eyeY} stroke="#1a1208" strokeWidth="1.4" />
+        <line x1={cx-24}  y1={eyeY} x2={cx-12.5} y2={eyeY} stroke="#1a1208" strokeWidth="1" />
+        <line x1={cx+12.5} y1={eyeY} x2={cx+24} y2={eyeY} stroke="#1a1208" strokeWidth="1" />
+      </>}
+      {hasMustache && (
+        <path
+          d={`M${cx-9} ${eyeY+11} Q${cx-5} ${eyeY+7} ${cx} ${eyeY+9} Q${cx+5} ${eyeY+7} ${cx+9} ${eyeY+11} Q${cx+5} ${eyeY+14} ${cx} ${eyeY+12} Q${cx-5} ${eyeY+14} ${cx-9} ${eyeY+11} Z`}
+          fill={hair} opacity="0.9"
+        />
+      )}
+      {hasBadge && (
+        <rect x={cx+10} y={headCy+headRy+3} width="12" height="8" rx="1" fill="#4a7fb5" stroke="#2a5a8a" strokeWidth="0.8" />
+      )}
+      {!hasMustache && (
+        <>
+          <path d={`M${cx} ${eyeY+3} L${cx-2} ${eyeY+9} L${cx+2} ${eyeY+9}`} fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="1" strokeLinecap="round" />
+          {mouthDown
+            ? <path d={`M${cx-6} ${eyeY+15} Q${cx} ${eyeY+14} ${cx+6} ${eyeY+15}`} stroke="#5a3a28" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+            : <line x1={cx-6} y1={eyeY+14} x2={cx+6} y2={eyeY+14} stroke="#5a3a28" strokeWidth="1.3" strokeLinecap="round" />
+          }
+        </>
+      )}
+      {hasMustache && (
+        <path d={`M${cx} ${eyeY+3} L${cx-2} ${eyeY+9} L${cx+2} ${eyeY+9}`} fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="1" strokeLinecap="round" />
+      )}
     </svg>
   );
 }
 
 // ─── Tiny queue thumbnail for top bar ───────────────────────────────────────
-function QueueThumb({ seed, isVIP, isActive, isDone }: {
+function QueueThumb({ seed, isVIP, isActive, isDone, disguise, isRecurring }: {
   seed: number; isVIP?: boolean; isActive?: boolean; isDone?: boolean;
+  disguise?: string; isRecurring?: boolean;
 }) {
   if (isDone) return (
     <div className="w-6 h-7 border border-dashed rounded-sm opacity-20" style={{ borderColor: C.border }} />
@@ -116,12 +152,13 @@ function QueueThumb({ seed, isVIP, isActive, isDone }: {
     <div className="relative shrink-0 rounded-sm overflow-hidden border"
          style={{
            width: 24, height: 30,
-           borderColor: isActive ? C.accent : '#6f4b1f55',
-           boxShadow: isActive ? `0 0 6px ${C.accent}55` : 'none',
+           borderColor: isActive ? C.accent : isRecurring ? '#6aabf066' : '#6f4b1f55',
+           boxShadow: isActive ? `0 0 6px ${C.accent}55` : isRecurring ? '0 0 4px #6aabf040' : 'none',
            opacity: isDone ? 0.2 : 1,
          }}>
-      <PortraitSVG seed={seed} w={24} h={30} />
-      {isVIP && <span className="absolute top-0 right-0.5 text-yellow-300 leading-none" style={{ fontSize: 6 }}>★</span>}
+      <PortraitSVG seed={seed} w={24} h={30} disguise={disguise} />
+      {isVIP      && <span className="absolute top-0 right-0.5 text-yellow-300 leading-none" style={{ fontSize: 6 }}>★</span>}
+      {isRecurring && !isVIP && <span className="absolute top-0 left-0.5 text-sky-300 leading-none" style={{ fontSize: 6 }}>↩</span>}
     </div>
   );
 }
@@ -607,10 +644,22 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               <QueueThumb key={`done-${i}`} seed={0} isDone />
             ))}
             {state.currentClient && (
-              <QueueThumb seed={state.currentClient.avatarSeed} isVIP={state.currentClient.isVIP} isActive />
+              <QueueThumb
+                seed={state.currentClient.avatarSeed}
+                isVIP={state.currentClient.isVIP}
+                disguise={state.currentClient.disguise}
+                isRecurring={!!state.currentClient.recurringId}
+                isActive
+              />
             )}
             {state.clientsQueue.map(c => (
-              <QueueThumb key={c.id} seed={c.avatarSeed} isVIP={c.isVIP} />
+              <QueueThumb
+                key={c.id}
+                seed={c.avatarSeed}
+                isVIP={c.isVIP}
+                disguise={c.disguise}
+                isRecurring={!!c.recurringId}
+              />
             ))}
             {Array.from({ length: Math.max(0, 4 - processedCount - (hasClient ? 1 : 0) - state.clientsQueue.length) }).map((_, i) => (
               <div key={`slot-${i}`} className="w-6 h-7 border border-dashed rounded-sm opacity-10"

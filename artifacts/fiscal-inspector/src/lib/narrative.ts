@@ -1,4 +1,4 @@
-import { MacroEvent, EndingData, AlignmentScores, WorldState } from '../types/game';
+import { MacroEvent, EndingData, AlignmentScores, WorldState, RecurringCharId, RecurringCharState } from '../types/game';
 
 // ─── Daily Macro Events ────────────────────────────────────────────────────────
 
@@ -152,13 +152,91 @@ export function calculateEnding(
   citations: number,
   alignment: AlignmentScores,
   worldState: WorldState,
+  recurringChars?: Partial<Record<RecurringCharId, RecurringCharState>>,
 ): EndingData {
+  const rc = recurringChars ?? {};
+
   const dominant: 'corporate' | 'whistleblower' | 'survivalist' =
     alignment.whistleblower >= alignment.corporate && alignment.whistleblower >= alignment.survivalist
       ? 'whistleblower'
       : alignment.corporate >= alignment.survivalist
         ? 'corporate'
         : 'survivalist';
+
+  // ── Character-arc special endings (checked first) ──────────────────────────
+
+  const harold  = rc['harold_bentley'];
+  const maria   = rc['maria_lopez'];
+  const adrian  = rc['adrian_kell'];
+  const darius  = rc['darius_reed'];
+  const vantex  = rc['vantex_corp'];
+
+  // HAROLD: Never let through — player caught the recurring fraudster
+  const haroldRevealed = harold && harold.timesApproved === 0 && harold.timesRejected >= 2;
+  // MARIA: Helped her escape — all appearances approved
+  const mariaHelped = maria && maria.timesApproved >= 2 && maria.timesRejected === 0;
+  // ADRIAN: Frozen — the whistleblower outcome
+  const adrianFrozen = adrian && adrian.timesFrozen >= 1;
+  // DARIUS: Traced the full network — rejected twice
+  const dariusNailed = darius && darius.timesRejected >= 2;
+  // VANTEX: Approved every time — corporate loyalty
+  const vantexApproved = vantex && vantex.timesApproved >= 2 && vantex.timesFrozen === 0;
+  // VANTEX: Frozen at least once — anti-corporate
+  const vantexFrozen = vantex && vantex.timesFrozen >= 1;
+
+  // The Whistle — Adrian frozen + whistleblower dominant
+  if (adrianFrozen && dominant === 'whistleblower') {
+    return {
+      id: 'the_whistle', title: 'THE WHISTLE', subtitle: 'You followed the paper trail to the end.',
+      description: `Adrian Kell's assets were frozen on a Tuesday. By Thursday, the Ministry's own compliance division was fielding questions. By Saturday, you had a new supervisor and no explanation. You kept your notes.`,
+      color: 'blue',
+    };
+  }
+
+  // The Ghost — Harold caught in disguise + survivalist
+  if (haroldRevealed && dominant === 'survivalist') {
+    return {
+      id: 'the_ghost', title: 'THE GHOST', subtitle: 'He came back. You were ready.',
+      description: `Harold Bentley's third alias was his sloppiest. A mismatched signature, a familiar scar. You stamped DENIED before he finished his sentence. He didn't come back after that.`,
+      color: 'amber',
+    };
+  }
+
+  // The Underground — Maria helped + whistleblower path
+  if (mariaHelped && dominant === 'whistleblower') {
+    return {
+      id: 'the_underground', title: 'THE UNDERGROUND', subtitle: 'Some cases you close quietly.',
+      description: `Maria Lopez's real name was never in the system. The woman who sat across your desk — different hair, different papers, same tired eyes — made it to the coast. You shredded nothing. The file was simply never opened.`,
+      color: 'blue',
+    };
+  }
+
+  // The Accountant — Darius nailed + corporate
+  if (dariusNailed && dominant === 'corporate') {
+    return {
+      id: 'the_accountant', title: 'THE ACCOUNTANT', subtitle: 'You did your job. Exactly your job.',
+      description: `Darius Reed's network collapsed after Day 6. Your citation record had two entries: both him. The Ministry sent a commendation letter written entirely in the passive voice. You framed it anyway.`,
+      color: 'green',
+    };
+  }
+
+  // Corporate Capture — Vantex fully approved + corporate dominant
+  if (vantexApproved && dominant === 'corporate' && money >= 600) {
+    return {
+      id: 'corporate_capture', title: 'CORPORATE CAPTURE', subtitle: 'You stamped what they paid to have stamped.',
+      description: `Vantex Corporation's restructuring completed without incident. The Ministry issued a press release. Your name appeared in a footnote. Three days later, Vantex laid off 4,000 workers and cited "regulatory compliance costs."`,
+      color: 'red',
+    };
+  }
+
+  // The Auditor Audited — Vantex frozen + corporate-heavy world
+  if (vantexFrozen && worldState.megaCorpApproved) {
+    return {
+      id: 'auditor_audited', title: 'THE AUDITOR AUDITED', subtitle: 'They notice when you look too closely.',
+      description: `Freezing Vantex's accounts put you on a list. Not a watchlist — a very polite list of 'clerks under performance review.' Your desk was moved twice in one week. Your file drawer was always slightly ajar.`,
+      color: 'red',
+    };
+  }
 
   const isWealthy = money >= 700;
   const isModerate = money >= 300;

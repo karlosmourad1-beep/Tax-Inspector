@@ -1,5 +1,6 @@
 import { AnyDocument, TaxReturnDoc, W2Doc, ExpenseDoc, IDDoc, ScheduleDDoc } from '@/types/game';
 import { formatMoney, cn } from '@/lib/utils';
+import { PortraitSVG } from '@/components/ui/PortraitSVG';
 
 // ─── Field-group for cross-document comparison ────────────────────────────────
 export function fieldGroup(suffix: string): string | null {
@@ -134,8 +135,19 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
       const d = doc as IDDoc;
       return (
         <FormWrapper title="CITIZEN ID">
-          {fp('name', d.name)}
-          {fp('ssn', d.ssn)}
+          <div className="flex gap-3 mb-1">
+            {d.avatarSeed !== undefined && (
+              <div className="shrink-0 border-2 border-ink/30 overflow-hidden"
+                   style={{ width: 56, height: 70, background: '#cec1a6' }}>
+                <PortraitSVG seed={d.avatarSeed} w={56} h={70} disguise={d.disguise} />
+              </div>
+            )}
+            <div className="flex flex-col flex-1 gap-1">
+              {fp('name', d.name)}
+              {fp('ssn', d.ssn)}
+              {fp('dob', d.dob)}
+            </div>
+          </div>
         </FormWrapper>
       );
     }

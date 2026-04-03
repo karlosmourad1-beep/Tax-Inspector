@@ -4,6 +4,7 @@ import { useGameEngine, FEED_COST, MEDICINE_COST } from '@/hooks/useGameEngine';
 import { formatMoney } from '@/lib/utils';
 import { RENT_BY_DAY } from '@/lib/eveningEvents';
 import { FamilyMember, FamilyMemberStatus } from '@/types/game';
+import { RECURRING_CONSEQUENCES } from '@/lib/recurringChars';
 
 const C = {
   bg:     '#120d0a',
@@ -162,6 +163,50 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
             />
           ))}
         </div>
+
+        {/* ── CONSEQUENCE MESSAGES ── */}
+        {(() => {
+          const msgs = state.dailyLogs
+            .filter(l => !!l.recurringId)
+            .map(l => {
+              const key = l.recurringId!;
+              const c = RECURRING_CONSEQUENCES[key];
+              if (!c) return null;
+              const msg = l.decision === 'APPROVE' ? c.approved
+                : l.decision === 'FREEZE' ? c.frozen
+                : c.rejected;
+              return { msg, decision: l.decision, name: l.clientName };
+            })
+            .filter(Boolean) as { msg: string; decision: string; name: string }[];
+          if (msgs.length === 0) return null;
+          return (
+            <div className="flex flex-col gap-2">
+              {msgs.map((m, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.12 }}
+                  className="flex items-start gap-3 px-4 py-3 border-l-4"
+                  style={{
+                    borderLeftColor: m.decision === 'FREEZE' ? '#6aabf0' : m.decision === 'APPROVE' ? C.green : C.red,
+                    background: 'rgba(255,255,255,0.02)',
+                    borderTop: `1px solid ${C.border}40`,
+                    borderRight: `1px solid ${C.border}40`,
+                    borderBottom: `1px solid ${C.border}40`,
+                  }}
+                >
+                  <span className="font-terminal text-xs" style={{ color: C.muted, minWidth: 60, paddingTop: 1 }}>
+                    CASE NOTE
+                  </span>
+                  <span className="font-terminal text-xs" style={{ color: '#c8b070', lineHeight: 1.5 }}>
+                    {m.msg}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* ── CONTINUE ── */}
         {remaining < 0 && (
