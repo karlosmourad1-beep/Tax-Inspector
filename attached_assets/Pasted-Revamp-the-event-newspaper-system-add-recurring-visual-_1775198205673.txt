@@ -1,0 +1,392 @@
+Revamp the event newspaper system, add recurring visual characters with disguises, and implement a lightweight story structure with recurring character arcs.
+
+==================================================
+PART 1 - FIX THE NEWSPAPER EVENT SCREEN
+==================================================
+
+Problem:
+The current "newspaper" does not look like a real newspaper. It looks like a centered title card or popup. It does not feel eventful, dramatic, or grounded in the world.
+
+Goal:
+On major event days, show an actual newspaper front page that spins or slides onto the screen, clearly showing the world event in a dramatic but readable way.
+
+Requirements:
+
+1. Make it look like a real newspaper front page
+- Use an off-white paper background
+- Add a masthead at the top (example: "MINISTRY TIMES")
+- Add a large bold headline
+- Add one short subheadline
+- Add 1–2 small boxed sections or columns so it feels like a printed front page
+- Optional: add a fake black-and-white image box or chart box
+
+2. Use large readable headline text
+Examples:
+- MARKET PANIC
+- MINISTRY CUTS WAGES
+- TAX CRACKDOWN EXPANDS
+- BANK RUN IN CAPITAL
+
+3. Keep text minimal
+Do NOT use long paragraphs.
+Use:
+- one main headline
+- one short subheadline
+- one short effect line
+
+Example:
+MARKET PANIC
+Emergency decree issued overnight
+WAGES -30% TODAY
+
+4. Animate the newspaper
+- spin or slide the newspaper into view
+- hold for 2–4 seconds
+- then transition into the day-start screen
+
+5. Event days only
+Do not use the newspaper every day.
+Use it only on important days:
+- market crash
+- crackdown
+- ministry scandal
+- major policy shift
+- riot / panic / financial emergency
+
+6. After the newspaper, show a simple day-start screen
+Example:
+DAY 3
+WAGES -30%
+PENALTIES HIGHER
+[ START SHIFT ]
+
+Important:
+The newspaper is for world flavor and impact.
+The day-start screen is for gameplay clarity.
+
+==================================================
+PART 2 - ADD VISUAL RECURRING CHARACTERS
+==================================================
+
+Goal:
+Make the player recognize recurring people visually, without needing full-body sprites.
+
+Implementation:
+Use a simple ID-photo system inside the ID card.
+
+Each recurring character should have:
+- a base face
+- a stable silhouette / face shape
+- optional accessories for later days
+
+Possible accessories:
+- glasses
+- silly glasses
+- hat
+- fake mustache
+- hairstyle variation
+- bandage
+- beard stubble
+
+Important:
+The same person should remain recognizable even with minor changes.
+
+Examples:
+- same face + glasses
+- same face + hat
+- same face + mustache
+
+This should create the feeling:
+"Wait, this is that same guy again."
+
+Use this especially for:
+- recurring citizens
+- fraudsters trying mild disguises
+- comedic repeat appearances
+
+Do not make portraits overly realistic.
+Use simple stylized ID-photo portraits that are readable and memorable.
+
+==================================================
+PART 3 - STORY SYSTEM OVERVIEW
+==================================================
+
+Goal:
+Turn the game from a pure document-checking system into a story game with recurring people, consequences, and simple branching outcomes.
+
+Rules:
+- Keep dialogue short
+- No long paragraphs
+- Use recurring names, repeated faces, and changing outcomes
+- Show consequences later through returns, absences, day events, or small messages
+
+The story should feel like:
+- a bureaucratic world under pressure
+- citizens returning with history
+- the player slowly realizing their decisions affect people
+
+==================================================
+PART 4 - IMPLEMENT THESE 5 RECURRING CHARACTERS
+==================================================
+
+Use these exact characters and arcs.
+
+--------------------------------
+1. HAROLD BENTLEY - THE OLD MAN
+--------------------------------
+
+Visual:
+- older male face
+- later appears with silly glasses
+- later may appear with a hat
+
+Theme:
+- harmless
+- confused
+- sympathetic
+
+Arc:
+Day 1:
+Harold Bentley
+Line: "First time filing. Hope I did this right."
+Issue: small error / mismatch
+
+Day 2:
+Same face, now with glasses
+Line: "They sent me back yesterday."
+Issue: another minor issue
+
+Day 3:
+Same face, now with glasses and hat
+Line: "Please. I cannot afford another rejection."
+Issue: still imperfect but understandable
+
+Possible outcomes:
+- If repeatedly rejected, he disappears and later a short message indicates he never returned
+- If helped at least once, he later thanks the player and his final filing resolves
+
+Purpose:
+Create sympathy and recurring recognition.
+
+--------------------------------
+2. MARIA LOPEZ - SINGLE MOTHER
+--------------------------------
+
+Visual:
+- woman with distinct hairstyle
+- later appears tired / changed hairstyle / scarf
+
+Theme:
+- struggling but honest
+- emotionally difficult to reject
+
+Arc:
+Day 1:
+Maria Lopez
+Line: "Please, I just need this approved."
+Issue: minor filing issue
+
+Day 3:
+Same face, slight visual change
+Line: "I fixed what they told me."
+Issue: still not perfect
+
+Day 4:
+Line: "My benefits stop if this fails again."
+Issue: borderline case
+
+Possible outcomes:
+- If player keeps rejecting her, she vanishes from later days
+- If approved once, a later short message says her household stays afloat
+
+Purpose:
+Force player to weigh compassion vs strictness.
+
+--------------------------------
+3. ADRIAN KELL - THE FRAUDSTER
+--------------------------------
+
+Visual:
+- distinct sharp face
+- later appears with fake mustache
+- later same face with glasses and different name
+
+Theme:
+- deceptive
+- smooth
+- increasingly suspicious
+
+Arc:
+Day 2:
+Adrian Kell
+Line: "Everything should be in order."
+Issue: documents mostly clean
+
+Day 3:
+Same face, fake mustache
+Different listed name possible on one visit
+Line: "New filing. No problems."
+Issue: subtle inconsistency
+
+Day 4:
+Same base face, silly disguise
+Line: "You must be mistaken."
+Issue: pattern fraud or fake identity behavior
+
+Possible outcomes:
+- If approved repeatedly, later message links fraud ring to prior approvals
+- If frozen correctly, player gets a major fraud payoff and story consequence
+
+Purpose:
+Reward visual memory and suspicion.
+
+--------------------------------
+4. DARIUS REED - THE HONEST WORKER
+--------------------------------
+
+Visual:
+- plain, consistent face
+- maybe tired eyes later
+
+Theme:
+- legitimate citizen
+- represents risk of wrongful punishment
+
+Arc:
+Day 1:
+Darius Reed
+Line: "Just a normal filing."
+Issue: clean filing
+
+Day 3:
+Same face
+Line: "They flagged me for no reason."
+Issue: still clean
+
+Day 4:
+Same face
+Line: "This is the third time."
+Issue: still mostly valid
+
+Possible outcomes:
+- Wrongly rejecting him creates citations and later narrative consequences
+- Consistently approving him can create a small bonus or positive ending note
+
+Purpose:
+Teach the player not to become paranoid and reject everyone.
+
+--------------------------------
+5. VANTEX / CORPORATE AGENT
+--------------------------------
+
+Visual:
+- polished professional portrait
+- later appears with corporate badge / expensive glasses
+
+Theme:
+- corporate pressure
+- legal on paper, dangerous in effect
+
+Arc:
+Day 2:
+Corporate filing
+Line: "Priority filing."
+Issue: clean on surface
+
+Day 3:
+Same visual type
+Line: "Fast-track requested."
+Issue: large deductions or suspicious benefit
+
+Day 4:
+Line: "The Ministry expects cooperation."
+Issue: politically sensitive filing
+
+Possible outcomes:
+- Approving gives high money or bonus
+- Rejecting/freeze can protect citizens but cost player financially
+- Later world events may reflect whether corporate filings were allowed
+
+Purpose:
+Create ethics vs survival pressure.
+
+==================================================
+PART 5 - STORY CONSEQUENCE RULES
+==================================================
+
+Implement simple persistent consequences.
+
+Track for each recurring character:
+- times seen
+- times approved
+- times rejected
+- whether frozen
+- whether resolved
+- whether removed from future appearances
+
+Use these states to change:
+- dialogue
+- disguises
+- whether they come back
+- whether later messages appear
+- which ending scenes become available
+
+Important:
+Do not use long exposition.
+Use very short follow-up lines such as:
+- "He did not return."
+- "Benefits restored."
+- "Fraud ring uncovered."
+- "Evictions proceed."
+
+==================================================
+PART 6 - ENDINGS
+==================================================
+
+Add a few lightweight ending paths based on player behavior.
+
+Possible ending directions:
+
+1. STRICT LOYALIST
+- many rejections
+- many corporate approvals
+- family survives
+- citizens suffer
+
+2. COMPASSIONATE CLERK
+- more approvals for struggling citizens
+- lower money
+- better human outcomes
+
+3. FRAUD HUNTER
+- catches Adrian and similar cases
+- strong ministry reputation
+- harsher world tone
+
+4. COLLAPSE / FAILURE
+- too much debt, too many penalties, or family breakdown
+
+These do not need to be complex cutscenes.
+They can be 1–3 ending panels with images + short lines.
+
+==================================================
+PART 7 - IMPLEMENTATION STYLE
+==================================================
+
+Keep everything light and readable.
+
+Do:
+- short dialogue
+- recurring names
+- recurring faces
+- minor visual disguise changes
+- simple state tracking
+- short consequence messages
+
+Do not:
+- use long dialogue paragraphs
+- block the whole screen repeatedly
+- overcomplicate story logic
+
+Goal:
+Make the player remember people, recognize repeat faces, and feel like their choices changed the world.
