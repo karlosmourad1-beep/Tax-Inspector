@@ -858,29 +858,27 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             </div>
           )}
 
-          {/* Documents */}
-          <div className={cn(
-            'absolute inset-0 transition-opacity duration-500',
-            envelopePhase !== 'open'
-              ? 'opacity-0 pointer-events-none'
-              : isDeskDisabled
-                ? 'opacity-40 pointer-events-none'
-                : 'opacity-100',
-          )}>
-            {state.currentClient?.documents.map((doc, idx) => (
-              <DraggablePaper
-                key={state.currentClient!.id + doc.id}
-                doc={doc}
-                initialX={DOC_POS[idx]?.x ?? 40 + idx * 160}
-                initialY={DOC_POS[idx]?.y ?? 60}
-                zIndex={docZIndices[doc.id] || 1}
-                onFocus={() => bringToFront(doc.id)}
-                highlightGroup={highlightGroup}
-                onFieldClick={handleFieldClick}
-                isNew={idx === 0}
-              />
-            ))}
-          </div>
+          {/* Documents — only render after envelope is opened */}
+          {envelopePhase === 'open' && (
+            <div className={cn(
+              'absolute inset-0 transition-opacity duration-500',
+              isDeskDisabled ? 'opacity-40 pointer-events-none' : 'opacity-100',
+            )}>
+              {state.currentClient?.documents.map((doc, idx) => (
+                <DraggablePaper
+                  key={state.currentClient!.id + doc.id}
+                  doc={doc}
+                  initialX={DOC_POS[idx]?.x ?? 40 + idx * 160}
+                  initialY={DOC_POS[idx]?.y ?? 60}
+                  zIndex={docZIndices[doc.id] || 1}
+                  onFocus={() => bringToFront(doc.id)}
+                  highlightGroup={highlightGroup}
+                  onFieldClick={handleFieldClick}
+                  isNew={idx === 0}
+                />
+              ))}
+            </div>
+          )}
 
           {/* ── Envelope overlay ──────────────────────────────────────────────── */}
           <AnimatePresence>
