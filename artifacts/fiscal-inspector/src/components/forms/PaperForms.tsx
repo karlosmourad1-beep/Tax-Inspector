@@ -4,10 +4,12 @@ import { PortraitSVG } from '@/components/ui/PortraitSVG';
 
 // ─── Field-group for cross-document comparison ────────────────────────────────
 export function fieldGroup(suffix: string): string | null {
-  if (suffix === 'name' || suffix === 'employer') return 'name';
+  if (suffix === 'name') return 'name';
+  if (suffix === 'employer') return 'employer';
   if (suffix === 'ssn') return 'ssn';
   if (suffix === 'wages' || suffix === 'gross') return 'income';
   if (suffix === 'total' || suffix === 'ded') return 'deductions';
+  if (suffix === 'taxable') return 'taxable';
   return null;
 }
 
@@ -84,7 +86,7 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
     <Field
       label={suffix === 'name' ? 'Name' : suffix === 'ssn' ? 'SSN' : suffix === 'employer' ? 'Employer' :
              suffix === 'wages' ? 'Wages' : suffix === 'gross' ? 'Gross Income' :
-             suffix === 'total' ? 'Total Deductions' : suffix === 'ded' ? 'Deductions' : suffix}
+             suffix === 'total' ? 'Total Deductions' : suffix === 'ded' ? 'Deductions' : suffix === 'taxable' ? 'Taxable Income' : suffix}
       value={value}
       fieldKey={`${doc.id}:${suffix}`}
       highlightGroup={highlightGroup}
@@ -101,6 +103,11 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
           {fp('name', d.name)}
           {fp('ssn', d.ssn)}
           {fp('gross', formatMoney(d.grossIncome))}
+          {fp('ded', formatMoney(d.deductions))}
+          {fp('taxable', formatMoney(d.taxableIncome))}
+          <div className="text-[9px] text-ink-faded font-bold uppercase tracking-wider mt-2 px-2 py-1 border-t">
+            (Gross − Deductions = Taxable)
+          </div>
         </FormWrapper>
       );
     }
