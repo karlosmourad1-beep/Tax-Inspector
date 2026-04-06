@@ -658,7 +658,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const [docZIndices, setDocZIndices] = useState<Record<string, number>>({});
   const [highlightGroup, setHighlightGroup] = useState<{ group: string; value: string } | null>(null);
   const [decisionFeedback, setDecisionFeedback] = useState<DailyLog | null>(null);
-  const [envelopePhase, setEnvelopePhase] = useState<'sealed' | 'opening' | 'open'>('open');
+  const [envelopePhase, setEnvelopePhase] = useState<'sealed' | 'opening' | 'open'>(state.currentClient ? 'sealed' : 'open');
   const prevLogCount = useRef(0);
 
   const processedCount = 4 - state.clientsQueue.length - (state.currentClient ? 1 : 0);
