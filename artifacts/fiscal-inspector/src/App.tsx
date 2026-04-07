@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useGameEngine } from "./hooks/useGameEngine";
 
 // Pages
-import MainMenu from "./pages/MainMenu";
+import IntroSequence from "./pages/IntroSequence";
 import Desk from "./pages/Desk";
 import EndScreen from "./pages/EndScreen";
 import DayStartScreen from "./pages/DayStartScreen";
@@ -19,7 +19,7 @@ function GameRouter() {
   const { status } = engine.state;
 
   // Render different root views based on game status
-  if (status === 'TITLE') return <MainMenu engine={engine} />;
+  if (status === 'TITLE') return <IntroSequence onStart={engine.startGame} />;
   if (status === 'DAY_START') return <DayStartScreen engine={engine} />;
   if (status === 'PLAYING' || status === 'DAY_END') return <Desk engine={engine} />;
   if (status === 'EVENING') return <EveningScreen engine={engine} />;
