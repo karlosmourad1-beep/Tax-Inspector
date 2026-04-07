@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameEngine, DAILY_GOALS } from '@/hooks/useGameEngine';
-import { Rulebook } from '@/components/workspace/Rulebook';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
 import { DailyLog, Client } from '@/types/game';
 import { fieldGroup } from '@/components/forms/PaperForms';
+import {
+  InspectorToolbar, CalculatorOverlay, UVScannerOverlay, LedgerOverlay, RulebookOverlay,
+  type ToolType,
+} from '@/components/workspace/InspectorToolkit';
 import {
   Clock, ShieldAlert, DollarSign, CheckCircle2, XCircle,
   Snowflake, TrendingDown, FileText, AlertTriangle,
@@ -591,88 +594,6 @@ function FraudEscalationModal({ log, onContinue }: { log: DailyLog; onContinue: 
   );
 }
 
-// ─── Right Panel ─────────────────────────────────────────────────────────────
-function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'] }) {
-  const dailyGoal   = DAILY_GOALS[state.day] ?? 300;
-  const dailyEarned = state.dailyLogs.reduce((a, l) => a + l.earnings, 0);
-  const progressPct  = Math.min(100, Math.max(0, (dailyEarned / dailyGoal) * 100));
-
-  const STATUS_ICON: Record<string, string> = {
-    OK: '●', HUNGRY: '●', WEAK: '●', SICK: '●', CRITICAL: '◉', DEAD: '✕',
-  };
-  const STATUS_CLR: Record<string, string> = {
-    OK: C.green, HUNGRY: '#d4a017', WEAK: '#c17f24', SICK: C.red, CRITICAL: '#cc2200', DEAD: '#555',
-  };
-
-  return (
-    <div className="w-64 shrink-0 flex flex-col overflow-hidden border-l" style={{ background: C.panel, borderColor: C.border }}>
-      <div className="flex-1 flex flex-col gap-3 px-3 py-3 overflow-y-auto">
-
-        {/* Earnings + progress */}
-        <div className="border px-3 py-3" style={{ borderColor: C.border + '55', background: 'rgba(224,161,27,0.05)' }}>
-          <div className="font-terminal text-3xl font-bold leading-none mb-1" style={{ color: C.green }}>
-            {formatMoney(state.money)}
-          </div>
-          <div className="h-2 rounded-full overflow-hidden border mb-1" style={{ borderColor: C.border + '44', background: '#090604' }}>
-            <div
-              className="h-full transition-all duration-300"
-              style={{
-                width: `${progressPct}%`,
-                background: 'linear-gradient(90deg, #3fa35c 0%, #e0a11b 100%)',
-              }}
-            />
-          </div>
-          <div className="flex items-center justify-between font-terminal text-[9px] uppercase tracking-wider" style={{ color: C.muted }}>
-            <span>{formatMoney(dailyEarned)} earned</span>
-            <span>Goal {formatMoney(dailyGoal)}</span>
-          </div>
-        </div>
-
-        {/* Family status strip */}
-        <div className="border px-3 py-2.5" style={{ borderColor: C.border + '44', background: 'rgba(10,8,6,0.6)' }}>
-          <div className="font-terminal text-[9px] uppercase tracking-[0.3em] mb-2" style={{ color: C.muted }}>
-            Family
-          </div>
-          <div className="flex flex-col gap-1">
-            {state.family.map(m => (
-              <div key={m.id} className="flex items-center justify-between font-terminal text-[11px]">
-                <span style={{ color: m.status === 'DEAD' ? '#555' : C.text }}>{m.name}</span>
-                <span style={{ color: STATUS_CLR[m.status] }}>
-                  {STATUS_ICON[m.status]} {m.status === 'DEAD' ? 'Dead' : m.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick reference */}
-        <div className="border px-3 py-2.5" style={{ borderColor: C.border + '44', background: 'rgba(10,8,6,0.6)' }}>
-          <div className="font-terminal text-[9px] uppercase tracking-[0.3em] mb-2" style={{ color: C.muted }}>
-            Quick Ref
-          </div>
-          <div className="flex flex-col gap-1 font-terminal text-[10px]" style={{ color: C.muted }}>
-            <span><span style={{ color: C.green }}>✓ Match</span> → Approve</span>
-            <span><span style={{ color: C.red }}>✗ Mismatch</span> → Reject</span>
-            <span><span style={{ color: '#7ab0f0' }}>⚠ Fraud</span> → Freeze</span>
-          </div>
-        </div>
-
-        {/* Rulebook */}
-        <div className="border px-3 py-2.5 flex-1 min-h-0 overflow-y-auto" style={{ borderColor: C.border + '44', background: 'rgba(10,8,6,0.6)' }}>
-          <div className="font-terminal text-[9px] uppercase tracking-[0.3em] mb-2" style={{ color: C.accent }}>
-            Rulebook
-          </div>
-          <Rulebook
-            day={state.day}
-            activeEvent={state.activeEvent}
-            dailyGoal={dailyGoal}
-            dailyEarned={dailyEarned}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 // ─── Main Desk Page ──────────────────────────────────────────────────────────
@@ -684,7 +605,30 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const [highlightGroup, setHighlightGroup] = useState<{ group: string; value: string } | null>(null);
   const [decisionFeedback, setDecisionFeedback] = useState<DailyLog | null>(null);
   const [envelopePhase, setEnvelopePhase] = useState<'sealed' | 'opening' | 'open'>(state.currentClient ? 'sealed' : 'open');
+  const [activeTool, setActiveTool] = useState<ToolType>(null);
   const prevLogCount = useRef(0);
+
+  const dailyGoal   = DAILY_GOALS[state.day] ?? 300;
+  const dailyEarned = state.dailyLogs.reduce((a, l) => a + l.earnings, 0);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (activeTool === 'calculator') {
+        if (e.key === 'Escape') setActiveTool(null);
+        return;
+      }
+      const toolKeys: Record<string, ToolType> = { '1': 'calculator', '2': 'uv', '3': 'ledger', '4': 'rulebook' };
+      const tool = toolKeys[e.key];
+      if (tool) {
+        e.preventDefault();
+        setActiveTool(prev => prev === tool ? null : tool);
+      }
+      if (e.key === 'Escape') setActiveTool(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeTool]);
 
   const processedCount = 4 - state.clientsQueue.length - (state.currentClient ? 1 : 0);
 
@@ -937,10 +881,40 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* ── TOOL OVERLAYS (inside workspace for absolute positioning) ──── */}
+          <AnimatePresence>
+            {activeTool === 'calculator' && (
+              <CalculatorOverlay key="calc" onClose={() => setActiveTool(null)} />
+            )}
+            {activeTool === 'ledger' && (
+              <LedgerOverlay key="ledger" onClose={() => setActiveTool(null)} />
+            )}
+            {activeTool === 'rulebook' && (
+              <RulebookOverlay
+                key="rulebook"
+                onClose={() => setActiveTool(null)}
+                day={state.day}
+                activeEvent={state.activeEvent}
+                dailyGoal={dailyGoal}
+                dailyEarned={dailyEarned}
+              />
+            )}
+          </AnimatePresence>
+          {activeTool === 'uv' && <UVScannerOverlay />}
         </div>
 
-        {/* ── RIGHT PANEL ────────────────────────────────────────────────────── */}
-        <RightPanel state={state} />
+        {/* ── INSPECTOR TOOLBAR ────────────────────────────────────────────────── */}
+        <InspectorToolbar
+          activeTool={activeTool}
+          onSetTool={setActiveTool}
+          day={state.day}
+          activeEvent={state.activeEvent}
+          dailyGoal={dailyGoal}
+          dailyEarned={dailyEarned}
+          money={state.money}
+          family={state.family}
+        />
       </div>
 
       {/* ── BOTTOM ACTION BAR ────────────────────────────────────────────────── */}

@@ -115,7 +115,7 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 
 **Evening Screen:** Dark kitchen atmosphere with emoji portraits, status labels, feed/medicine toggles, real-time cost animations, and auto-deducted rent/heat line. Summary bar shows fed count and savings.
 
-**Right Panel:** Simplified from w-96 to w-64. Contains only: earnings + progress bar, family status strip, quick reference, and rulebook. Ministry Directives and Payout Legend removed.
+**Inspector's Toolkit:** Replaced old right sidebar with a thin 56px toolbar strip on the far-right edge. 4 numbered inventory slots (hotkeys 1-4): Calculator (functional 4-function, draggable), UV Scanner (cursor AoE purple light), Ledger (reference overlay with tax brackets, employer registry, rules), Rulebook (existing rules as overlay). Bottom section shows family health dots, daily goal progress bar, and funds. Keyboard shortcuts disabled when calculator is active to avoid conflicts. Escape clears active tool.
 
 **Key files:**
 - `src/types/game.ts` — full type system (alignment, macro events, VIP data, leaked memos, endings, DEAD status)
@@ -123,6 +123,7 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 - `src/lib/generator.ts` — procedural client generation + VIP injection + leaked memo generation
 - `src/hooks/useGameEngine.ts` — full game state machine with alignment tracking, freeze, memo handling, family death
 - `src/pages/IntroSequence.tsx` — pre-game intro with typewriter text, briefing clipboard, audio effects
+- `src/components/workspace/InspectorToolkit.tsx` — Inspector's Toolkit: calculator, UV scanner, ledger, toolbar
 - `src/pages/Desk.tsx` — main game view (lineup, booth, workspace, memo panel, day-end overlay)
 - `src/pages/EveningScreen.tsx` — family feeding screen with survival mechanics
 - `src/pages/EndScreen.tsx` — ending reveal with alignment bars and moral ledger
