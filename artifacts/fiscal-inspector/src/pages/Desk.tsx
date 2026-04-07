@@ -595,55 +595,78 @@ function FraudEscalationModal({ log, onContinue }: { log: DailyLog; onContinue: 
 function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'] }) {
   const dailyGoal   = DAILY_GOALS[state.day] ?? 300;
   const dailyEarned = state.dailyLogs.reduce((a, l) => a + l.earnings, 0);
+  const progressPct  = Math.min(100, Math.max(0, (dailyEarned / dailyGoal) * 100));
 
   return (
-    <div className="w-96 shrink-0 flex flex-col overflow-hidden border-l"
-         style={{ background: C.panel, borderColor: C.border }}>
-
-      {/* Instructions Panel */}
-      <div className="shrink-0 px-5 py-4 border-b" style={{ borderColor: C.border + '44', background: 'rgba(63,163,92,0.04)' }}>
-        <div className="font-terminal text-[10px] uppercase tracking-widest mb-3" style={{ color: C.green }}>
-          How to Audit
-        </div>
-
-        <div className="space-y-2 text-[10px] font-terminal">
-          <div>
-            <div className="uppercase tracking-wider font-bold mb-1" style={{ color: C.accent }}>Check</div>
-            <div style={{ color: C.text }}>
-              • NAME MATCH<br/>
-              • SSN MATCH<br/>
-              • INCOME MATCH
+    <div className="w-96 shrink-0 flex flex-col overflow-hidden border-l" style={{ background: C.panel, borderColor: C.border }}>
+      <div className="flex-1 flex flex-col gap-4 px-4 py-4 overflow-y-auto">
+        <div className="rounded-sm border px-4 py-4" style={{ borderColor: C.border + '66', background: 'linear-gradient(180deg, rgba(224,161,27,0.08), rgba(0,0,0,0.08))' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-terminal text-[10px] uppercase tracking-[0.35em]" style={{ color: C.accent }}>
+              Daily Quota
+            </div>
+            <div className="font-terminal text-[10px] uppercase tracking-[0.3em]" style={{ color: C.muted }}>
+              Goal ${dailyGoal}
             </div>
           </div>
+          <div className="font-terminal text-3xl font-bold leading-none mb-3" style={{ color: C.green }}>
+            {formatMoney(state.money)}
+          </div>
+          <div className="h-3 rounded-full overflow-hidden border" style={{ borderColor: C.border + '55', background: '#090604' }}>
+            <div
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${progressPct}%`,
+                background: 'linear-gradient(90deg, #3fa35c 0%, #e0a11b 100%)',
+              }}
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between font-terminal text-[10px] uppercase tracking-[0.25em]" style={{ color: C.muted }}>
+            <span>Earned {formatMoney(dailyEarned)}</span>
+            <span>{Math.round(progressPct)}%</span>
+          </div>
+        </div>
 
-          <div className="border-t" style={{ borderColor: C.border + '33' }} />
-
-          <div>
-            <div className="uppercase tracking-wider font-bold mb-1" style={{ color: C.accent }}>Actions</div>
-            <div style={{ color: C.text }}>
-              ✓ APPROVE = match<br/>
-              ✗ REJECT = mismatch<br/>
-              ❄ FREEZE = fraud
+        <div className="rounded-sm border px-4 py-4" style={{ borderColor: C.border + '66', background: 'rgba(20,14,10,0.92)' }}>
+          <div className="font-terminal text-[10px] uppercase tracking-[0.35em] mb-3" style={{ color: C.green }}>
+            Ministry Directives
+          </div>
+          <div className="flex flex-col gap-2 text-[11px] font-terminal leading-relaxed" style={{ color: C.text }}>
+            {['Name Match', 'SSN Match', 'Income Match'].map(rule => (
+              <div key={rule} className="flex items-center gap-3 rounded border px-3 py-2" style={{ borderColor: C.border + '33', background: 'rgba(255,255,255,0.02)' }}>
+                <span className="text-green-400">☑</span>
+                <span>{rule}</span>
+              </div>
+            ))}
+            <div className="mt-1 text-[10px] uppercase tracking-[0.2em]" style={{ color: C.muted }}>
+              Approve = match · Reject = mismatch · Freeze = fraud
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Section header */}
-      <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: C.border + '44' }}>
-        <div className="font-stamped text-xs tracking-widest uppercase" style={{ color: C.muted }}>
-          Ministry Directives
+        <div className="rounded-sm border px-4 py-4" style={{ borderColor: C.border + '55', background: 'rgba(10,8,6,0.86)' }}>
+          <div className="font-terminal text-[10px] uppercase tracking-[0.35em] mb-3" style={{ color: C.accent }}>
+            Payout Legend
+          </div>
+          <div className="grid grid-cols-2 gap-y-2 font-terminal text-[11px] leading-relaxed" style={{ color: C.muted }}>
+            <span>Approve</span><span className="text-right">+$5</span>
+            <span>Reject</span><span className="text-right">+$10</span>
+            <span>Mistake</span><span className="text-right">-$5</span>
+            <span>Freeze</span><span className="text-right">+$20</span>
+          </div>
         </div>
-      </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        <Rulebook
-          day={state.day}
-          activeEvent={state.activeEvent}
-          dailyGoal={dailyGoal}
-          dailyEarned={dailyEarned}
-        />
+        <div className="rounded-sm border px-4 py-4" style={{ borderColor: C.border + '55', background: 'rgba(63,163,92,0.03)' }}>
+          <div className="font-terminal text-[10px] uppercase tracking-[0.35em] mb-3" style={{ color: C.green }}>
+            Current Rulebook
+          </div>
+          <Rulebook
+            day={state.day}
+            activeEvent={state.activeEvent}
+            dailyGoal={dailyGoal}
+            dailyEarned={dailyEarned}
+          />
+        </div>
       </div>
     </div>
   );
