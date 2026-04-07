@@ -186,7 +186,7 @@ export interface WorldState {
 export type GameStatus = 'TITLE' | 'DAY_START' | 'PLAYING' | 'DAY_END' | 'EVENING' | 'GAME_OVER' | 'VICTORY';
 
 // ─── Family system ────────────────────────────────────────────────────────────
-export type FamilyMemberStatus = 'OK' | 'HUNGRY' | 'WEAK' | 'SICK' | 'CRITICAL';
+export type FamilyMemberStatus = 'OK' | 'HUNGRY' | 'WEAK' | 'SICK' | 'CRITICAL' | 'DEAD';
 export type FamilyMemberRole   = 'wife' | 'son' | 'daughter' | 'dog';
 
 export interface FamilyMember {

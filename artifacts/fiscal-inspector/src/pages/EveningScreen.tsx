@@ -1,13 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameEngine, FEED_COST, MEDICINE_COST } from '@/hooks/useGameEngine';
 import { formatMoney } from '@/lib/utils';
 import { RENT_BY_DAY } from '@/lib/eveningEvents';
 import { FamilyMember, FamilyMemberStatus } from '@/types/game';
-import { RECURRING_CONSEQUENCES } from '@/lib/recurringChars';
 
 const C = {
-  bg:     '#120d0a',
+  bg:     '#0e0a07',
   panel:  '#16110e',
   border: '#6f4b1f',
   accent: '#e0a11b',
@@ -18,26 +17,28 @@ const C = {
   muted:  '#7a5520',
 };
 
+const STATUS_LABEL: Record<FamilyMemberStatus, string> = {
+  OK:       'Healthy',
+  HUNGRY:   'Hungry',
+  WEAK:     'Starving',
+  SICK:     'Sick',
+  CRITICAL: 'Critical',
+  DEAD:     'Dead',
+};
+
 const STATUS_COLOR: Record<FamilyMemberStatus, string> = {
   OK:       C.green,
   HUNGRY:   '#d4a017',
   WEAK:     '#c17f24',
   SICK:     C.red,
   CRITICAL: '#cc2200',
+  DEAD:     '#666666',
 };
 
-const STATUS_BG: Record<FamilyMemberStatus, string> = {
-  OK:       'rgba(63,163,92,0.08)',
-  HUNGRY:   'rgba(212,160,23,0.08)',
-  WEAK:     'rgba(193,127,36,0.09)',
-  SICK:     'rgba(180,71,63,0.11)',
-  CRITICAL: 'rgba(204,34,0,0.15)',
-};
-
-const ROLE_ICON: Record<string, string> = {
-  wife:     '♀',
-  son:      '♂',
-  daughter: '♀',
+const ROLE_EMOJI: Record<string, string> = {
+  wife:     '👩',
+  son:      '👦',
+  daughter: '👧',
   dog:      '🐕',
 };
 
@@ -47,17 +48,36 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
   const [fedIds,     setFedIds]     = useState<Set<string>>(new Set());
   const [treatedIds, setTreatedIds] = useState<Set<string>>(new Set());
   const [confirmed,  setConfirmed]  = useState(false);
+  const [canContinue, setCanContinue] = useState(false);
+  const [costFlash, setCostFlash]   = useState<{ id: string; amount: number; type: 'feed' | 'med' } | null>(null);
 
+  const aliveMembers = state.family.filter(m => m.status !== 'DEAD');
   const rent      = RENT_BY_DAY[state.day] ?? 60;
   const feedCost  = fedIds.size * FEED_COST;
   const treatCost = treatedIds.size * MEDICINE_COST;
-  const remaining = state.money - rent - feedCost - treatCost;
+  const totalSpent = rent + feedCost + treatCost;
+  const remaining = state.money - totalSpent;
   const isLastDay = state.day >= 7;
+
+  const fedCount = fedIds.size;
+  const savedForTomorrow = Math.max(0, remaining);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCanContinue(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   function toggleFeed(id: string) {
     setFedIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        setCostFlash(null);
+      } else {
+        next.add(id);
+        setCostFlash({ id, amount: FEED_COST, type: 'feed' });
+        setTimeout(() => setCostFlash(null), 800);
+      }
       return next;
     });
   }
@@ -65,13 +85,20 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
   function toggleTreat(id: string) {
     setTreatedIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        setCostFlash(null);
+      } else {
+        next.add(id);
+        setCostFlash({ id, amount: MEDICINE_COST, type: 'med' });
+        setTimeout(() => setCostFlash(null), 800);
+      }
       return next;
     });
   }
 
   function handleConfirm() {
-    if (confirmed) return;
+    if (confirmed || !canContinue) return;
     setConfirmed(true);
     setTimeout(() => {
       confirmEvening({ fedIds: [...fedIds], treatedIds: [...treatedIds] });
@@ -80,76 +107,111 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
 
   return (
     <div
-      className="h-screen w-full flex items-center justify-center overflow-hidden"
+      className="h-screen w-full flex flex-col items-center justify-center overflow-hidden relative"
       style={{ background: C.bg, color: C.text }}
     >
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 30%, rgba(224,161,27,0.04) 0%, transparent 60%)',
+        }}
+      />
+
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-        className="flex flex-col w-[88vw] max-w-4xl gap-6"
+        transition={{ duration: 0.3 }}
+        className="relative z-10 flex flex-col w-[90vw] max-w-3xl gap-5"
       >
 
-        {/* ── TOP ROW: header + balance + rent ── */}
+        {/* ── HEADER ── */}
         <div className="flex items-end justify-between">
-          {/* Left: label + big money */}
-          <div className="flex flex-col gap-1">
-            <div className="font-terminal text-xs uppercase tracking-[0.35em]" style={{ color: C.muted }}>
-              Day {state.day} — Shift Over
+          <div>
+            <div className="font-terminal text-[10px] uppercase tracking-[0.4em]" style={{ color: C.muted }}>
+              Day {state.day} — Evening
             </div>
-            <div className="font-stamped leading-none" style={{ fontSize: '6.5rem', color: C.text, lineHeight: 1 }}>
-              {formatMoney(state.money)}
+            <div className="font-terminal text-xs uppercase tracking-widest mt-0.5" style={{ color: C.accent }}>
+              Feed Your Family
             </div>
-            <div className="font-terminal text-xs uppercase tracking-[0.25em]" style={{ color: C.muted }}>
-              Available
-            </div>
-          </div>
-
-          {/* Right: rent + remaining stacked */}
-          <div className="flex flex-col items-end gap-3">
-            {/* Rent */}
-            <div
-              className="flex items-center gap-6 px-6 py-3 border"
-              style={{ borderColor: C.red + '55', background: 'rgba(180,71,63,0.08)' }}
-            >
-              <span className="font-terminal text-sm uppercase tracking-widest" style={{ color: '#e07070' }}>
-                Rent — Day {state.day}
-              </span>
-              <span className="font-stamped text-4xl" style={{ color: C.red }}>
-                −{formatMoney(rent)}
-              </span>
-            </div>
-
-            {/* Remaining */}
-            <div className="flex items-center gap-4">
-              <span className="font-terminal text-sm uppercase tracking-[0.25em]" style={{ color: C.muted }}>
-                Remaining
-              </span>
-              <motion.span
-                key={remaining}
-                initial={{ opacity: 0.5, scale: 1.08 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.1 }}
-                className="font-stamped text-5xl"
-                style={{ color: remaining < 0 ? C.red : C.accent }}
-              >
-                {formatMoney(remaining)}
-              </motion.span>
-            </div>
-
-            {remaining < 0 && (
-              <div className="font-terminal text-xs uppercase tracking-wider text-right" style={{ color: C.red }}>
-                ⚠ Over budget — remove a choice
-              </div>
-            )}
           </div>
         </div>
 
-        {/* ── DIVIDER ── */}
-        <div className="border-t" style={{ borderColor: C.border }} />
+        {/* ── FINANCIAL BREAKDOWN ── */}
+        <div className="border px-5 py-4" style={{ borderColor: C.border + '55', background: 'rgba(22,17,14,0.8)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-terminal text-xs uppercase tracking-[0.3em]" style={{ color: C.muted }}>
+              Today's Earnings
+            </span>
+            <span className="font-stamped text-3xl" style={{ color: C.text }}>
+              {formatMoney(state.money)}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1.5 border-t pt-3" style={{ borderColor: C.border + '33' }}>
+            <div className="flex items-center justify-between font-terminal text-xs" style={{ color: '#e07070' }}>
+              <span className="uppercase tracking-wider">Rent / Heat</span>
+              <span>−{formatMoney(rent)}</span>
+            </div>
+            {feedCost > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-between font-terminal text-xs" style={{ color: '#d4a017' }}
+              >
+                <span className="uppercase tracking-wider">Food ({fedIds.size}×)</span>
+                <span>−{formatMoney(feedCost)}</span>
+              </motion.div>
+            )}
+            {treatCost > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-between font-terminal text-xs" style={{ color: C.blue }}
+              >
+                <span className="uppercase tracking-wider">Medicine ({treatedIds.size}×)</span>
+                <span>−{formatMoney(treatCost)}</span>
+              </motion.div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: C.border + '33' }}>
+            <span className="font-terminal text-sm uppercase tracking-[0.25em] font-bold" style={{ color: C.muted }}>
+              Remaining
+            </span>
+            <motion.span
+              key={remaining}
+              initial={{ scale: 1.15 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.15 }}
+              className="font-stamped text-4xl"
+              style={{
+                color: remaining < 0 ? C.red : C.accent,
+                textShadow: remaining >= 0 ? '0 0 12px rgba(224,161,27,0.35)' : '0 0 12px rgba(180,71,63,0.35)',
+              }}
+            >
+              {formatMoney(remaining)}
+            </motion.span>
+          </div>
+
+          <AnimatePresence>
+            {costFlash && (
+              <motion.div
+                key={costFlash.id + costFlash.type}
+                initial={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 0, y: -20 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6 }}
+                className="text-right font-stamped text-xl"
+                style={{ color: C.red }}
+              >
+                −${costFlash.amount}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* ── FAMILY CARDS ── */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-3">
           {state.family.map(member => (
             <FamilyCard
               key={member.id}
@@ -164,68 +226,47 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
           ))}
         </div>
 
-        {/* ── CONSEQUENCE MESSAGES ── */}
-        {(() => {
-          const msgs = state.dailyLogs
-            .filter(l => !!l.recurringId)
-            .map(l => {
-              const key = l.recurringId!;
-              const c = RECURRING_CONSEQUENCES[key];
-              if (!c) return null;
-              const msg = l.decision === 'APPROVE' ? c.approved
-                : l.decision === 'FREEZE' ? c.frozen
-                : c.rejected;
-              return { msg, decision: l.decision, name: l.clientName };
-            })
-            .filter(Boolean) as { msg: string; decision: string; name: string }[];
-          if (msgs.length === 0) return null;
-          return (
-            <div className="flex flex-col gap-2">
-              {msgs.map((m, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.12 }}
-                  className="flex items-start gap-3 px-4 py-3 border-l-4"
-                  style={{
-                    borderLeftColor: m.decision === 'FREEZE' ? '#6aabf0' : m.decision === 'APPROVE' ? C.green : C.red,
-                    background: 'rgba(255,255,255,0.02)',
-                    borderTop: `1px solid ${C.border}40`,
-                    borderRight: `1px solid ${C.border}40`,
-                    borderBottom: `1px solid ${C.border}40`,
-                  }}
-                >
-                  <span className="font-terminal text-xs" style={{ color: C.muted, minWidth: 60, paddingTop: 1 }}>
-                    CASE NOTE
-                  </span>
-                  <span className="font-terminal text-xs" style={{ color: '#c8b070', lineHeight: 1.5 }}>
-                    {m.msg}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-          );
-        })()}
+        {/* ── SUMMARY ── */}
+        <div
+          className="border px-4 py-3 font-terminal text-xs text-center uppercase tracking-wider"
+          style={{
+            borderColor: C.border + '44',
+            background: 'rgba(22,17,14,0.6)',
+            color: fedCount > 0 ? C.text : '#e07070',
+          }}
+        >
+          {fedCount === 0
+            ? 'No one is being fed tonight.'
+            : `${fedCount} family member${fedCount > 1 ? 's' : ''} fed. ${formatMoney(savedForTomorrow)} saved for tomorrow.`}
+        </div>
 
-        {/* ── CONTINUE ── */}
+        {/* ── DEBT WARNING ── */}
         {remaining < 0 && (
-          <div className="w-full text-center font-terminal text-sm uppercase tracking-wider px-4 py-3 border"
-               style={{ borderColor: C.red + '66', background: 'rgba(180,71,63,0.08)', color: C.red }}>
+          <div className="w-full text-center font-terminal text-xs uppercase tracking-wider px-4 py-2.5 border"
+               style={{ borderColor: C.red + '55', background: 'rgba(180,71,63,0.08)', color: C.red }}>
             Continuing with debt will have consequences
           </div>
         )}
 
+        {/* ── CONTINUE ── */}
         <motion.button
           onClick={handleConfirm}
-          disabled={confirmed}
+          disabled={confirmed || !canContinue}
           whileTap={{ scale: 0.98 }}
-          className="w-full py-5 font-terminal text-base font-bold uppercase tracking-[0.4em] border-2 transition-all disabled:opacity-40"
-          style={{ borderColor: C.accent, background: 'rgba(224,161,27,0.08)', color: C.accent }}
-          onMouseOver={e => { if (!confirmed) e.currentTarget.style.background = 'rgba(224,161,27,0.16)'; }}
-          onMouseOut={e => { e.currentTarget.style.background = 'rgba(224,161,27,0.08)'; }}
+          className="w-full py-4 font-terminal text-sm font-bold uppercase tracking-[0.4em] border-2 transition-all disabled:opacity-30"
+          style={{
+            borderColor: canContinue ? C.accent : C.muted,
+            background: canContinue ? 'rgba(224,161,27,0.08)' : 'rgba(30,20,10,0.5)',
+            color: canContinue ? C.accent : C.muted,
+          }}
+          onMouseOver={e => { if (canContinue && !confirmed) e.currentTarget.style.background = 'rgba(224,161,27,0.16)'; }}
+          onMouseOut={e => { e.currentTarget.style.background = canContinue ? 'rgba(224,161,27,0.08)' : 'rgba(30,20,10,0.5)'; }}
         >
-          {confirmed ? '...' : isLastDay ? 'Submit Final Report →' : 'Continue →'}
+          {!canContinue
+            ? 'Review your choices...'
+            : confirmed
+              ? '...'
+              : isLastDay ? 'Submit Final Report →' : 'Continue →'}
         </motion.button>
 
       </motion.div>
@@ -233,7 +274,6 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
   );
 }
 
-// ─── Family Card ──────────────────────────────────────────────────────────────
 function FamilyCard({
   member, fed, treated,
   canFeed, canTreat,
@@ -247,76 +287,89 @@ function FamilyCard({
   onToggleFeed: () => void;
   onToggleTreat: () => void;
 }) {
+  const isDead     = member.status === 'DEAD';
   const needsMed   = member.status === 'SICK' || member.status === 'CRITICAL';
   const isCritical = member.status === 'CRITICAL';
+  const isWeak     = member.status === 'WEAK' || member.status === 'SICK' || isCritical;
 
   return (
     <motion.div
-      className="flex flex-col border"
-      animate={isCritical && !treated
-        ? { borderColor: ['#cc2200', '#ff4422', '#cc2200'] }
-        : { borderColor: STATUS_COLOR[member.status] + '44' }}
+      className="flex flex-col border relative overflow-hidden"
+      animate={
+        isCritical && !treated
+          ? { borderColor: ['#cc2200', '#ff4422', '#cc2200'] }
+          : { borderColor: isDead ? '#44444466' : STATUS_COLOR[member.status] + '44' }
+      }
       transition={{ duration: 1.1, repeat: isCritical ? Infinity : 0 }}
-      style={{ background: STATUS_BG[member.status] }}
+      style={{
+        background: isDead ? 'rgba(30,30,30,0.4)' : 'rgba(22,17,14,0.8)',
+        filter: isDead ? 'grayscale(1)' : isWeak && !fed ? 'grayscale(0.4)' : 'none',
+      }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl leading-none">{ROLE_ICON[member.role]}</span>
-          <span className="font-terminal text-base font-bold uppercase tracking-wide" style={{ color: C.text }}>
-            {member.name}
-          </span>
+      {/* Portrait area */}
+      <div className="flex flex-col items-center pt-4 pb-2 gap-1">
+        <div className="text-3xl leading-none" style={{ opacity: isDead ? 0.3 : 1 }}>
+          {ROLE_EMOJI[member.role]}
         </div>
+        <span className="font-terminal text-sm font-bold uppercase tracking-wider" style={{ color: isDead ? '#666' : C.text }}>
+          {member.name}
+        </span>
         <span
-          className="font-terminal text-xs font-bold uppercase tracking-wider px-2 py-1"
+          className="font-terminal text-[10px] font-bold uppercase tracking-[0.2em] px-2 py-0.5"
           style={{
-            color:      STATUS_COLOR[member.status],
-            background: STATUS_COLOR[member.status] + '20',
-            border:     `1px solid ${STATUS_COLOR[member.status]}55`,
+            color: STATUS_COLOR[member.status],
+            background: STATUS_COLOR[member.status] + '18',
+            border: `1px solid ${STATUS_COLOR[member.status]}33`,
           }}
         >
-          {member.status}
+          {STATUS_LABEL[member.status]}
         </span>
       </div>
 
-      {/* Buttons */}
-      <div className="flex flex-col gap-2 px-3 pb-4 pt-1">
-        {/* Feed */}
-        <button
-          onClick={onToggleFeed}
-          disabled={!fed && !canFeed}
-          className="w-full py-3 font-terminal text-sm font-bold uppercase tracking-widest border-2 transition-all disabled:opacity-30"
-          style={{
-            borderColor: fed ? C.green : C.border,
-            background:  fed ? 'rgba(63,163,92,0.15)' : 'rgba(255,255,255,0.02)',
-            color:       fed ? C.green : C.text,
-          }}
-        >
-          {fed ? `✓ Fed  −$${FEED_COST}` : `Feed  $${FEED_COST}`}
-        </button>
+      {isDead ? (
+        <div className="px-3 pb-4 pt-1 text-center">
+          <span className="font-terminal text-[10px] uppercase tracking-wider" style={{ color: '#666' }}>
+            Gone
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 px-3 pb-4 pt-1">
+          {/* Feed toggle */}
+          <button
+            onClick={onToggleFeed}
+            disabled={!fed && !canFeed}
+            className="w-full py-2.5 font-terminal text-xs font-bold uppercase tracking-widest border transition-all disabled:opacity-25 relative overflow-hidden"
+            style={{
+              borderColor: fed ? C.green : C.border,
+              background:  fed ? 'rgba(63,163,92,0.15)' : 'rgba(255,255,255,0.02)',
+              color:       fed ? C.green : C.text,
+            }}
+          >
+            {fed ? '🍽 Fed' : `Feed $${FEED_COST}`}
+          </button>
 
-        {/* Medicine */}
-        <AnimatePresence>
-          {needsMed && (
-            <motion.button
-              initial={{ opacity: 0, scaleY: 0 }}
-              animate={{ opacity: 1, scaleY: 1 }}
-              exit={{ opacity: 0, scaleY: 0 }}
-              onClick={onToggleTreat}
-              disabled={!treated && !canTreat}
-              className="w-full py-3 font-terminal text-sm font-bold uppercase tracking-widest border-2 transition-all disabled:opacity-30"
-              style={{
-                originY:     0,
-                borderColor: treated ? C.blue : C.red + '77',
-                background:  treated ? 'rgba(106,171,240,0.12)' : 'rgba(180,71,63,0.07)',
-                color:       treated ? C.blue : '#e07070',
-              }}
-            >
-              {treated ? `✓ Med  −$${MEDICINE_COST}` : `💊 Med  $${MEDICINE_COST}`}
-            </motion.button>
-          )}
-        </AnimatePresence>
-      </div>
+          {/* Medicine toggle */}
+          <AnimatePresence>
+            {needsMed && (
+              <motion.button
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                onClick={onToggleTreat}
+                disabled={!treated && !canTreat}
+                className="w-full py-2.5 font-terminal text-xs font-bold uppercase tracking-widest border transition-all disabled:opacity-25"
+                style={{
+                  borderColor: treated ? C.blue : C.red + '77',
+                  background:  treated ? 'rgba(106,171,240,0.12)' : 'rgba(180,71,63,0.07)',
+                  color:       treated ? C.blue : '#e07070',
+                }}
+              >
+                {treated ? '💊 Treated' : `Med $${MEDICINE_COST}`}
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </motion.div>
   );
 }

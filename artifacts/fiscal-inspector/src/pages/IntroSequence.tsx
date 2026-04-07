@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ─── Typewriter text ───────────────────────────────────────────────────────────
 const INTRO_TEXT = "District 7.  April 15th.  Tax Season begins.";
 
-// ─── Briefing steps ────────────────────────────────────────────────────────────
 const BRIEFING_STEPS = [
   {
     label: 'CROSS-REFERENCE',
@@ -20,69 +18,77 @@ const BRIEFING_STEPS = [
   },
 ];
 
-// ─── Synthetic footstep sound via Web Audio API ────────────────────────────────
-function playFootsteps() {
+function getOrResumeAudioCtx(ref: React.MutableRefObject<AudioContext | null>): AudioContext | null {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-
-    // Simulate 5 footstep thuds at a walking pace
-    const stepTimes = [0, 0.35, 0.7, 1.05, 1.4];
-
-    stepTimes.forEach((t) => {
-      // Low-frequency body thud
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const filter = ctx.createBiquadFilter();
-
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(120, ctx.currentTime + t);
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(90, ctx.currentTime + t);
-      osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + t + 0.12);
-
-      gain.gain.setValueAtTime(0, ctx.currentTime + t);
-      gain.gain.linearRampToValueAtTime(0.55, ctx.currentTime + t + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.18);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(ctx.currentTime + t);
-      osc.stop(ctx.currentTime + t + 0.2);
-
-      // Higher-frequency click (heel strike)
-      const click = ctx.createOscillator();
-      const clickGain = ctx.createGain();
-      const clickFilter = ctx.createBiquadFilter();
-
-      clickFilter.type = 'highpass';
-      clickFilter.frequency.setValueAtTime(800, ctx.currentTime + t);
-
-      click.type = 'triangle';
-      click.frequency.setValueAtTime(300, ctx.currentTime + t);
-
-      clickGain.gain.setValueAtTime(0, ctx.currentTime + t);
-      clickGain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + t + 0.005);
-      clickGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.06);
-
-      click.connect(clickFilter);
-      clickFilter.connect(clickGain);
-      clickGain.connect(ctx.destination);
-
-      click.start(ctx.currentTime + t);
-      click.stop(ctx.currentTime + t + 0.07);
-    });
-
-    // Close context after all sounds finish
-    setTimeout(() => ctx.close(), 2500);
+    if (!ref.current) {
+      ref.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (ref.current.state === 'suspended') {
+      ref.current.resume();
+    }
+    return ref.current;
   } catch {
-    // Audio not available — silently skip
+    return null;
   }
 }
 
-// ─── Component ─────────────────────────────────────────────────────────────────
+function playTypewriterClick(ctx: AudioContext) {
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(3200, now);
+  filter.Q.setValueAtTime(2, now);
+
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(1800 + Math.random() * 800, now);
+
+  gain.gain.setValueAtTime(0.12 + Math.random() * 0.05, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(now);
+  osc.stop(now + 0.03);
+}
+
+function playFootsteps(ctx: AudioContext) {
+  const now = ctx.currentTime;
+  const stepTimes = [0, 0.42, 0.84, 1.26, 1.68, 2.1];
+
+  stepTimes.forEach((t, idx) => {
+    const bufferSize = 2400;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(350 + (idx % 2) * 80, now + t);
+
+    const gain = ctx.createGain();
+    const vol = 0.25 + (idx % 2) * 0.08;
+    gain.gain.setValueAtTime(0, now + t);
+    gain.gain.linearRampToValueAtTime(vol, now + t + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.14);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(now + t);
+    source.stop(now + t + 0.15);
+  });
+}
+
 interface Props {
   onStart: () => void;
 }
@@ -97,8 +103,22 @@ export default function IntroSequence({ onStart }: Props) {
   const [showButton, setShowButton] = useState(false);
   const [briefingVisible, setBriefingVisible] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // ── Typewriter effect ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const unlockAudio = () => {
+      getOrResumeAudioCtx(audioCtxRef);
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('keydown', unlockAudio, { once: true });
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
+
   useEffect(() => {
     if (phase !== 'intro') return;
 
@@ -107,6 +127,8 @@ export default function IntroSequence({ onStart }: Props) {
     setShowButton(false);
 
     const delay = setTimeout(() => {
+      getOrResumeAudioCtx(audioCtxRef);
+
       intervalRef.current = setInterval(() => {
         setTypedCount((n) => {
           const next = n + 1;
@@ -115,10 +137,17 @@ export default function IntroSequence({ onStart }: Props) {
             setTextDone(true);
             setTimeout(() => setShowButton(true), 600);
           }
+          const char = INTRO_TEXT[n];
+          if (char && char !== ' ') {
+            const ctx = getOrResumeAudioCtx(audioCtxRef);
+            if (ctx && ctx.state === 'running') {
+              playTypewriterClick(ctx);
+            }
+          }
           return next;
         });
-      }, 55);
-    }, 800); // Small pause before typing starts
+      }, 60);
+    }, 800);
 
     return () => {
       clearTimeout(delay);
@@ -126,20 +155,20 @@ export default function IntroSequence({ onStart }: Props) {
     };
   }, [phase]);
 
-  // ── Walk to Work ──────────────────────────────────────────────────────────
   const handleWalkToWork = useCallback(() => {
-    playFootsteps();
-    // Brief pause to let the first footstep sound, then transition
+    const ctx = getOrResumeAudioCtx(audioCtxRef);
+    if (ctx) playFootsteps(ctx);
+
     setTimeout(() => {
       setPhase('briefing');
       setTimeout(() => setBriefingVisible(true), 80);
-    }, 300);
+    }, 600);
   }, []);
 
-  // ── Start Shift ───────────────────────────────────────────────────────────
   const handleStartShift = useCallback(() => {
     setFading(true);
     setTimeout(() => {
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
       onStart();
     }, 700);
   }, [onStart]);
@@ -147,7 +176,6 @@ export default function IntroSequence({ onStart }: Props) {
   return (
     <div className="h-screen w-full overflow-hidden relative">
 
-      {/* ── FADE-TO-BLACK overlay (used on Start Shift) ───────────────────── */}
       <AnimatePresence>
         {fading && (
           <motion.div
@@ -160,7 +188,6 @@ export default function IntroSequence({ onStart }: Props) {
         )}
       </AnimatePresence>
 
-      {/* ── INTRO SCENE ───────────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
         {phase === 'intro' && (
           <motion.div
@@ -170,7 +197,6 @@ export default function IntroSequence({ onStart }: Props) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Subtle vignette */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -179,7 +205,6 @@ export default function IntroSequence({ onStart }: Props) {
               }}
             />
 
-            {/* Atmospheric text */}
             <div className="relative z-10 flex flex-col items-center gap-10 px-6 max-w-lg text-center">
               <motion.p
                 className="font-mono text-amber-200/90 tracking-widest leading-loose"
@@ -189,7 +214,6 @@ export default function IntroSequence({ onStart }: Props) {
                 transition={{ duration: 1 }}
               >
                 {INTRO_TEXT.slice(0, typedCount)}
-                {/* Blinking cursor while typing */}
                 {!textDone && (
                   <motion.span
                     className="inline-block w-[2px] h-[1.1em] bg-amber-300 ml-0.5 align-middle"
@@ -199,7 +223,6 @@ export default function IntroSequence({ onStart }: Props) {
                 )}
               </motion.p>
 
-              {/* Walk to Work button */}
               <AnimatePresence>
                 {showButton && (
                   <motion.button
@@ -220,7 +243,6 @@ export default function IntroSequence({ onStart }: Props) {
           </motion.div>
         )}
 
-        {/* ── BRIEFING SCREEN ─────────────────────────────────────────────── */}
         {phase === 'briefing' && (
           <motion.div
             key="briefing"
@@ -230,7 +252,6 @@ export default function IntroSequence({ onStart }: Props) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Desk texture overlay */}
             <div
               className="absolute inset-0 pointer-events-none opacity-30"
               style={{
@@ -239,7 +260,6 @@ export default function IntroSequence({ onStart }: Props) {
               }}
             />
 
-            {/* Clipboard / Government Document */}
             <AnimatePresence>
               {briefingVisible && (
                 <motion.div
@@ -249,7 +269,6 @@ export default function IntroSequence({ onStart }: Props) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
                 >
-                  {/* Clipboard clip bar */}
                   <div className="flex justify-center mb-[-1px] relative z-20">
                     <div
                       className="w-20 h-5 rounded-t"
@@ -257,7 +276,6 @@ export default function IntroSequence({ onStart }: Props) {
                     />
                   </div>
 
-                  {/* Document body */}
                   <div
                     className="relative rounded-sm shadow-2xl overflow-hidden"
                     style={{
@@ -266,7 +284,6 @@ export default function IntroSequence({ onStart }: Props) {
                       boxShadow: '0 8px 40px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.3)',
                     }}
                   >
-                    {/* Aged paper texture overlay */}
                     <div
                       className="absolute inset-0 pointer-events-none opacity-20"
                       style={{
@@ -276,11 +293,8 @@ export default function IntroSequence({ onStart }: Props) {
                     />
 
                     <div className="relative z-10 px-8 py-7">
-                      {/* Header */}
                       <div className="text-center border-b-2 border-stone-400 pb-4 mb-5">
-                        <p
-                          className="font-mono text-[9px] tracking-[0.3em] uppercase text-stone-500 mb-1"
-                        >
+                        <p className="font-mono text-[9px] tracking-[0.3em] uppercase text-stone-500 mb-1">
                           Ministry of Finance — Internal Document
                         </p>
                         <h2
@@ -294,14 +308,10 @@ export default function IntroSequence({ onStart }: Props) {
                         </p>
                       </div>
 
-                      {/* Official notice bar */}
-                      <div
-                        className="bg-stone-800 text-amber-300 font-mono text-[9px] tracking-[0.3em] uppercase px-3 py-1.5 mb-5 text-center"
-                      >
+                      <div className="bg-stone-800 text-amber-300 font-mono text-[9px] tracking-[0.3em] uppercase px-3 py-1.5 mb-5 text-center">
                         Read before processing citizens
                       </div>
 
-                      {/* Steps */}
                       <ol className="flex flex-col gap-4 mb-6">
                         {BRIEFING_STEPS.map((step, i) => (
                           <motion.li
@@ -311,7 +321,6 @@ export default function IntroSequence({ onStart }: Props) {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2 + i * 0.18, duration: 0.35 }}
                           >
-                            {/* Step number circle */}
                             <div
                               className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-mono font-bold text-xs text-amber-100"
                               style={{ background: '#5a4008', border: '1.5px solid #8B6914' }}
@@ -330,7 +339,6 @@ export default function IntroSequence({ onStart }: Props) {
                         ))}
                       </ol>
 
-                      {/* Signature line */}
                       <div className="border-t border-stone-300 pt-3 mb-5 flex justify-between items-end">
                         <div>
                           <div className="w-28 border-b border-stone-400 mb-0.5" />
@@ -346,7 +354,6 @@ export default function IntroSequence({ onStart }: Props) {
                         </div>
                       </div>
 
-                      {/* Start Shift button */}
                       <motion.button
                         onClick={handleStartShift}
                         className="w-full py-3 font-mono font-bold text-sm tracking-[0.25em] uppercase transition-colors"

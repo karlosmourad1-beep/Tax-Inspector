@@ -19,13 +19,16 @@ export const FEED_COST     = 25;
 export const MEDICINE_COST = 45;
 
 // ─── Status progression ───────────────────────────────────────────────────────
-const STATUS_ORDER: FamilyMemberStatus[] = ['OK', 'HUNGRY', 'WEAK', 'SICK', 'CRITICAL'];
+const STATUS_ORDER: FamilyMemberStatus[] = ['OK', 'HUNGRY', 'WEAK', 'SICK', 'CRITICAL', 'DEAD'];
 
-function worsen(s: FamilyMemberStatus): FamilyMemberStatus {
-  const i = STATUS_ORDER.indexOf(s);
-  return STATUS_ORDER[Math.min(i + 1, STATUS_ORDER.length - 1)];
+function worsen(s: FamilyMemberStatus, steps = 1): FamilyMemberStatus {
+  if (s === 'DEAD') return 'DEAD';
+  let i = STATUS_ORDER.indexOf(s);
+  i = Math.min(i + steps, STATUS_ORDER.length - 1);
+  return STATUS_ORDER[i];
 }
 function improve(s: FamilyMemberStatus): FamilyMemberStatus {
+  if (s === 'DEAD') return 'DEAD';
   const i = STATUS_ORDER.indexOf(s);
   return STATUS_ORDER[Math.max(i - 1, 0)];
 }
@@ -37,8 +40,9 @@ function familyPerfMod(family: FamilyMember[]): number {
     if (m.status === 'WEAK')     mod -= 0.10;
     if (m.status === 'SICK')     mod -= 0.16;
     if (m.status === 'CRITICAL') mod -= 0.22;
+    if (m.status === 'DEAD')     mod -= 0.30;
   }
-  return Math.max(0.4, mod);
+  return Math.max(0.2, mod);
 }
 
 // ─── Initial family ───────────────────────────────────────────────────────────
@@ -432,17 +436,19 @@ export function useGameEngine() {
 
       // Update each family member's status
       const newFamily: FamilyMember[] = prev.family.map(m => {
+        if (m.status === 'DEAD') return m;
+
         const fed     = fedIds.includes(m.id);
         const treated = treatedIds.includes(m.id);
 
         let newStatus = m.status;
         if (treated && (m.status === 'SICK' || m.status === 'CRITICAL')) {
-          // medicine jumps two levels back
           newStatus = improve(improve(m.status));
         } else if (fed) {
           newStatus = improve(m.status);
         } else {
-          newStatus = worsen(m.status);
+          const decaySteps = (m.status === 'SICK' || m.status === 'CRITICAL') ? 2 : 1;
+          newStatus = worsen(m.status, decaySteps);
         }
 
         return {
@@ -452,8 +458,29 @@ export function useGameEngine() {
         };
       });
 
+      const hasDeath = newFamily.some(m => m.status === 'DEAD');
       const newPerfMod = familyPerfMod(newFamily);
       const newAlignment = { ...prev.alignment };
+
+      if (hasDeath) {
+        const ending = calculateEnding(newMoney, prev.citations, newAlignment, prev.worldState, prev.recurringChars);
+        return {
+          ...prev,
+          status: 'GAME_OVER' as const,
+          money: newMoney,
+          family: newFamily,
+          performanceMod: newPerfMod,
+          rentMissed,
+          ending: {
+            ...ending,
+            id: 'family_death',
+            title: 'A Family Lost',
+            subtitle: 'The cost was too high.',
+            description: `You pushed through the shifts, but your family paid the price. ${newFamily.filter(m => m.status === 'DEAD').map(m => m.name).join(' and ')} didn't survive. The Ministry sends its condolences — and your termination notice.`,
+            color: 'red' as const,
+          },
+        };
+      }
 
       if (prev.day >= MAX_DAYS) {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });

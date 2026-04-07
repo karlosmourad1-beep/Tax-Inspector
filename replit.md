@@ -109,12 +109,22 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 - **12 narrative endings** determined by final balance, citations, dominant alignment, and world-state flags
 - **Hidden notes** tucked inside VIP documents, toggled via eye icon in client booth
 
+**Intro Sequence:** Pre-game intro replaces the old main menu. Three phases: typewriter text on black screen → clipboard briefing → fade to game. Uses Web Audio API for typewriter clicks and noise-buffer footsteps. State managed locally so the game engine stays idle until "Start Shift" is clicked.
+
+**Family System:** Family members (Elena, Mark, Lily, Rex) have statuses: OK → HUNGRY → WEAK → SICK → CRITICAL → DEAD. If unfed while SICK/CRITICAL, they decay 2 steps instead of 1. Family death triggers immediate GAME_OVER. Evening screen requires 2-second review before Continue button enables.
+
+**Evening Screen:** Dark kitchen atmosphere with emoji portraits, status labels, feed/medicine toggles, real-time cost animations, and auto-deducted rent/heat line. Summary bar shows fed count and savings.
+
+**Right Panel:** Simplified from w-96 to w-64. Contains only: earnings + progress bar, family status strip, quick reference, and rulebook. Ministry Directives and Payout Legend removed.
+
 **Key files:**
-- `src/types/game.ts` — full type system (alignment, macro events, VIP data, leaked memos, endings)
+- `src/types/game.ts` — full type system (alignment, macro events, VIP data, leaked memos, endings, DEAD status)
 - `src/lib/narrative.ts` — VIP definitions, macro events, 12-ending matrix, human cost messages
 - `src/lib/generator.ts` — procedural client generation + VIP injection + leaked memo generation
-- `src/hooks/useGameEngine.ts` — full game state machine with alignment tracking, freeze, memo handling
+- `src/hooks/useGameEngine.ts` — full game state machine with alignment tracking, freeze, memo handling, family death
+- `src/pages/IntroSequence.tsx` — pre-game intro with typewriter text, briefing clipboard, audio effects
 - `src/pages/Desk.tsx` — main game view (lineup, booth, workspace, memo panel, day-end overlay)
+- `src/pages/EveningScreen.tsx` — family feeding screen with survival mechanics
 - `src/pages/EndScreen.tsx` — ending reveal with alignment bars and moral ledger
 
 **Scoring:**

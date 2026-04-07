@@ -597,22 +597,23 @@ function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'
   const dailyEarned = state.dailyLogs.reduce((a, l) => a + l.earnings, 0);
   const progressPct  = Math.min(100, Math.max(0, (dailyEarned / dailyGoal) * 100));
 
+  const STATUS_ICON: Record<string, string> = {
+    OK: '●', HUNGRY: '●', WEAK: '●', SICK: '●', CRITICAL: '◉', DEAD: '✕',
+  };
+  const STATUS_CLR: Record<string, string> = {
+    OK: C.green, HUNGRY: '#d4a017', WEAK: '#c17f24', SICK: C.red, CRITICAL: '#cc2200', DEAD: '#555',
+  };
+
   return (
-    <div className="w-96 shrink-0 flex flex-col overflow-hidden border-l" style={{ background: C.panel, borderColor: C.border }}>
-      <div className="flex-1 flex flex-col gap-4 px-4 py-4 overflow-y-auto">
-        <div className="rounded-sm border px-4 py-4" style={{ borderColor: C.border + '66', background: 'linear-gradient(180deg, rgba(224,161,27,0.08), rgba(0,0,0,0.08))' }}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="font-terminal text-[10px] uppercase tracking-[0.35em]" style={{ color: C.accent }}>
-              Daily Quota
-            </div>
-            <div className="font-terminal text-[10px] uppercase tracking-[0.3em]" style={{ color: C.muted }}>
-              Goal ${dailyGoal}
-            </div>
-          </div>
-          <div className="font-terminal text-3xl font-bold leading-none mb-3" style={{ color: C.green }}>
+    <div className="w-64 shrink-0 flex flex-col overflow-hidden border-l" style={{ background: C.panel, borderColor: C.border }}>
+      <div className="flex-1 flex flex-col gap-3 px-3 py-3 overflow-y-auto">
+
+        {/* Earnings + progress */}
+        <div className="border px-3 py-3" style={{ borderColor: C.border + '55', background: 'rgba(224,161,27,0.05)' }}>
+          <div className="font-terminal text-3xl font-bold leading-none mb-1" style={{ color: C.green }}>
             {formatMoney(state.money)}
           </div>
-          <div className="h-3 rounded-full overflow-hidden border" style={{ borderColor: C.border + '55', background: '#090604' }}>
+          <div className="h-2 rounded-full overflow-hidden border mb-1" style={{ borderColor: C.border + '44', background: '#090604' }}>
             <div
               className="h-full transition-all duration-300"
               style={{
@@ -621,44 +622,45 @@ function RightPanel({ state }: { state: ReturnType<typeof useGameEngine>['state'
               }}
             />
           </div>
-          <div className="mt-2 flex items-center justify-between font-terminal text-[10px] uppercase tracking-[0.25em]" style={{ color: C.muted }}>
-            <span>Earned {formatMoney(dailyEarned)}</span>
-            <span>{Math.round(progressPct)}%</span>
+          <div className="flex items-center justify-between font-terminal text-[9px] uppercase tracking-wider" style={{ color: C.muted }}>
+            <span>{formatMoney(dailyEarned)} earned</span>
+            <span>Goal {formatMoney(dailyGoal)}</span>
           </div>
         </div>
 
-        <div className="rounded-sm border px-4 py-4" style={{ borderColor: C.border + '66', background: 'rgba(20,14,10,0.92)' }}>
-          <div className="font-terminal text-[10px] uppercase tracking-[0.35em] mb-3" style={{ color: C.green }}>
-            Ministry Directives
+        {/* Family status strip */}
+        <div className="border px-3 py-2.5" style={{ borderColor: C.border + '44', background: 'rgba(10,8,6,0.6)' }}>
+          <div className="font-terminal text-[9px] uppercase tracking-[0.3em] mb-2" style={{ color: C.muted }}>
+            Family
           </div>
-          <div className="flex flex-col gap-2 text-[11px] font-terminal leading-relaxed" style={{ color: C.text }}>
-            {['Name Match', 'SSN Match', 'Income Match'].map(rule => (
-              <div key={rule} className="flex items-center gap-3 rounded border px-3 py-2" style={{ borderColor: C.border + '33', background: 'rgba(255,255,255,0.02)' }}>
-                <span className="text-green-400">☑</span>
-                <span>{rule}</span>
+          <div className="flex flex-col gap-1">
+            {state.family.map(m => (
+              <div key={m.id} className="flex items-center justify-between font-terminal text-[11px]">
+                <span style={{ color: m.status === 'DEAD' ? '#555' : C.text }}>{m.name}</span>
+                <span style={{ color: STATUS_CLR[m.status] }}>
+                  {STATUS_ICON[m.status]} {m.status === 'DEAD' ? 'Dead' : m.status}
+                </span>
               </div>
             ))}
-            <div className="mt-1 text-[10px] uppercase tracking-[0.2em]" style={{ color: C.muted }}>
-              Approve = match · Reject = mismatch · Freeze = fraud
-            </div>
           </div>
         </div>
 
-        <div className="rounded-sm border px-4 py-4" style={{ borderColor: C.border + '55', background: 'rgba(10,8,6,0.86)' }}>
-          <div className="font-terminal text-[10px] uppercase tracking-[0.35em] mb-3" style={{ color: C.accent }}>
-            Payout Legend
+        {/* Quick reference */}
+        <div className="border px-3 py-2.5" style={{ borderColor: C.border + '44', background: 'rgba(10,8,6,0.6)' }}>
+          <div className="font-terminal text-[9px] uppercase tracking-[0.3em] mb-2" style={{ color: C.muted }}>
+            Quick Ref
           </div>
-          <div className="grid grid-cols-2 gap-y-2 font-terminal text-[11px] leading-relaxed" style={{ color: C.muted }}>
-            <span>Approve</span><span className="text-right">+$5</span>
-            <span>Reject</span><span className="text-right">+$10</span>
-            <span>Mistake</span><span className="text-right">-$5</span>
-            <span>Freeze</span><span className="text-right">+$20</span>
+          <div className="flex flex-col gap-1 font-terminal text-[10px]" style={{ color: C.muted }}>
+            <span><span style={{ color: C.green }}>✓ Match</span> → Approve</span>
+            <span><span style={{ color: C.red }}>✗ Mismatch</span> → Reject</span>
+            <span><span style={{ color: '#7ab0f0' }}>⚠ Fraud</span> → Freeze</span>
           </div>
         </div>
 
-        <div className="rounded-sm border px-4 py-4" style={{ borderColor: C.border + '55', background: 'rgba(63,163,92,0.03)' }}>
-          <div className="font-terminal text-[10px] uppercase tracking-[0.35em] mb-3" style={{ color: C.green }}>
-            Current Rulebook
+        {/* Rulebook */}
+        <div className="border px-3 py-2.5 flex-1 min-h-0 overflow-y-auto" style={{ borderColor: C.border + '44', background: 'rgba(10,8,6,0.6)' }}>
+          <div className="font-terminal text-[9px] uppercase tracking-[0.3em] mb-2" style={{ color: C.accent }}>
+            Rulebook
           </div>
           <Rulebook
             day={state.day}
