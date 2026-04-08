@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameEngine, DAILY_GOALS } from '@/hooks/useGameEngine';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
+import billImg from '@assets/image_1775629101611.png';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
 import { DailyLog, Client } from '@/types/game';
@@ -205,116 +206,28 @@ function playRustle() {
   } catch (_) { /* silently skip if AudioContext unavailable */ }
 }
 
-// ─── Pixel-art banknote — dark army-green, checkerboard dither, bloc silhouette
+// ─── Banknote — uses provided bill artwork ─────────────────────────────────────
+// W:100 H:230 keeps portrait orientation near the height of the desk forms.
+const BILL_W = 100;
+const BILL_H = 230;
+
 function BankNoteSVG({ index = 0 }: { index?: number }) {
-  // Each note gets its own unique pattern ID so SVG reuse doesn't bleed between bills
-  const pid   = `dp_${index}_a`;
-  const pid2  = `dp_${index}_b`;
-  const serial = `MF-${(7411 + index * 137).toString().padStart(5, '0')}-${['A','B','C','D','E'][index % 5]}`;
-
   return (
-    <svg
-      width="52" height="104"
-      viewBox="0 0 52 104"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ display: 'block', imageRendering: 'pixelated' }}
-    >
-      <defs>
-        {/* Heavy 2×2 checkerboard dither — base fill */}
-        <pattern id={pid} x="0" y="0" width="2" height="2" patternUnits="userSpaceOnUse">
-          <rect width="2" height="2" fill="#151c07" />
-          <rect x="1" y="0" width="1" height="1" fill="#1c2609" />
-          <rect x="0" y="1" width="1" height="1" fill="#1c2609" />
-        </pattern>
-        {/* Lighter dither for worn highlight strips */}
-        <pattern id={pid2} x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-          <rect width="4" height="4" fill="transparent" />
-          <rect x="0" y="0" width="1" height="1" fill="#242e0c" opacity="0.55" />
-          <rect x="2" y="2" width="1" height="1" fill="#242e0c" opacity="0.55" />
-        </pattern>
-      </defs>
-
-      {/* ── Paper base — dark mold-green ── */}
-      <rect width="52" height="104" fill="#151c07" />
-      <rect width="52" height="104" fill={`url(#${pid})`} />
-
-      {/* ── Outer border — double rule ── */}
-      <rect x="1" y="1" width="50" height="102" fill="none" stroke="#1f2a0a" strokeWidth="1.5" />
-      <rect x="3" y="3" width="46" height="98"  fill="none" stroke="#192208" strokeWidth="0.5" />
-
-      {/* ── Header band ── */}
-      <rect x="4"  y="5"  width="44" height="11" fill="#0c1104" />
-      <rect x="4"  y="5"  width="44" height="11" fill={`url(#${pid2})`} />
-      <text x="26" y="12.5" textAnchor="middle"
-            fontFamily="'Courier New',monospace" fontSize="4" fontWeight="bold"
-            fill="#293a0e" letterSpacing="0.6">
-        MINISTRY OF FINANCE
-      </text>
-
-      {/* ── Corner denomination digits ── */}
-      <text x="7"  y="23" fontFamily="'Courier New',monospace" fontSize="5.5" fill="#202c0c" fontWeight="bold">10</text>
-      <text x="37" y="23" fontFamily="'Courier New',monospace" fontSize="5.5" fill="#202c0c" fontWeight="bold">10</text>
-
-      {/* ── Portrait inset ── */}
-      <rect x="8"  y="24" width="36" height="44" fill="#0c1104" />
-      <rect x="9"  y="25" width="34" height="42" fill="#101505" />
-
-      {/* ── Pixel silhouette (pure block shapes, no detail) ── */}
-      {/* Shoulders mass */}
-      <rect x="9"  y="54" width="34" height="13" fill="#080c02" />
-      {/* Neck */}
-      <rect x="20" y="50" width="12" height="6"  fill="#080c02" />
-      {/* Head block */}
-      <rect x="14" y="29" width="24" height="22" fill="#080c02" />
-      {/* Hair block (top solid bar) */}
-      <rect x="14" y="29" width="24" height="6"  fill="#040602" />
-      <rect x="10" y="29" width="4"  height="4"  fill="#040602" />
-      <rect x="38" y="29" width="4"  height="4"  fill="#040602" />
-      {/* Ear stubs */}
-      <rect x="11" y="36" width="3"  height="5"  fill="#080c02" />
-      <rect x="38" y="36" width="3"  height="5"  fill="#080c02" />
-      {/* Eyes — 2-pixel black slits */}
-      <rect x="17" y="38" width="4"  height="2"  fill="#000000" />
-      <rect x="31" y="38" width="4"  height="2"  fill="#000000" />
-      {/* Nose hint */}
-      <rect x="24" y="43" width="3"  height="3"  fill="#000000" />
-      {/* Grim mouth — single pixel line */}
-      <rect x="19" y="48" width="14" height="1"  fill="#000000" />
-
-      {/* Diagonal dither lines across portrait for worn look */}
-      {[27,31,35,39,43,47,51,55,59,63].map((y, i) => (
-        <rect key={y} x="9" y={y} width="34" height="0.5"
-              fill="#1c2609" opacity={i % 2 === 0 ? 0.35 : 0.15} />
-      ))}
-
-      {/* ── Denomination large numeral ── */}
-      <text x="26" y="78" textAnchor="middle"
-            fontFamily="'Courier New',monospace" fontSize="9" fontWeight="bold"
-            fill="#1c2609" letterSpacing="1">
-        10
-      </text>
-
-      {/* ── Serial number (tiny mono) ── */}
-      <text x="26" y="85" textAnchor="middle"
-            fontFamily="'Courier New',monospace" fontSize="3.5"
-            fill="#1a2408" letterSpacing="0.4">
-        {serial}
-      </text>
-
-      {/* ── Footer band ── */}
-      <rect x="4"  y="89" width="44" height="11" fill="#0c1104" />
-      <text x="26" y="96.5" textAnchor="middle"
-            fontFamily="'Courier New',monospace" fontSize="5" fontWeight="bold"
-            fill="#202e0c" letterSpacing="3">
-        TEN
-      </text>
-
-      {/* ── Grime / crease marks (haphazard aging) ── */}
-      <rect x="6"  y="62" width="8"  height="0.8" fill="#0a0e04" opacity="0.6" />
-      <rect x="32" y="45" width="5"  height="0.8" fill="#0a0e04" opacity="0.5" />
-      <rect x="12" y="82" width="10" height="0.8" fill="#0a0e04" opacity="0.4" />
-      <rect x="38" y="75" width="6"  height="0.8" fill="#0a0e04" opacity="0.45" />
-    </svg>
+    <img
+      src={billImg}
+      width={BILL_W}
+      height={BILL_H}
+      draggable={false}
+      style={{
+        display: 'block',
+        width:  BILL_W,
+        height: BILL_H,
+        objectFit: 'cover',
+        imageRendering: 'pixelated',
+        userSelect: 'none',
+      }}
+      alt={`$10 bill #${index + 1}`}
+    />
   );
 }
 
@@ -848,13 +761,13 @@ function BribeConfirmDialog({ total, onAccept, onDecline }: { total: number; onA
 
 // ─── Bribe bill stack on desk — draggable, fanned portrait orientation ────────
 // Haphazard rotations: left bill leans left, right bill leans right (hand-of-cards fan)
-// Extra small random-looking offset baked in per slot so they look "dropped"
+// Offsets scaled for 100×230px bills
 const BILL_SLOTS = [
-  { rot: -6,  ox: -18 },
-  { rot: -2,  ox:  -7 },
-  { rot:  2,  ox:   2 },
-  { rot:  6,  ox:  13 },
-  { rot: 10,  ox:  22 },
+  { rot: -8,  ox: -44 },
+  { rot: -3,  ox: -18 },
+  { rot:  2,  ox:   6 },
+  { rot:  7,  ox:  28 },
+  { rot: 11,  ox:  50 },
 ];
 
 function BribeStack({ billCount, total, onClick }: { billCount: number; total: number; onClick: () => void }) {
@@ -879,8 +792,8 @@ function BribeStack({ billCount, total, onClick }: { billCount: number; total: n
       className="absolute select-none"
       // z-[45]: above documents (~z-30), below toolbar chrome (z-50+)
       style={{
-        bottom: 44,
-        right:  72,
+        bottom: 60,
+        right:  90,
         zIndex: 45,
         cursor: grabbed ? 'grabbing' : 'grab',
         touchAction: 'none',
@@ -889,8 +802,8 @@ function BribeStack({ billCount, total, onClick }: { billCount: number; total: n
       {/* ── Fan of bills ── */}
       <div
         className="relative"
-        // Container sized to hold the widest fan spread
-        style={{ width: 110, height: 140 }}
+        // Container wide enough to hold 5 bills × fan spread, tall enough for 230px bills + rotation slop
+        style={{ width: 220, height: 260 }}
         onClick={() => { playRustle(); onClick(); }}
         title={`$${total} cash — click to take · drag to move`}
       >
