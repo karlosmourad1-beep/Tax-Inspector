@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameEngine, DAILY_GOALS } from '@/hooks/useGameEngine';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
-import billImg from '@assets/image_1775629101611.png';
+import stackBillImg  from '@assets/image_1775629923935.png';
+import singleBillImg from '@assets/image_1775629927550.png';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
 import { DailyLog, Client } from '@/types/game';
@@ -206,30 +207,7 @@ function playRustle() {
   } catch (_) { /* silently skip if AudioContext unavailable */ }
 }
 
-// ─── Banknote — uses provided bill artwork ─────────────────────────────────────
-// W:100 H:230 keeps portrait orientation near the height of the desk forms.
-const BILL_W = 100;
-const BILL_H = 230;
-
-function BankNoteSVG({ index = 0 }: { index?: number }) {
-  return (
-    <img
-      src={billImg}
-      width={BILL_W}
-      height={BILL_H}
-      draggable={false}
-      style={{
-        display: 'block',
-        width:  BILL_W,
-        height: BILL_H,
-        objectFit: 'cover',
-        imageRendering: 'pixelated',
-        userSelect: 'none',
-      }}
-      alt={`$10 bill #${index + 1}`}
-    />
-  );
-}
+// (BankNoteSVG removed — bill imagery handled directly in BribeStack)
 
 // ─── Portrait palettes (all desaturated) ────────────────────────────────────
 const SKINS  = ['#c9aa8a','#b59070','#9e7a58','#8a6445','#6b4a32','#d5c5a8','#a88a68','#7a5a3e'];
@@ -731,7 +709,7 @@ function BribeConfirmDialog({ total, onAccept, onDecline }: { total: number; onA
             The envelope contains <strong style={{ color: '#e0a11b' }}>${total}</strong> in cash. Taking it locks you into approving this filing.
           </p>
           <p className="font-terminal text-[10px] uppercase tracking-widest text-center" style={{ color: '#7a5520' }}>
-            This will be cited as bribery if discovered.
+            25% chance Internal Affairs is watching. Getting caught means arrest.
           </p>
           <div className="flex gap-3 w-full">
             <button
@@ -759,107 +737,57 @@ function BribeConfirmDialog({ total, onAccept, onDecline }: { total: number; onA
   );
 }
 
-// ─── Bribe bill stack on desk — draggable, fanned portrait orientation ────────
-// Rotation angles for each bill in the fan (max 5 bills).
-// Pure rotation from a shared bottom-centre pivot — no horizontal offsets needed,
-// the rotation itself spreads the bills into a hand-of-cards shape.
-const BILL_ROTS = [-12, -6, 0, 6, 12];
-
-// How much to dim each buried bill (frontmost = index billCount-1 = full brightness)
-function billBrightness(i: number, total: number) {
-  const depth = total - 1 - i;           // 0 = front, increasing = more buried
-  return Math.max(0.55, 1 - depth * 0.14);
-}
-
-function BribeStack({ billCount, total, onClick }: { billCount: number; total: number; onClick: () => void }) {
+// ─── Bribe money on desk — single bill or stack based on amount ───────────────
+// brideAmount < 30 → single bill image ($10/$20)
+// brideAmount ≥ 30 → stack image ($30-$50)
+function BribeStack({ brideAmount, onClick }: { brideAmount: number; onClick: () => void }) {
   const [grabbed, setGrabbed] = useState(false);
-
-  // Grab the centred slice of rotations for however many bills we have
-  const mid   = Math.floor(BILL_ROTS.length / 2);
-  const half  = Math.floor(billCount / 2);
-  const rots  = BILL_ROTS.slice(mid - half, mid - half + billCount);
+  const isStack = brideAmount >= 30;
+  const img     = isStack ? stackBillImg : singleBillImg;
+  // Stack sits slightly tilted like it was tossed on the desk
+  const tilt    = isStack ? 5 : -4;
 
   return (
     <motion.div
       drag
       dragMomentum={false}
-      dragElastic={0.06}
-      whileDrag={{ scale: 1.04 }}
+      dragElastic={0.08}
+      whileDrag={{ scale: 1.05, rotate: 0 }}
       onDragStart={() => setGrabbed(true)}
       onDragEnd={()   => setGrabbed(false)}
-      initial={{ opacity: 0, y: -28, rotate: -4 }}
-      animate={{ opacity: 1, y: 0,   rotate: 0  }}
-      exit={{ opacity: 0, scale: 0.72, y: 10, transition: { duration: 0.18 } }}
-      transition={{ duration: 0.42, type: 'spring', stiffness: 155, damping: 17 }}
+      initial={{ opacity: 0, y: -24, rotate: tilt - 8 }}
+      animate={{ opacity: 1, y: 0,   rotate: tilt }}
+      exit={{ opacity: 0, scale: 0.78, transition: { duration: 0.16 } }}
+      transition={{ duration: 0.4, type: 'spring', stiffness: 180, damping: 18 }}
+      onClick={() => { playRustle(); onClick(); }}
+      title={`$${brideAmount} cash — click to take · drag to move`}
       className="absolute select-none"
       style={{
-        // Anchor point — bottom-right of the desk area
-        bottom: 70,
+        bottom: 80,
         right:  110,
         zIndex: 45,
         cursor: grabbed ? 'grabbing' : 'grab',
         touchAction: 'none',
+        filter: 'drop-shadow(3px 6px 10px rgba(0,0,0,0.90))',
       }}
     >
-      {/*
-        Fan container: all bills share the exact same left/bottom anchor point.
-        transform-origin: 'bottom center' means rotating a bill pivots it around
-        the bottom-centre of that bill — naturally fanning them into a hand shape.
-        Container is padded so rotated corners don't clip.
-      */}
+      <img
+        src={img}
+        draggable={false}
+        style={{
+          display: 'block',
+          // Stack image wider than single to reflect it's physically bigger
+          width:  isStack ? 150 : 110,
+          imageRendering: 'pixelated',
+          userSelect: 'none',
+        }}
+        alt={isStack ? 'Stack of bills' : 'Single bill'}
+      />
       <div
-        className="relative"
-        style={{ width: 260, height: 280 }}
-        onClick={() => { playRustle(); onClick(); }}
-        title={`$${total} cash — click to take · drag to move`}
+        className="font-terminal text-[10px] font-bold tracking-widest text-center mt-1 pointer-events-none"
+        style={{ color: '#8a9a60', textShadow: '0 1px 4px rgba(0,0,0,0.95)' }}
       >
-        {rots.map((rot, i) => {
-          const isFront = i === rots.length - 1;
-          const bright  = billBrightness(i, rots.length);
-          return (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: -16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: i * 0.055,
-                duration: 0.30,
-                type: 'spring',
-                stiffness: 240,
-                damping: 22,
-              }}
-              style={{
-                position: 'absolute',
-                // Every bill starts at the same bottom-centre of the container
-                left:   '50%',
-                bottom: 0,
-                // Step 1: centre the bill on the anchor; Step 2: rotate from bottom-centre
-                transform: `translateX(-50%) rotate(${rot}deg)`,
-                transformOrigin: 'bottom center',
-                // Front bill on top
-                zIndex: i + 1,
-                // Solid backing so transparent PNG edges don't bleed the desk through
-                backgroundColor: '#0d1205',
-                borderRadius: 3,
-                // Physical depth: shadow + dimming for buried bills
-                filter: [
-                  `drop-shadow(2px 4px 6px rgba(0,0,0,${isFront ? 0.80 : 0.55}))`,
-                  `brightness(${bright})`,
-                ].join(' '),
-              }}
-            >
-              <BankNoteSVG index={i} />
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Subtle take-hint below the fan */}
-      <div
-        className="font-terminal text-[10px] font-bold tracking-widest text-center pointer-events-none mt-1"
-        style={{ color: '#3a5218', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
-      >
-        ${total} · click to take
+        ${brideAmount} · click to take
       </div>
     </motion.div>
   );
@@ -961,7 +889,6 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
   // Bribe stack info
   const clientBribeAmount = state.currentClient?.brideAmount ?? 0;
-  const clientBillCount   = Math.min(Math.floor(clientBribeAmount / 10), 5);
   const showBribeStack    = !!state.currentClient?.hasBribe && envelopePhase === 'open' && !bribeTaken;
   const canCallNext    = state.clientsQueue.length > 0;
   const isDayEnd       = state.status === 'DAY_END';
@@ -1140,12 +1067,11 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             </div>
           )}
 
-          {/* ── Bribe stack (bills on desk) ───────────────────────────────────── */}
+          {/* ── Bribe money on desk ───────────────────────────────────────────── */}
           <AnimatePresence>
             {showBribeStack && (
               <BribeStack
-                billCount={clientBillCount}
-                total={clientBribeAmount}
+                brideAmount={clientBribeAmount}
                 onClick={() => setShowBribeConfirm(true)}
               />
             )}
@@ -1215,9 +1141,14 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               <BribeConfirmDialog
                 total={clientBribeAmount}
                 onAccept={() => {
-                  setBribeTaken(true);
                   setShowBribeConfirm(false);
-                  engine.addMoney(clientBribeAmount);
+                  // 25% chance of getting caught — ends the game immediately
+                  if (Math.random() < 0.25) {
+                    engine.triggerBribeCaught();
+                  } else {
+                    setBribeTaken(true);
+                    engine.addMoney(clientBribeAmount);
+                  }
                 }}
                 onDecline={() => setShowBribeConfirm(false)}
               />

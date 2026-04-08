@@ -225,15 +225,16 @@ export function generateClient(day: number, idPrefix: string): Client {
     }
   }
 
-  // Bribery: ~22% of non-contraband fraud cases from day 2 become bribe attempts
-  // Each bill = $10. Generate 2–5 bills.
+  // Bribery: ~22% of non-contraband fraud cases from day 2 become bribe attempts.
+  // 1-2 bills = single ($10-$20), 3-5 bills = stack ($30-$50).
   if (!isContraband && isFraud && day >= 2 && Math.random() < 0.22) {
     hasBribe = true;
-    const billCount = randomInt(2, 5);
+    const billCount = randomInt(1, 5);
     brideAmountVal = billCount * 10;
     fraudType = 'bribe_attempt';
     expectedDecision = 'FREEZE';
-    hiddenNote = `Inside the filing envelope: ${billCount} bill${billCount > 1 ? 's' : ''} in cash ($${brideAmountVal}). Handwritten note: "For your understanding. No record necessary."`;
+    const isStack = billCount >= 3;
+    hiddenNote = `Inside the filing envelope: ${isStack ? 'a stack of' : ''} ${billCount} bill${billCount > 1 ? 's' : ''} in cash ($${brideAmountVal}). Handwritten note: "For your understanding. No record necessary."`;
   }
 
   const documents: AnyDocument[] = [idDoc, taxDoc];

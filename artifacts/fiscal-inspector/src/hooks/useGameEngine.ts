@@ -537,6 +537,26 @@ export function useGameEngine() {
     setForcedBribeNextClient(true);
   }, []);
 
+  const triggerBribeCaught = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      status: 'GAME_OVER',
+      currentClient: null,
+      activeMemo: null,
+      ending: {
+        id: 'bribe_caught',
+        title: 'ARRESTED',
+        subtitle: 'Internal Affairs Division — Case #4471-B',
+        description:
+          'You were caught accepting a bribe from a filing citizen. ' +
+          'Ministry surveillance flagged the transaction. Your employment is immediately terminated ' +
+          'and you have been remanded to the detention facility pending formal charges. ' +
+          'The family has been notified.',
+        color: 'red',
+      },
+    }));
+  }, []);
+
   return {
     state, stampAction,
     startGame, startDay, callNextClient,
@@ -544,5 +564,6 @@ export function useGameEngine() {
     endDay, confirmEvening, returnToMenu,
     addMoney,
     forceNextBribeCase,
+    triggerBribeCaught,
   };
 }
