@@ -1290,13 +1290,6 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           </button>
         )}
 
-        <button
-          onClick={testBribeNext}
-          className="fixed bottom-4 left-4 z-50 px-3 py-2 rounded border font-terminal text-[10px] uppercase tracking-widest"
-          style={{ background: 'rgba(20,15,10,0.96)', borderColor: '#7a5c1a', color: '#e0a11b' }}
-        >
-          Test Bribe
-        </button>
       </div>
 
       {/* ── Decision feedback overlays ───────────────────────────────────────── */}
@@ -1331,6 +1324,14 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
         title="Skip to next day (testing)"
       >
         Skip Day →
+      </button>
+      <button
+        onClick={testBribeNext}
+        className="fixed bottom-14 left-4 px-3 py-2 rounded border font-terminal text-[10px] uppercase tracking-widest z-50"
+        style={{ background: 'rgba(20,15,10,0.96)', borderColor: '#7a5c1a', color: '#e0a11b' }}
+        title="Force the next client to carry a bribe"
+      >
+        Test Bribe
       </button>
     </div>
   );
