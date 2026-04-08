@@ -857,12 +857,13 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
   const processedCount = 4 - state.clientsQueue.length - (state.currentClient ? 1 : 0);
 
-  // Detect new decisions → trigger feedback
+  // Detect new decisions → auto-clear feedback (stamp on card replaces old overlays)
   useEffect(() => {
     if (state.dailyLogs.length > prevLogCount.current) {
       const last = state.dailyLogs[state.dailyLogs.length - 1];
       setDecisionFeedback(last);
       prevLogCount.current = state.dailyLogs.length;
+      setTimeout(() => setDecisionFeedback(null), 1200);
     }
   }, [state.dailyLogs.length]);
 
@@ -968,22 +969,26 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     try {
       const ctx = getStampAudio();
       const now = ctx.currentTime;
-      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.12), ctx.sampleRate);
+      const dur = 0.22;
+      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
       const data = buf.getChannelData(0);
       for (let i = 0; i < data.length; i++) {
         const t = i / ctx.sampleRate;
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 40) * 0.4;
+        const thud = Math.sin(2 * Math.PI * 80 * t) * Math.exp(-t * 25) * 0.3;
+        const noise = (Math.random() * 2 - 1) * Math.exp(-t * 35) * 0.5;
+        const slap = Math.sin(2 * Math.PI * 200 * t) * Math.exp(-t * 50) * 0.2;
+        data[i] = thud + noise + slap;
       }
       const src = ctx.createBufferSource();
       src.buffer = buf;
       const lp = ctx.createBiquadFilter();
       lp.type = 'lowpass';
-      lp.frequency.setValueAtTime(800, now);
-      lp.frequency.exponentialRampToValueAtTime(200, now + 0.12);
+      lp.frequency.setValueAtTime(1200, now);
+      lp.frequency.exponentialRampToValueAtTime(150, now + dur);
       src.connect(lp);
       lp.connect(ctx.destination);
       src.start(now);
-      src.stop(now + 0.15);
+      src.stop(now + dur + 0.05);
     } catch (_) {}
   }, [getStampAudio]);
 
@@ -1485,36 +1490,36 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                       isDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
                       bribeTaken && type === 'APPROVE' && !isDeskDisabled && 'animate-pulse',
                     )}
-                    style={{ width: 56 }}
+                    style={{ width: 72 }}
                   >
                     <div style={{
-                      width: 36, height: 28,
-                      background: `linear-gradient(180deg, #5a4a38 0%, #3a2e22 60%, #2a2018 100%)`,
-                      borderRadius: '4px 4px 2px 2px',
-                      boxShadow: `0 -1px 3px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.08), inset 0 -1px 2px rgba(0,0,0,0.2)`,
+                      width: 48, height: 36,
+                      background: `linear-gradient(180deg, #6a5a44 0%, #4a3e2a 30%, #3a2e22 60%, #2a2018 100%)`,
+                      borderRadius: '5px 5px 2px 2px',
+                      boxShadow: `0 -2px 6px rgba(0,0,0,0.3), inset 0 3px 6px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.25)`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <div style={{
-                        width: 6, height: 14,
-                        background: `linear-gradient(180deg, #8a7a60 0%, #5a4a38 100%)`,
-                        borderRadius: 2,
-                        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.15)',
+                        width: 8, height: 18,
+                        background: `linear-gradient(180deg, #9a8a6a 0%, #6a5a44 100%)`,
+                        borderRadius: 3,
+                        boxShadow: 'inset 0 2px 3px rgba(255,255,255,0.2), 0 1px 2px rgba(0,0,0,0.3)',
                       }} />
                     </div>
                     <div style={{
-                      width: 48, height: 18,
-                      background: `linear-gradient(180deg, ${colorDark} 0%, ${color} 50%, ${colorDark} 100%)`,
-                      borderRadius: '2px 2px 4px 4px',
-                      boxShadow: `0 4px 8px rgba(0,0,0,0.6), 0 2px 4px ${color}33, inset 0 1px 0 rgba(255,255,255,0.1)`,
+                      width: 62, height: 24,
+                      background: `linear-gradient(180deg, ${colorDark} 0%, ${color} 45%, ${colorDark} 100%)`,
+                      borderRadius: '2px 2px 5px 5px',
+                      boxShadow: `0 5px 12px rgba(0,0,0,0.65), 0 3px 6px ${color}44, inset 0 2px 0 rgba(255,255,255,0.12)`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       borderTop: `1px solid ${color}88`,
                     }}>
-                      <span className="font-stamped text-[8px] font-bold uppercase tracking-wider"
-                            style={{ color: `${colorLight}cc`, textShadow: `0 0 4px ${color}66` }}>
+                      <span className="font-stamped text-[10px] font-bold uppercase tracking-wider"
+                            style={{ color: `${colorLight}dd`, textShadow: `0 0 6px ${color}88` }}>
                         {type === 'APPROVE' ? 'APPR' : 'REJ'}
                       </span>
                     </div>
-                    <div className="font-terminal text-[7px] uppercase tracking-widest mt-1.5"
+                    <div className="font-terminal text-[8px] uppercase tracking-widest mt-1.5"
                          style={{ color: isSelected ? colorLight : '#6a5a40' }}>
                       {type === 'APPROVE' ? (bribeTaken ? '✓ Approve' : 'Approve') : 'Reject'}
                     </div>
@@ -1532,31 +1537,31 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                   isContraband && !isRejectFreezeDisabled && 'animate-pulse',
                   isRejectFreezeDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
                 )}
-                style={{ width: 56 }}
+                style={{ width: 72 }}
               >
                 <div style={{
-                  width: 36, height: 28,
-                  background: `linear-gradient(180deg, #3a4a5a 0%, #2a3a4a 60%, #1a2a3a 100%)`,
-                  borderRadius: '4px 4px 2px 2px',
-                  boxShadow: `0 -1px 3px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.08)`,
+                  width: 48, height: 36,
+                  background: `linear-gradient(180deg, #4a5a6a 0%, #3a4a5a 30%, #2a3a4a 60%, #1a2a3a 100%)`,
+                  borderRadius: '5px 5px 2px 2px',
+                  boxShadow: `0 -2px 6px rgba(0,0,0,0.3), inset 0 3px 6px rgba(255,255,255,0.08)`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Snowflake className="w-3.5 h-3.5" style={{ color: '#7ab0f0aa' }} />
+                  <Snowflake className="w-4 h-4" style={{ color: '#7ab0f0bb' }} />
                 </div>
                 <div style={{
-                  width: 48, height: 18,
-                  background: `linear-gradient(180deg, #0e1a2a 0%, #3a6abf 50%, #0e1a2a 100%)`,
-                  borderRadius: '2px 2px 4px 4px',
-                  boxShadow: `0 4px 8px rgba(0,0,0,0.6), 0 2px 4px rgba(58,106,191,0.2), inset 0 1px 0 rgba(255,255,255,0.1)`,
+                  width: 62, height: 24,
+                  background: `linear-gradient(180deg, #0e1a2a 0%, #3a6abf 45%, #0e1a2a 100%)`,
+                  borderRadius: '2px 2px 5px 5px',
+                  boxShadow: `0 5px 12px rgba(0,0,0,0.65), 0 3px 6px rgba(58,106,191,0.25), inset 0 2px 0 rgba(255,255,255,0.12)`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderTop: '1px solid #3a6abf88',
                 }}>
-                  <span className="font-stamped text-[8px] font-bold uppercase tracking-wider"
-                        style={{ color: '#7ab0f0cc' }}>
+                  <span className="font-stamped text-[10px] font-bold uppercase tracking-wider"
+                        style={{ color: '#7ab0f0dd' }}>
                     FRZ
                   </span>
                 </div>
-                <div className="font-terminal text-[7px] uppercase tracking-widest mt-1.5"
+                <div className="font-terminal text-[8px] uppercase tracking-widest mt-1.5"
                      style={{ color: '#6090c0' }}>
                   Freeze{isContraband ? ' !' : ''}
                 </div>
@@ -1663,155 +1668,213 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
       </div>
 
-      {/* ── STAMP FORM (pops up from paper stack) ─────────────────────────── */}
+      {/* ── STAMP FORM (centered, pops up from paper stack) ─────────────── */}
       <AnimatePresence>
         {stampFormOpen && hasClient && !isDeskDisabled && (
-          <motion.div
-            key="stamp-form"
-            ref={stampFormRef}
-            initial={{ y: 120, opacity: 0, scale: 0.92 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 80, opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-            transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-            className="fixed z-[200] select-none"
-            style={{
-              bottom: 72,
-              right: 24,
-              width: 260,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{
-              background: `linear-gradient(170deg, #f4eed8 0%, #ebe0c8 40%, #ddd0b4 100%)`,
-              border: '1px solid #c0b090',
-              borderRadius: 3,
-              padding: '16px 18px 14px',
-              boxShadow: '0 6px 24px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)',
-              position: 'relative',
-            }}>
+          <>
+            <motion.div
+              key="stamp-form-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              className="fixed inset-0 z-[600]"
+              style={{ background: 'rgba(0,0,0,0.45)' }}
+              onClick={() => { setStampFormOpen(false); setStampFormMark(null); }}
+            />
+            <motion.div
+              key="stamp-form"
+              ref={stampFormRef}
+              initial={{ y: 200, opacity: 0, scale: 0.85 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 100, opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+              transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+              className="fixed z-[700] select-none"
+              style={{
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 380,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                background: 'linear-gradient(90deg, #b4473f 0%, #b4473f 33%, #e0a11b 33%, #e0a11b 66%, #3fa35c 66%, #3fa35c 100%)',
-                borderRadius: '3px 3px 0 0',
-              }} />
+                background: `linear-gradient(170deg, #f4eed8 0%, #ebe0c8 30%, #e0d4b8 60%, #d8ccb0 100%)`,
+                border: '1px solid #b8a880',
+                borderRadius: 4,
+                padding: '24px 28px 20px',
+                boxShadow: '0 12px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.6)',
+                position: 'relative',
+              }}>
+                <svg width="0" height="0" style={{ position: 'absolute' }}>
+                  <filter id="stamp-grunge">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" seed="8" result="noise" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
+                  </filter>
+                  <filter id="stamp-ink-bleed">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="12" result="noise" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
+                    <feGaussianBlur stdDeviation="0.4" />
+                  </filter>
+                </svg>
 
-              <div className="font-terminal text-[8px] uppercase tracking-[0.3em] text-center mb-2"
-                   style={{ color: '#5a4a30' }}>
-                Inspector Decision Form
-              </div>
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 4,
+                  background: 'linear-gradient(90deg, #b4473f 0%, #b4473f 33%, #e0a11b 33%, #e0a11b 66%, #3fa35c 66%, #3fa35c 100%)',
+                  borderRadius: '4px 4px 0 0',
+                }} />
 
-              <div style={{
-                height: 1, background: '#c0b09088', marginBottom: 8,
-              }} />
+                <div className="font-terminal text-[10px] uppercase tracking-[0.35em] text-center mb-3"
+                     style={{ color: '#4a3a20' }}>
+                  Inspector Decision Form
+                </div>
 
-              <div className="font-terminal text-[7px] uppercase tracking-wider mb-1"
-                   style={{ color: '#8a7a60' }}>
-                Case: {state.currentClient?.name ?? '—'}
-              </div>
-              <div className="font-terminal text-[7px] uppercase tracking-wider mb-3"
-                   style={{ color: '#8a7a60' }}>
-                Day {state.day} · Client #{processedCount + 1}
-              </div>
+                <div style={{ height: 1, background: '#c0b09088', marginBottom: 10 }} />
 
-              <div style={{
-                height: 1, background: '#c0b09066', marginBottom: 10,
-              }} />
+                <div className="flex justify-between mb-1">
+                  <div className="font-terminal text-[9px] uppercase tracking-wider"
+                       style={{ color: '#7a6a50' }}>
+                    Case: {state.currentClient?.name ?? '—'}
+                  </div>
+                  <div className="font-terminal text-[9px] uppercase tracking-wider"
+                       style={{ color: '#7a6a50' }}>
+                    Day {state.day}
+                  </div>
+                </div>
+                <div className="font-terminal text-[8px] uppercase tracking-wider mb-4"
+                     style={{ color: '#9a8a70' }}>
+                  Client #{processedCount + 1} of 4 · Revenue Inspector Division
+                </div>
 
-              <div className="relative" style={{ minHeight: 60 }}>
-                {stampFormMark ? (
-                  <motion.div
-                    initial={{ scale: 1.6, opacity: 0, rotate: stampFormMark.rot }}
-                    animate={{ scale: 1, opacity: 1, rotate: stampFormMark.rot }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                    className="flex items-center justify-center py-3"
-                  >
-                    <div
-                      className="font-stamped text-2xl font-bold uppercase tracking-widest px-5 py-2"
+                <div style={{ height: 1, background: '#c0b09055', marginBottom: 14 }} />
+
+                <div className="relative" style={{ minHeight: 120 }}>
+                  {stampFormMark ? (
+                    <motion.div
+                      initial={{ scale: 1.25, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 600, damping: 15, duration: 0.2 }}
+                      className="flex items-center justify-center"
+                      style={{ minHeight: 120 }}
+                    >
+                      <div
+                        className="font-stamped font-bold uppercase"
+                        style={{
+                          fontSize: 52,
+                          letterSpacing: '0.15em',
+                          padding: '14px 32px',
+                          color: stampFormMark.type === 'APPROVE' ? '#1a6a2e'
+                               : stampFormMark.type === 'REJECT' ? '#8a1515' : '#1a3a7a',
+                          border: `5px solid ${
+                            stampFormMark.type === 'APPROVE' ? '#1a6a2eaa'
+                            : stampFormMark.type === 'REJECT' ? '#8a1515aa' : '#1a3a7aaa'
+                          }`,
+                          borderRadius: 4,
+                          borderTopWidth: 3,
+                          borderBottomWidth: 6,
+                          borderLeftWidth: 4,
+                          borderRightWidth: 5,
+                          transform: `rotate(${stampFormMark.rot}deg)`,
+                          mixBlendMode: 'multiply',
+                          filter: 'url(#stamp-grunge)',
+                          textShadow: `2px 2px 0 ${
+                            stampFormMark.type === 'APPROVE' ? 'rgba(26,106,46,0.15)'
+                            : stampFormMark.type === 'REJECT' ? 'rgba(138,21,21,0.15)' : 'rgba(26,58,122,0.15)'
+                          }, -1px -1px 0 ${
+                            stampFormMark.type === 'APPROVE' ? 'rgba(26,106,46,0.08)'
+                            : stampFormMark.type === 'REJECT' ? 'rgba(138,21,21,0.08)' : 'rgba(26,58,122,0.08)'
+                          }`,
+                          background: `radial-gradient(ellipse at 30% 40%, ${
+                            stampFormMark.type === 'APPROVE' ? 'rgba(26,106,46,0.06)'
+                            : stampFormMark.type === 'REJECT' ? 'rgba(138,21,21,0.06)' : 'rgba(26,58,122,0.06)'
+                          } 0%, transparent 70%)`,
+                        }}
+                      >
+                        {stampFormMark.type === 'APPROVE' ? 'APPROVED'
+                         : stampFormMark.type === 'REJECT' ? 'REJECTED' : 'FROZEN'}
+                      </div>
+                    </motion.div>
+                  ) : selectedStamp ? (
+                    <motion.button
+                      onClick={handleFormStampClick}
+                      whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(224,161,27,0.15)' }}
+                      whileTap={{ scale: 0.96 }}
+                      className="w-full cursor-pointer"
                       style={{
-                        color: stampFormMark.type === 'APPROVE' ? '#2a8a44'
-                             : stampFormMark.type === 'REJECT' ? '#aa2020' : '#3a6abf',
-                        border: `3px solid ${
-                          stampFormMark.type === 'APPROVE' ? '#2a8a44aa'
-                          : stampFormMark.type === 'REJECT' ? '#aa2020aa' : '#3a6abfaa'
-                        }`,
-                        borderRadius: 3,
-                        borderTopWidth: 2,
-                        borderBottomWidth: 4,
-                        transform: `rotate(${stampFormMark.rot}deg)`,
-                        mixBlendMode: 'multiply',
-                        filter: 'blur(0.2px)',
+                        minHeight: 120,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: `repeating-linear-gradient(0deg, transparent, transparent 14px, #c0b09022 14px, #c0b09022 15px)`,
+                        border: `2px dashed ${selectedStamp === 'APPROVE' ? '#3fa35c88' : '#b4473f88'}`,
+                        borderRadius: 6,
                       }}
                     >
-                      {stampFormMark.type === 'APPROVE' ? 'APPROVED'
-                       : stampFormMark.type === 'REJECT' ? 'REJECTED' : 'FROZEN'}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="font-stamped text-xl uppercase tracking-[0.2em]"
+                             style={{
+                               color: selectedStamp === 'APPROVE' ? '#3fa35c' : '#b4473f',
+                               opacity: 0.8,
+                             }}>
+                          {selectedStamp === 'APPROVE' ? 'APPROVED' : 'REJECTED'}
+                        </div>
+                        <div className="font-terminal text-[9px] uppercase tracking-widest"
+                             style={{ color: '#8a7a60' }}>
+                          Click to stamp
+                        </div>
+                      </div>
+                    </motion.button>
+                  ) : (
+                    <div style={{
+                      minHeight: 120,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: `repeating-linear-gradient(0deg, transparent, transparent 14px, #c0b09018 14px, #c0b09018 15px)`,
+                      border: '2px dashed #c0b09033',
+                      borderRadius: 6,
+                    }}>
+                      <div className="font-terminal text-[9px] uppercase tracking-widest"
+                           style={{ color: '#8a7a60' }}>
+                        Pick up a stamp first
+                      </div>
                     </div>
-                  </motion.div>
-                ) : selectedStamp ? (
-                  <motion.button
-                    onClick={handleFormStampClick}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full py-3 cursor-pointer"
-                    style={{
-                      background: `repeating-linear-gradient(0deg, transparent, transparent 11px, #c0b09033 11px, #c0b09033 12px)`,
-                      border: `2px dashed ${selectedStamp === 'APPROVE' ? '#3fa35c66' : '#b4473f66'}`,
-                      borderRadius: 4,
-                    }}
-                  >
-                    <div className="font-stamped text-sm uppercase tracking-widest text-center"
-                         style={{
-                           color: selectedStamp === 'APPROVE' ? '#3fa35c' : '#b4473f',
-                         }}>
-                      ↓ Stamp {selectedStamp === 'APPROVE' ? 'Approve' : 'Reject'} Here ↓
-                    </div>
-                  </motion.button>
-                ) : (
-                  <div className="py-3 text-center"
-                       style={{
-                         background: `repeating-linear-gradient(0deg, transparent, transparent 11px, #c0b09022 11px, #c0b09022 12px)`,
-                         border: '2px dashed #c0b09044',
-                         borderRadius: 4,
-                       }}>
-                    <div className="font-terminal text-[8px] uppercase tracking-widest"
-                         style={{ color: '#8a7a60' }}>
-                      Pick up a stamp first
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <div style={{
-                height: 1, background: '#c0b09066', marginTop: 8, marginBottom: 6,
-              }} />
+                <div style={{ height: 1, background: '#c0b09055', marginTop: 12, marginBottom: 8 }} />
 
-              <div className="font-terminal text-[6px] uppercase tracking-widest text-center"
-                   style={{ color: '#a0906088' }}>
-                Ministry of Revenue · Official Use Only
+                <div className="font-terminal text-[7px] uppercase tracking-widest text-center"
+                     style={{ color: '#a0906066' }}>
+                  Ministry of Revenue · Official Use Only · Form IR-7
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
-      {/* ── STAMP CURSOR (follows mouse when stamp selected) ──────────────── */}
+      {/* ── STAMP CURSOR (follows mouse when stamp selected — large grunge) ── */}
       {selectedStamp && hasClient && !isDeskDisabled && (
         <div
-          className="fixed z-[500] pointer-events-none select-none"
+          className="fixed z-[900] pointer-events-none select-none"
           style={{
             left: stampCursorPos.x,
             top: stampCursorPos.y,
-            transform: `translate(-50%, -50%) rotate(${selectedStamp === 'APPROVE' ? -8 : 6}deg)`,
+            transform: `translate(-50%, -50%) rotate(${selectedStamp === 'APPROVE' ? -4 : 4}deg)`,
           }}
         >
           <div
-            className="relative font-stamped text-2xl font-bold tracking-widest uppercase px-4 py-2"
+            className="font-stamped font-bold uppercase"
             style={{
-              color: selectedStamp === 'APPROVE' ? 'rgba(42,138,68,0.6)' : 'rgba(170,32,32,0.6)',
-              border: `3px solid ${selectedStamp === 'APPROVE' ? 'rgba(42,138,68,0.45)' : 'rgba(170,32,32,0.45)'}`,
-              borderRadius: 2,
-              borderTopWidth: 2,
-              borderBottomWidth: 4,
-              textShadow: `1px 1px 0 ${selectedStamp === 'APPROVE' ? 'rgba(42,138,68,0.15)' : 'rgba(170,32,32,0.15)'}`,
+              fontSize: 38,
+              letterSpacing: '0.12em',
+              padding: '10px 22px',
+              color: selectedStamp === 'APPROVE' ? 'rgba(26,106,46,0.5)' : 'rgba(138,21,21,0.5)',
+              border: `4px solid ${selectedStamp === 'APPROVE' ? 'rgba(26,106,46,0.35)' : 'rgba(138,21,21,0.35)'}`,
+              borderRadius: 3,
+              borderTopWidth: 3,
+              borderBottomWidth: 5,
+              textShadow: `1px 1px 0 ${selectedStamp === 'APPROVE' ? 'rgba(26,106,46,0.1)' : 'rgba(138,21,21,0.1)'}`,
               filter: 'blur(0.3px)',
             }}
           >
@@ -1820,30 +1883,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
         </div>
       )}
 
-      {/* ── Decision feedback overlays ───────────────────────────────────────── */}
-      <AnimatePresence>
-        {decisionFeedback && !decisionFeedback.wasCorrect && (
-          <CitationModal
-            key="citation"
-            log={decisionFeedback}
-            onContinue={() => setDecisionFeedback(null)}
-          />
-        )}
-        {decisionFeedback && isMajorFraudLog(decisionFeedback) && (
-          <FraudEscalationModal
-            key="escalation"
-            log={decisionFeedback}
-            onContinue={() => setDecisionFeedback(null)}
-          />
-        )}
-        {decisionFeedback && decisionFeedback.wasCorrect && !isMajorFraudLog(decisionFeedback) && (
-          <CorrectFlash
-            key="flash"
-            log={decisionFeedback}
-            onDone={() => setDecisionFeedback(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Decision feedback auto-cleared (stamp on card replaces old overlays) */}
 
       {/* ── SKIP DAY BUTTON (testing) ────────────────────────────────────────── */}
       <button
