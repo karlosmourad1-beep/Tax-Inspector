@@ -119,7 +119,9 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 
 **Evening Screen:** Dark kitchen atmosphere with pixel art character portraits (imported via @assets/ alias), status labels, feed/medicine toggles, real-time cost animations, and auto-deducted rent/heat line. Summary bar shows fed count and savings.
 
-**Inspector's Toolkit:** Thin 56px toolbar strip on the far-right edge. 4 numbered inventory slots (hotkeys 1-4): Calculator (functional 4-function, draggable, keyboard routing blocked when active), UV Scanner (cursor AoE purple light, activates stamp reveals), Finance Ledger (shows Current Funds + Daily Goal in large clean font), Family Monitor (shows family names + color-coded status). Clean toolbar with no bottom stats section. Escape clears active tool.
+**Inspector's Toolkit:** Thin 56px toolbar strip on the far-right edge. 5 numbered inventory slots (hotkeys 1-5): Calculator (functional 4-function, draggable, keyboard routing blocked when active), UV Scanner (cursor AoE purple light, activates stamp reveals), Finance Ledger (shows Current Funds + Daily Goal in large clean font), Family Monitor (shows family names + color-coded status), FLAG Inspector (click fields to cross-reference and compare values across documents — green = match, red = mismatch). Clean toolbar with no bottom stats section. Escape clears active tool and selected stamp.
+
+**Stamp Mechanic:** Physical stamp tray replaces the old button bar at the bottom. APPROVE (green) and REJECT (red) stamps use cursor mode — click to select the stamp, then click anywhere on the desk/documents to apply. FREEZE (blue escalation) is a direct action button. Selecting a stamp shows a ghost cursor preview following the mouse. Stamp marks appear at the click position with spring animation. Stamps and tools are mutually exclusive — selecting one clears the other. Bribe logic preserved: can't reject when bribe taken, approve shows bribe pop, and clicking bribe stack won't accidentally trigger stamping.
 
 **Key files:**
 - `src/types/game.ts` — full type system (alignment, macro events, VIP data, leaked memos, endings, DEAD status)

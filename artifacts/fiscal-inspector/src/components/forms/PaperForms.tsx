@@ -122,7 +122,7 @@ function Field({ label, value, fieldKey, onFieldClick, highlightGroup }: FieldPr
 
   return (
     <div
-      onClick={(e) => { e.stopPropagation(); if (myGroup) onFieldClick(fieldKey, value); }}
+      onClick={() => { if (myGroup) onFieldClick(fieldKey, value); }}
       className={cn(
         "flex flex-col gap-1 px-3 py-3 rounded border-2 select-none transition-all duration-150",
         myGroup ? "cursor-pointer" : "cursor-default",

@@ -18,13 +18,14 @@ const C = {
   text:   '#f3dfb2',
 };
 
-export type ToolType = 'calculator' | 'uv' | 'ledger' | 'family' | null;
+export type ToolType = 'calculator' | 'uv' | 'ledger' | 'family' | 'flag' | null;
 
 const TOOLS: { id: ToolType; label: string; icon: string; key: string }[] = [
   { id: 'calculator', label: 'Calculator', icon: '🧮', key: '1' },
   { id: 'uv',         label: 'UV Scanner', icon: '🔦', key: '2' },
   { id: 'ledger',     label: 'Ledger',     icon: '💰', key: '3' },
   { id: 'family',     label: 'Family',     icon: '🏠', key: '4' },
+  { id: 'flag',       label: 'Flag / Inspect', icon: '🚩', key: '5' },
 ];
 
 const STATUS_COLOR: Record<string, string> = {

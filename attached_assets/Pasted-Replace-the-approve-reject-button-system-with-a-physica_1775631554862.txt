@@ -1,0 +1,114 @@
+Replace the approve/reject button system with a physical stamp mechanic while keeping and improving the existing Freeze system.
+
+Goal:
+Make decisions feel physical and deliberate, while preserving Freeze as a special high-impact action.
+
+--------------------------------
+STAMP SYSTEM (APPROVE / REJECT)
+--------------------------------
+
+1. Remove approve/reject buttons.
+
+2. Add two stamp tools:
+   - APPROVE stamp (green)
+   - REJECT stamp (red)
+
+3. Stamp behavior:
+   - Player clicks a stamp to select it
+   - Stamp attaches to cursor
+   - Player moves it over the document
+   - Player clicks to stamp
+
+4. On stamp:
+   - stamp is placed onto the document
+   - decision is finalized
+   - stamp leaves visible ink mark
+   - add small impact animation (press, slight shake, or sound)
+
+5. After stamping:
+   - disable further stamping
+   - proceed to next filing or result
+
+--------------------------------
+FLAG / INSPECTION TOOL (NEW)
+--------------------------------
+
+Add a flagging/inspection tool to help the player analyze documents.
+
+1. Add a "FLAG" or "INSPECT" tool:
+   - player can click fields to highlight or circle them
+
+2. Behavior:
+   - clicking a field highlights it
+   - matching fields can glow green
+   - mismatches can glow red
+
+3. This tool does NOT finalize decisions.
+It is only for investigation.
+
+--------------------------------
+FREEZE SYSTEM (KEEP AND IMPROVE)
+--------------------------------
+
+Do NOT remove the Freeze system.
+
+Redefine it as a special action:
+
+FREEZE = escalate serious fraud or suspicious activity
+
+1. Keep Freeze as a separate button or tool.
+
+2. Freeze should be used for:
+   - bribery cases (money found in envelope)
+   - identity fraud (same face, different name)
+   - major inconsistencies
+   - recurring suspicious characters
+
+3. When Freeze is used:
+   - trigger a distinct visual response (different from reject)
+   - show strong feedback (e.g. "CASE ESCALATED")
+   - apply larger rewards or penalties depending on correctness
+
+4. Freeze should feel:
+   - rare
+   - high-risk
+   - high-impact
+
+--------------------------------
+PLAYER FLOW
+--------------------------------
+
+1. Envelope appears
+2. Player opens envelope
+3. Documents appear
+4. Player inspects documents
+5. Player optionally uses FLAG tool
+6. Player chooses:
+   - APPROVE (stamp)
+   - REJECT (stamp)
+   - FREEZE (escalate)
+
+--------------------------------
+VISUAL DESIGN
+--------------------------------
+
+- Stamps should look physical and slightly rotated
+- Add impact animation when stamping
+- Use strong colors:
+  - green for approve
+  - red for reject
+- Flag tool should be subtle but visible
+- Freeze should have a unique visual style (not just a button)
+
+--------------------------------
+IMPORTANT RULES
+--------------------------------
+
+- Player must always manually stamp to approve/reject
+- Do not auto-complete decisions
+- Flag tool should not replace decision-making
+- Freeze must feel different from Reject
+- Keep interaction responsive and simple
+
+Goal:
+Create a satisfying, physical decision system while keeping Freeze as a meaningful, high-impact action instead of removing it.

@@ -13,7 +13,7 @@ import {
   type ToolType,
 } from '@/components/workspace/InspectorToolkit';
 import {
-  Clock, ShieldAlert, DollarSign, CheckCircle2, XCircle,
+  Clock, ShieldAlert, DollarSign,
   Snowflake, TrendingDown, FileText, AlertTriangle,
 } from 'lucide-react';
 
@@ -765,7 +765,7 @@ function BribeStack({ brideAmount, onClick }: { brideAmount: number; onClick: ()
       animate={{ opacity: 1, y: 0,   rotate: tilt }}
       exit={{ opacity: 0, scale: 0.78, transition: { duration: 0.16 } }}
       transition={{ duration: 0.4, type: 'spring', stiffness: 180, damping: 18 }}
-      onClick={() => { playRustle(); onClick(); }}
+      onClick={(e) => { e.stopPropagation(); playRustle(); onClick(); }}
       title={`$${brideAmount} cash — click to take · drag to move`}
       className="absolute select-none"
       style={{
@@ -813,6 +813,10 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const [showBribeConfirm, setShowBribeConfirm] = useState(false);
   const [bribePop, setBribePop]     = useState<number | null>(null);
   const [bribeConfiscated, setBribeConfiscated] = useState(false);
+  const [selectedStamp, setSelectedStamp] = useState<'APPROVE' | 'REJECT' | null>(null);
+  const [stampCursorPos, setStampCursorPos] = useState({ x: 0, y: 0 });
+  const [stampMark, setStampMark] = useState<{ type: 'APPROVE' | 'REJECT' | 'FREEZE'; x: number; y: number } | null>(null);
+  const deskAreaRef = useRef<HTMLDivElement>(null);
   const prevLogCount = useRef(0);
 
   const dailyGoal   = DAILY_GOALS[state.day] ?? 300;
@@ -822,16 +826,23 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (activeTool === 'calculator') {
-        if (e.key === 'Escape') setActiveTool(null);
+        if (e.key === 'Escape') {
+          setActiveTool(null);
+          setSelectedStamp(null);
+        }
         return;
       }
-      const toolKeys: Record<string, ToolType> = { '1': 'calculator', '2': 'uv', '3': 'ledger', '4': 'family' };
+      const toolKeys: Record<string, ToolType> = { '1': 'calculator', '2': 'uv', '3': 'ledger', '4': 'family', '5': 'flag' };
       const tool = toolKeys[e.key];
       if (tool) {
         e.preventDefault();
         setActiveTool(prev => prev === tool ? null : tool);
+        setSelectedStamp(null);
       }
-      if (e.key === 'Escape') setActiveTool(null);
+      if (e.key === 'Escape') {
+        setActiveTool(null);
+        setSelectedStamp(null);
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -865,6 +876,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     setShowBribeConfirm(false);
     setBribePop(null);
     setBribeConfiscated(false);
+    setSelectedStamp(null);
+    setStampMark(null);
   }, [state.currentClient?.id]);
 
   const handleEnvelopeClick = useCallback(() => {
@@ -878,15 +891,16 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     setDocZIndices(prev => ({ ...prev, [id]: topZIndex }));
   };
 
-  // Click a field → highlight matching values across all documents
+  // Click a field → highlight matching values (only when FLAG tool active)
   const handleFieldClick = useCallback((key: string, value: string) => {
+    if (activeTool !== 'flag') return;
     const suffix = key.split(':')[1];
     const group = fieldGroup(suffix);
     if (!group) return;
     setHighlightGroup(prev =>
       prev && prev.group === group && prev.value === value ? null : { group, value }
     );
-  }, []);
+  }, [activeTool]);
 
   const isDeskDisabled         = !!stampAction || !state.currentClient || envelopePhase !== 'open';
   const isRejectFreezeDisabled = isDeskDisabled || bribeTaken;
@@ -896,6 +910,61 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   // Bribe stack info
   const clientBribeAmount = state.currentClient?.brideAmount ?? 0;
   const showBribeStack    = !!state.currentClient?.hasBribe && envelopePhase === 'open' && !bribeTaken;
+
+  // Track mouse for stamp cursor
+  useEffect(() => {
+    if (!selectedStamp) return;
+    const handleMove = (e: MouseEvent) => {
+      setStampCursorPos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMove);
+    return () => window.removeEventListener('mousemove', handleMove);
+  }, [selectedStamp]);
+
+  // Click desk area with stamp selected → finalize decision
+  const handleDeskStamp = useCallback((e: React.MouseEvent) => {
+    if (!selectedStamp || !state.currentClient) return;
+    if (isDeskDisabled) return;
+    if (selectedStamp === 'REJECT' && bribeTaken) return;
+
+    if (selectedStamp === 'APPROVE' && bribeTaken) {
+      setBribePop(clientBribeAmount);
+      setTimeout(() => setBribePop(null), 1400);
+    }
+    if (showBribeStack && selectedStamp === 'REJECT') {
+      setBribeConfiscated(true);
+      setTimeout(() => setBribeConfiscated(false), 900);
+    }
+
+    const rect = deskAreaRef.current?.getBoundingClientRect();
+    if (rect) {
+      setStampMark({
+        type: selectedStamp,
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+      setTimeout(() => setStampMark(null), 1200);
+    }
+
+    processDecision(selectedStamp, 0);
+    setSelectedStamp(null);
+  }, [selectedStamp, state.currentClient, isDeskDisabled, bribeTaken, clientBribeAmount, showBribeStack, processDecision]);
+
+  // Handle FREEZE escalation (no stamp cursor, direct action)
+  const handleFreeze = useCallback(() => {
+    if (!state.currentClient || isDeskDisabled || bribeTaken) return;
+    if (showBribeStack) {
+      setBribeConfiscated(true);
+      setTimeout(() => setBribeConfiscated(false), 900);
+    }
+    const rect = deskAreaRef.current?.getBoundingClientRect();
+    if (rect) {
+      setStampMark({ type: 'FREEZE', x: rect.width / 2, y: rect.height / 2 });
+      setTimeout(() => setStampMark(null), 1200);
+    }
+    processDecision('FREEZE', 0);
+    setSelectedStamp(null);
+  }, [state.currentClient, isDeskDisabled, bribeTaken, showBribeStack, processDecision]);
   const canCallNext    = state.clientsQueue.length > 0;
   const isDayEnd       = state.status === 'DAY_END';
   const testBribeNext = () => {
@@ -1015,7 +1084,15 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
       <div className="flex-1 flex overflow-hidden min-h-0">
 
         {/* ── CENTER DESK (dominant) ─────────────────────────────────────────── */}
-        <div className="flex-1 relative overflow-hidden" style={{ background: C.desk }}>
+        <div
+          ref={deskAreaRef}
+          className="flex-1 relative overflow-hidden"
+          style={{
+            background: C.desk,
+            cursor: selectedStamp ? 'none' : undefined,
+          }}
+          onClick={selectedStamp ? handleDeskStamp : undefined}
+        >
 
           {/* Subtle grain / grid at very low opacity */}
           <div className="absolute inset-0 pointer-events-none" style={{
@@ -1029,12 +1106,53 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           {/* Stamp animation (centered over desk) */}
           <Stamp type={stampAction} />
 
-          {/* Highlight hint */}
-          {highlightGroup && hasClient && (
+          {/* Stamp mark left on document at click position */}
+          <AnimatePresence>
+            {stampMark && (
+              <motion.div
+                key="stamp-mark"
+                initial={{ scale: 2.5, opacity: 0, rotate: stampMark.type === 'APPROVE' ? -18 : stampMark.type === 'FREEZE' ? 0 : 12 }}
+                animate={{ scale: 1, opacity: 0.85, rotate: stampMark.type === 'APPROVE' ? -8 : stampMark.type === 'FREEZE' ? 0 : 6 }}
+                exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+                className="absolute z-[60] pointer-events-none"
+                style={{
+                  left: stampMark.x,
+                  top: stampMark.y,
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <div
+                  className="font-stamped text-3xl font-bold tracking-widest uppercase px-4 py-2 border-4 rounded-sm"
+                  style={{
+                    color: stampMark.type === 'APPROVE' ? '#2a8a44' : stampMark.type === 'FREEZE' ? '#4488cc' : '#aa2020',
+                    borderColor: stampMark.type === 'APPROVE' ? '#2a8a44' : stampMark.type === 'FREEZE' ? '#4488cc' : '#aa2020',
+                    background: stampMark.type === 'APPROVE' ? 'rgba(42,138,68,0.08)' : stampMark.type === 'FREEZE' ? 'rgba(68,136,204,0.08)' : 'rgba(170,32,32,0.08)',
+                    textShadow: '0 0 2px rgba(255,255,255,0.3)',
+                  }}
+                >
+                  {stampMark.type === 'APPROVE' ? 'APPROVED' : stampMark.type === 'FREEZE' ? 'FROZEN' : 'REJECTED'}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Highlight hint (flag tool) */}
+          {highlightGroup && hasClient && activeTool === 'flag' && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
               <div className="font-terminal text-[11px] px-3 py-1.5 rounded-full uppercase tracking-wider border"
                    style={{ background: 'rgba(14,10,8,0.85)', borderColor: `${C.accent}55`, color: C.accent }}>
                 Comparing <strong>{highlightGroup.group}</strong> — green = match · red = mismatch
+              </div>
+            </div>
+          )}
+
+          {/* Flag tool active hint */}
+          {activeTool === 'flag' && hasClient && !highlightGroup && envelopePhase === 'open' && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+              <div className="font-terminal text-[11px] px-3 py-1.5 rounded-full uppercase tracking-wider border"
+                   style={{ background: 'rgba(14,10,8,0.85)', borderColor: '#e0a11b55', color: '#e0a11b' }}>
+                🚩 Click any field to inspect & compare
               </div>
             </div>
           )}
@@ -1226,112 +1344,174 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
         />
       </div>
 
-      {/* ── BOTTOM ACTION BAR ────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center justify-center gap-3 z-40 px-6 py-4"
+      {/* ── BOTTOM STAMP TRAY ────────────────────────────────────────────────── */}
+      <div className="shrink-0 z-40 px-6 py-3"
            style={{ background: '#0d0906', borderTop: `1px solid ${C.border}` }}>
 
         {isDayEnd ? (
-          <button
-            onClick={endDay}
-            className="flex items-center gap-3 px-12 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest cursor-pointer transition-all"
-            style={{ background: C.panel, borderColor: C.accent, color: C.accent }}
-            onMouseOver={e => { e.currentTarget.style.background = 'rgba(224,161,27,0.12)'; }}
-            onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
-          >
-            {state.day >= 7 ? 'Submit Final Report →' : 'End Shift →'}
-          </button>
-        ) : hasClient ? (
-          <>
-            {/* Approve — pulses amber when bribe taken */}
+          <div className="flex items-center justify-center">
             <button
-              onClick={() => {
-                if (bribeTaken) {
-                  setBribePop(clientBribeAmount);
-                  setTimeout(() => setBribePop(null), 1400);
-                }
-                processDecision('APPROVE', 0);
-              }}
+              onClick={endDay}
+              className="flex items-center gap-3 px-12 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest cursor-pointer transition-all"
+              style={{ background: C.panel, borderColor: C.accent, color: C.accent }}
+              onMouseOver={e => { e.currentTarget.style.background = 'rgba(224,161,27,0.12)'; }}
+              onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
+            >
+              {state.day >= 7 ? 'Submit Final Report →' : 'End Shift →'}
+            </button>
+          </div>
+        ) : hasClient ? (
+          <div className="flex items-center justify-center gap-4">
+
+            {/* ── APPROVE STAMP ── */}
+            <button
+              onClick={() => { setSelectedStamp(prev => prev === 'APPROVE' ? null : 'APPROVE'); setActiveTool(null); }}
               disabled={isDeskDisabled}
               className={cn(
-                'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
+                'relative flex flex-col items-center gap-1 px-5 py-2.5 transition-all',
                 isDeskDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
                 bribeTaken && !isDeskDisabled && 'animate-pulse',
               )}
               style={{
-                background: C.panel,
-                borderColor: bribeTaken ? '#c8a800' : C.green,
-                color:       bribeTaken ? '#c8a800' : C.green,
+                background: selectedStamp === 'APPROVE'
+                  ? 'linear-gradient(180deg, #2a5a34 0%, #1a3a20 100%)'
+                  : 'linear-gradient(180deg, #3a2a18 0%, #241a0e 100%)',
+                border: selectedStamp === 'APPROVE' ? '2px solid #3fa35c' : '2px solid #5a4020',
+                borderRadius: 4,
+                boxShadow: selectedStamp === 'APPROVE'
+                  ? '0 4px 16px rgba(63,163,92,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
+                  : '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+                minWidth: 100,
               }}
-              onMouseOver={e => { if (!isDeskDisabled) e.currentTarget.style.background = bribeTaken ? 'rgba(200,168,0,0.12)' : 'rgba(63,163,92,0.15)'; }}
-              onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
             >
-              <CheckCircle2 className="w-5 h-5" />
-              {bribeTaken ? 'Approve (Bribed)' : 'Approve'}
+              <div className="font-terminal text-[7px] uppercase tracking-[0.3em]"
+                   style={{ color: selectedStamp === 'APPROVE' ? '#8fdb9f' : '#6a5a40' }}>
+                Stamp
+              </div>
+              <div className="font-stamped text-lg font-bold uppercase tracking-widest"
+                   style={{ color: selectedStamp === 'APPROVE' ? '#5fe07a' : bribeTaken ? '#c8a800' : '#3fa35c' }}>
+                {bribeTaken ? '✓ Approve' : 'Approve'}
+              </div>
+              <div className="w-full h-1 rounded-full mt-0.5"
+                   style={{ background: selectedStamp === 'APPROVE' ? '#3fa35c' : '#3a2a18' }} />
             </button>
 
-            {/* Reject — locked when bribe taken */}
+            {/* ── REJECT STAMP ── */}
             <button
-              onClick={() => {
-                if (showBribeStack) {
-                  setBribeConfiscated(true);
-                  setTimeout(() => setBribeConfiscated(false), 900);
-                }
-                processDecision('REJECT', 0);
-              }}
+              onClick={() => { setSelectedStamp(prev => prev === 'REJECT' ? null : 'REJECT'); setActiveTool(null); }}
               disabled={isRejectFreezeDisabled}
               className={cn(
-                'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
+                'relative flex flex-col items-center gap-1 px-5 py-2.5 transition-all',
                 isRejectFreezeDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
               )}
-              style={{ background: C.panel, borderColor: C.red, color: C.red }}
-              onMouseOver={e => { if (!isRejectFreezeDisabled) e.currentTarget.style.background = 'rgba(180,71,63,0.15)'; }}
-              onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
+              style={{
+                background: selectedStamp === 'REJECT'
+                  ? 'linear-gradient(180deg, #5a2020 0%, #3a1414 100%)'
+                  : 'linear-gradient(180deg, #3a2a18 0%, #241a0e 100%)',
+                border: selectedStamp === 'REJECT' ? '2px solid #b4473f' : '2px solid #5a4020',
+                borderRadius: 4,
+                boxShadow: selectedStamp === 'REJECT'
+                  ? '0 4px 16px rgba(180,71,63,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
+                  : '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+                minWidth: 100,
+              }}
             >
-              <XCircle className="w-5 h-5" />
-              Reject
+              <div className="font-terminal text-[7px] uppercase tracking-[0.3em]"
+                   style={{ color: selectedStamp === 'REJECT' ? '#f0a0a0' : '#6a5a40' }}>
+                Stamp
+              </div>
+              <div className="font-stamped text-lg font-bold uppercase tracking-widest"
+                   style={{ color: selectedStamp === 'REJECT' ? '#f06060' : '#b4473f' }}>
+                Reject
+              </div>
+              <div className="w-full h-1 rounded-full mt-0.5"
+                   style={{ background: selectedStamp === 'REJECT' ? '#b4473f' : '#3a2a18' }} />
             </button>
 
-            {/* Freeze — locked when bribe taken */}
+            {/* ── SEPARATOR ── */}
+            <div className="w-px h-12 mx-1" style={{ background: '#5a4020' }} />
+
+            {/* ── FREEZE ESCALATION ── */}
             <button
-              onClick={() => {
-                if (showBribeStack) {
-                  setBribeConfiscated(true);
-                  setTimeout(() => setBribeConfiscated(false), 900);
-                }
-                processDecision('FREEZE', 0);
-              }}
+              onClick={handleFreeze}
               disabled={isRejectFreezeDisabled}
               className={cn(
-                'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
+                'relative flex flex-col items-center gap-1 px-5 py-2.5 transition-all',
                 isContraband && !isRejectFreezeDisabled && 'animate-pulse',
                 isRejectFreezeDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
               )}
-              style={{ background: C.panel, borderColor: '#3a6abf', color: '#7ab0f0' }}
-              onMouseOver={e => { if (!isRejectFreezeDisabled) e.currentTarget.style.background = 'rgba(58,106,191,0.15)'; }}
+              style={{
+                background: 'linear-gradient(180deg, #1a2a40 0%, #0e1a2a 100%)',
+                border: '2px solid #3a6abf',
+                borderRadius: 4,
+                boxShadow: '0 4px 16px rgba(58,106,191,0.2), inset 0 1px 0 rgba(120,180,255,0.08)',
+                minWidth: 100,
+              }}
+            >
+              <div className="font-terminal text-[7px] uppercase tracking-[0.3em]" style={{ color: '#6090c0' }}>
+                Escalate
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Snowflake className="w-4 h-4" style={{ color: '#7ab0f0' }} />
+                <span className="font-stamped text-lg font-bold uppercase tracking-widest" style={{ color: '#7ab0f0' }}>
+                  Freeze
+                </span>
+                {isContraband && <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />}
+              </div>
+              <div className="w-full h-1 rounded-full mt-0.5" style={{ background: '#3a6abf' }} />
+            </button>
+
+            {/* Stamp selected hint */}
+            {selectedStamp && (
+              <div className="font-terminal text-[9px] uppercase tracking-widest ml-2"
+                   style={{ color: C.muted }}>
+                Click document to stamp
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center">
+            <button
+              onClick={canCallNext ? callNextClient : undefined}
+              disabled={!canCallNext}
+              className={cn(
+                'flex items-center gap-3 px-12 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
+                canCallNext ? 'cursor-pointer' : 'opacity-30 cursor-not-allowed',
+              )}
+              style={{ background: C.panel, borderColor: canCallNext ? C.accent : C.border, color: canCallNext ? C.accent : C.muted }}
+              onMouseOver={e => { if (canCallNext) e.currentTarget.style.background = 'rgba(224,161,27,0.12)'; }}
               onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
             >
-              <Snowflake className="w-5 h-5" />
-              Freeze
-              {isContraband && <AlertTriangle className="w-4 h-4 ml-1 text-yellow-400" />}
+              {canCallNext ? '▶  Pull from Pile' : 'Queue Empty — Shift Complete'}
             </button>
-          </>
-        ) : (
-          <button
-            onClick={canCallNext ? callNextClient : undefined}
-            disabled={!canCallNext}
-            className={cn(
-              'flex items-center gap-3 px-12 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
-              canCallNext ? 'cursor-pointer' : 'opacity-30 cursor-not-allowed',
-            )}
-            style={{ background: C.panel, borderColor: canCallNext ? C.accent : C.border, color: canCallNext ? C.accent : C.muted }}
-            onMouseOver={e => { if (canCallNext) e.currentTarget.style.background = 'rgba(224,161,27,0.12)'; }}
-            onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
-          >
-            {canCallNext ? '▶  Pull from Pile' : 'Queue Empty — Shift Complete'}
-          </button>
+          </div>
         )}
 
       </div>
+
+      {/* ── STAMP CURSOR (follows mouse when stamp selected) ──────────────── */}
+      {selectedStamp && hasClient && !isDeskDisabled && (
+        <div
+          className="fixed z-[500] pointer-events-none select-none"
+          style={{
+            left: stampCursorPos.x,
+            top: stampCursorPos.y,
+            transform: `translate(-50%, -50%) rotate(${selectedStamp === 'APPROVE' ? -8 : 6}deg)`,
+          }}
+        >
+          <div
+            className="font-stamped text-2xl font-bold tracking-widest uppercase px-3 py-1.5 border-[3px] rounded-sm"
+            style={{
+              color: selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.7)' : 'rgba(180,71,63,0.7)',
+              borderColor: selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.5)' : 'rgba(180,71,63,0.5)',
+              background: selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.06)' : 'rgba(180,71,63,0.06)',
+              textShadow: `0 0 8px ${selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.3)' : 'rgba(180,71,63,0.3)'}`,
+            }}
+          >
+            {selectedStamp === 'APPROVE' ? 'APPROVED' : 'REJECTED'}
+          </div>
+        </div>
+      )}
 
       {/* ── Decision feedback overlays ───────────────────────────────────────── */}
       <AnimatePresence>
