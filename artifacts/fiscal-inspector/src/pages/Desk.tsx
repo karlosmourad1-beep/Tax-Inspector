@@ -5,6 +5,7 @@ import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import stackBillImg  from '@assets/image_1775629923935.png';
 import singleBillImg from '@assets/image_1775629927550.png';
 import approveStampImg from '@assets/image_1775637026808.png';
+import rejectStampImg from '@assets/image_1775637405528.png';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
 import { DailyLog, Client } from '@/types/game';
@@ -1503,7 +1504,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                 </div>
               </motion.button>
 
-              {/* ── REJECT STAMP (CSS-drawn, matching style) ── */}
+              {/* ── REJECT STAMP (real image) ── */}
               <motion.button
                 onClick={() => !isRejectFreezeDisabled && pickUpStamp('REJECT')}
                 disabled={isRejectFreezeDisabled}
@@ -1518,49 +1519,19 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                   isRejectFreezeDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
                 )}
               >
-                <div style={{
-                  width: 130, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.8))',
-                  marginBottom: -4,
-                }}>
-                  <div style={{
-                    width: 48, height: 34,
-                    background: 'linear-gradient(180deg, #8a7e6e 0%, #6a5e4e 50%, #5a4e3e 100%)',
-                    borderRadius: '50% 50% 6px 6px',
-                    boxShadow: 'inset 0 4px 8px rgba(255,255,255,0.15), inset 0 -3px 6px rgba(0,0,0,0.3)',
-                  }} />
-                  <div style={{
-                    width: 28, height: 32,
-                    background: 'linear-gradient(180deg, #5a4e3e 0%, #3a3228 100%)',
-                    boxShadow: 'inset 3px 0 4px rgba(255,255,255,0.06), inset -3px 0 4px rgba(0,0,0,0.2)',
-                  }} />
-                  <div style={{
-                    width: 115, height: 48,
-                    background: 'linear-gradient(180deg, #8a2020 0%, #b4473f 30%, #8a2020 70%, #5a1515 100%)',
-                    borderRadius: '4px 4px 8px 8px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '2px solid #3a0e0e',
-                    boxShadow: 'inset 0 3px 6px rgba(255,255,255,0.1), inset 0 -4px 8px rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.5)',
-                  }}>
-                    <div style={{
-                      background: 'linear-gradient(180deg, #6a1818 0%, #4a1010 100%)',
-                      border: '1px solid #8a303088',
-                      borderRadius: 3,
-                      padding: '3px 14px',
-                    }}>
-                      <span className="font-stamped text-sm font-bold uppercase tracking-wider"
-                            style={{ color: '#f0a0a0dd', textShadow: '0 0 6px #b4473f66' }}>
-                        REJECTED
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{
-                    width: 120, height: 12,
-                    background: 'linear-gradient(180deg, #2a1a14 0%, #1a100c 100%)',
-                    borderRadius: '0 0 6px 6px',
-                    boxShadow: '0 3px 6px rgba(0,0,0,0.5)',
-                  }} />
-                </div>
+                <img
+                  src={rejectStampImg}
+                  draggable={false}
+                  alt="Reject Stamp"
+                  style={{
+                    width: 160,
+                    height: 'auto',
+                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.8))',
+                    imageRendering: 'auto',
+                    userSelect: 'none',
+                    marginBottom: -4,
+                  }}
+                />
                 <div className="font-terminal text-[8px] uppercase tracking-widest mt-0.5"
                      style={{ color: selectedStamp === 'REJECT' ? '#f06060' : '#6a5a40' }}>
                   Reject
