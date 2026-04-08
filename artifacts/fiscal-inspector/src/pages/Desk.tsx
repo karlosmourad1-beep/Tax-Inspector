@@ -1447,8 +1447,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
       </div>
 
       {/* ── BOTTOM STAMP TRAY ────────────────────────────────────────────────── */}
-      <div className="shrink-0 z-40 px-6 py-2"
-           style={{ background: '#0d0906', borderTop: `1px solid ${C.border}` }}>
+      <div className="shrink-0 z-40 px-6 py-3"
+           style={{ background: '#0d0906', borderTop: `1px solid ${C.border}`, overflow: 'visible', position: 'relative' }}>
 
         {isDayEnd ? (
           <div className="flex items-center justify-center">
@@ -1489,11 +1489,12 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                   draggable={false}
                   alt="Approve Stamp"
                   style={{
-                    width: 100,
+                    width: 160,
                     height: 'auto',
-                    filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.7))',
+                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.8))',
                     imageRendering: 'auto',
                     userSelect: 'none',
+                    marginBottom: -4,
                   }}
                 />
                 <div className="font-terminal text-[8px] uppercase tracking-widest mt-0.5"
@@ -1518,45 +1519,46 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                 )}
               >
                 <div style={{
-                  width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.7))',
+                  width: 130, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.8))',
+                  marginBottom: -4,
                 }}>
                   <div style={{
-                    width: 30, height: 22,
-                    background: 'linear-gradient(180deg, #7a7060 0%, #5a4e3e 100%)',
-                    borderRadius: '50% 50% 4px 4px',
-                    boxShadow: 'inset 0 3px 5px rgba(255,255,255,0.12), inset 0 -2px 4px rgba(0,0,0,0.3)',
+                    width: 48, height: 34,
+                    background: 'linear-gradient(180deg, #8a7e6e 0%, #6a5e4e 50%, #5a4e3e 100%)',
+                    borderRadius: '50% 50% 6px 6px',
+                    boxShadow: 'inset 0 4px 8px rgba(255,255,255,0.15), inset 0 -3px 6px rgba(0,0,0,0.3)',
                   }} />
                   <div style={{
-                    width: 18, height: 20,
+                    width: 28, height: 32,
                     background: 'linear-gradient(180deg, #5a4e3e 0%, #3a3228 100%)',
-                    boxShadow: 'inset 2px 0 3px rgba(255,255,255,0.06), inset -2px 0 3px rgba(0,0,0,0.15)',
+                    boxShadow: 'inset 3px 0 4px rgba(255,255,255,0.06), inset -3px 0 4px rgba(0,0,0,0.2)',
                   }} />
                   <div style={{
-                    width: 72, height: 32,
+                    width: 115, height: 48,
                     background: 'linear-gradient(180deg, #8a2020 0%, #b4473f 30%, #8a2020 70%, #5a1515 100%)',
-                    borderRadius: '3px 3px 6px 6px',
+                    borderRadius: '4px 4px 8px 8px',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '1px solid #3a0e0e',
-                    boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -3px 6px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.5)',
+                    border: '2px solid #3a0e0e',
+                    boxShadow: 'inset 0 3px 6px rgba(255,255,255,0.1), inset 0 -4px 8px rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.5)',
                   }}>
                     <div style={{
                       background: 'linear-gradient(180deg, #6a1818 0%, #4a1010 100%)',
                       border: '1px solid #8a303088',
-                      borderRadius: 2,
-                      padding: '2px 10px',
+                      borderRadius: 3,
+                      padding: '3px 14px',
                     }}>
-                      <span className="font-stamped text-[11px] font-bold uppercase tracking-wider"
-                            style={{ color: '#f0a0a0dd', textShadow: '0 0 4px #b4473f66' }}>
+                      <span className="font-stamped text-sm font-bold uppercase tracking-wider"
+                            style={{ color: '#f0a0a0dd', textShadow: '0 0 6px #b4473f66' }}>
                         REJECTED
                       </span>
                     </div>
                   </div>
                   <div style={{
-                    width: 78, height: 8,
+                    width: 120, height: 12,
                     background: 'linear-gradient(180deg, #2a1a14 0%, #1a100c 100%)',
-                    borderRadius: '0 0 4px 4px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                    borderRadius: '0 0 6px 6px',
+                    boxShadow: '0 3px 6px rgba(0,0,0,0.5)',
                   }} />
                 </div>
                 <div className="font-terminal text-[8px] uppercase tracking-widest mt-0.5"
@@ -1580,47 +1582,48 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                 )}
               >
                 <div style={{
-                  width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.7))',
+                  width: 130, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.8))',
+                  marginBottom: -4,
                 }}>
                   <div style={{
-                    width: 30, height: 22,
-                    background: 'linear-gradient(180deg, #6a7a8a 0%, #4a5a6a 100%)',
-                    borderRadius: '50% 50% 4px 4px',
-                    boxShadow: 'inset 0 3px 5px rgba(255,255,255,0.12), inset 0 -2px 4px rgba(0,0,0,0.3)',
+                    width: 48, height: 34,
+                    background: 'linear-gradient(180deg, #7a8a9a 0%, #5a6a7a 50%, #4a5a6a 100%)',
+                    borderRadius: '50% 50% 6px 6px',
+                    boxShadow: 'inset 0 4px 8px rgba(255,255,255,0.15), inset 0 -3px 6px rgba(0,0,0,0.3)',
                   }} />
                   <div style={{
-                    width: 18, height: 20,
+                    width: 28, height: 32,
                     background: 'linear-gradient(180deg, #4a5a6a 0%, #2a3a4a 100%)',
-                    boxShadow: 'inset 2px 0 3px rgba(255,255,255,0.06), inset -2px 0 3px rgba(0,0,0,0.15)',
+                    boxShadow: 'inset 3px 0 4px rgba(255,255,255,0.06), inset -3px 0 4px rgba(0,0,0,0.2)',
                   }} />
                   <div style={{
-                    width: 72, height: 32,
+                    width: 115, height: 48,
                     background: 'linear-gradient(180deg, #1a3a6a 0%, #3a6abf 30%, #1a3a6a 70%, #0e1a3a 100%)',
-                    borderRadius: '3px 3px 6px 6px',
+                    borderRadius: '4px 4px 8px 8px',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '1px solid #0a1a3a',
-                    boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -3px 6px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.5)',
+                    border: '2px solid #0a1a3a',
+                    boxShadow: 'inset 0 3px 6px rgba(255,255,255,0.1), inset 0 -4px 8px rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.5)',
                   }}>
                     <div style={{
                       background: 'linear-gradient(180deg, #1a2a4a 0%, #0e1a2a 100%)',
                       border: '1px solid #3a6abf88',
-                      borderRadius: 2,
-                      padding: '2px 8px',
-                      display: 'flex', alignItems: 'center', gap: 4,
+                      borderRadius: 3,
+                      padding: '3px 10px',
+                      display: 'flex', alignItems: 'center', gap: 5,
                     }}>
-                      <Snowflake className="w-3 h-3" style={{ color: '#7ab0f0cc' }} />
-                      <span className="font-stamped text-[11px] font-bold uppercase tracking-wider"
-                            style={{ color: '#7ab0f0dd', textShadow: '0 0 4px #3a6abf66' }}>
+                      <Snowflake className="w-3.5 h-3.5" style={{ color: '#7ab0f0cc' }} />
+                      <span className="font-stamped text-sm font-bold uppercase tracking-wider"
+                            style={{ color: '#7ab0f0dd', textShadow: '0 0 6px #3a6abf66' }}>
                         FREEZE
                       </span>
                     </div>
                   </div>
                   <div style={{
-                    width: 78, height: 8,
+                    width: 120, height: 12,
                     background: 'linear-gradient(180deg, #1a2030 0%, #0e1420 100%)',
-                    borderRadius: '0 0 4px 4px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                    borderRadius: '0 0 6px 6px',
+                    boxShadow: '0 3px 6px rgba(0,0,0,0.5)',
                   }} />
                 </div>
                 <div className="font-terminal text-[8px] uppercase tracking-widest mt-0.5"
