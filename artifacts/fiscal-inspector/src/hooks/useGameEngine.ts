@@ -86,6 +86,7 @@ function buildInitialRecurringChars(): Record<RecurringCharId, RecurringCharStat
 
 export function useGameEngine() {
   const [forcedBribeNextClient, setForcedBribeNextClient] = useState(false);
+  const forcedBribeRef = useRef(false); // ref for synchronous reads inside callNextClient
   const [state, setState] = useState<GameState>({
     status: 'TITLE',
     day: 1,
@@ -201,12 +202,22 @@ export function useGameEngine() {
   }, [forcedBribeNextClient]);
 
   const callNextClient = useCallback(() => {
+    // Read the ref synchronously — safe even when called in the same tick as forceNextBribeCase()
+    const injectBribe = forcedBribeRef.current;
+    if (injectBribe) {
+      forcedBribeRef.current = false;
+      setForcedBribeNextClient(false);
+    }
     setState(prev => {
       if (prev.clientsQueue.length === 0) {
         return { ...prev, status: 'DAY_END', currentClient: null, activeMemo: null };
       }
       const nextQueue = [...prev.clientsQueue];
-      const nextClient = nextQueue.shift() || null;
+      let nextClient = nextQueue.shift() || null;
+      // Inject bribe into the client if the test-bribe flag was set
+      if (nextClient && injectBribe) {
+        nextClient = { ...nextClient, hasBribe: true, brideAmount: 50 };
+      }
       return {
         ...prev,
         clientsQueue: nextQueue,
@@ -522,6 +533,7 @@ export function useGameEngine() {
   }, []);
 
   const forceNextBribeCase = useCallback(() => {
+    forcedBribeRef.current = true; // set ref immediately for synchronous reads
     setForcedBribeNextClient(true);
   }, []);
 
