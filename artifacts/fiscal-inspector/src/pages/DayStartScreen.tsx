@@ -582,59 +582,333 @@ export default function DayStartScreen({ engine }: { engine: ReturnType<typeof u
         )}
 
         {/* ════════════════════════════════════════════════════════════════════
-            DAY START SCREEN (simple, clean)
+            DAY START — MINISTRY CHECK-IN DOCUMENT
             ════════════════════════════════════════════════════════════════════ */}
         {phase === 'day-screen' && (
           <motion.div
             key="day-screen"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="flex flex-col items-center gap-6 text-center"
-            style={{ maxWidth: 460, color: '#f3dfb2' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(145deg, #2a2826 0%, #1e1c1a 35%, #161412 100%)',
+            }}
           >
-            <div style={{ color: '#7a5520', fontSize: 12, letterSpacing: '0.52em', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase' }}>
-              DAY {state.day} OF 7
-            </div>
+            {/* concrete wall texture */}
+            <div className="absolute inset-0 pointer-events-none" style={{
+              backgroundImage: NOISE_URL,
+              backgroundSize: '220px 220px',
+              opacity: 0.18,
+              mixBlendMode: 'overlay',
+            }} />
+            <div className="absolute inset-0 pointer-events-none" style={{
+              background: 'radial-gradient(ellipse at 50% 30%, rgba(60,50,38,0.25) 0%, transparent 70%)',
+            }} />
 
-            <div style={{ fontSize: 56, fontWeight: 900, letterSpacing: '0.06em', color: '#f3dfb2', fontFamily: 'Georgia, serif', lineHeight: 1 }}>
-              TAXES<br/>PLEASE
-            </div>
-
-            {event && meta && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.12 }}
-                style={{ border: `2px solid ${dayColor}55`, background: `${dayColor}12`, padding: '18px 32px', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}
-              >
-                <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.14em', color: dayColor, fontFamily: 'monospace', textTransform: 'uppercase' }}>
-                  {displayMeta.headline}
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#f3dfb2', fontFamily: 'monospace', letterSpacing: '0.08em' }}>
-                  {displayMeta.effect.replace(/⚠\s+/g, '').replace(/\s+⚠/g, '')}
-                </div>
-                {event.ruleAddendum && (
-                  <div style={{ fontSize: 11, color: '#a08060', fontFamily: 'monospace', maxWidth: 340, lineHeight: 1.55 }}>
-                    {event.ruleAddendum}
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            <motion.button
-              onClick={startDay}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              style={{
-                padding: '18px 52px', fontFamily: 'monospace', fontSize: 14,
-                fontWeight: 700, letterSpacing: '0.32em', textTransform: 'uppercase',
-                border: `2px solid ${dayColor}`, background: `${dayColor}12`,
-                color: dayColor, cursor: 'pointer',
-              }}
+            <motion.div
+              initial={{ y: 20, opacity: 0, scale: 0.97 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="relative z-10 flex flex-col items-center"
+              style={{ width: 'min(520px, 92vw)' }}
             >
-              Start Shift →
-            </motion.button>
+              {/* ── MINISTRY CREST ── */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="flex flex-col items-center mb-5"
+              >
+                <svg viewBox="0 0 80 72" width="68" height="62" className="mb-2">
+                  {/* shield body */}
+                  <path d="M40,2 L72,16 L72,38 Q72,60 40,70 Q8,60 8,38 L8,16 Z"
+                    fill="none" stroke="#8a7040" strokeWidth="2.5" />
+                  <path d="M40,6 L68,18 L68,37 Q68,57 40,66 Q12,57 12,37 L12,18 Z"
+                    fill="rgba(138,112,64,0.08)" stroke="#6a5430" strokeWidth="1" />
+                  {/* eagle silhouette */}
+                  <path d="M40,18 L32,28 L22,26 L28,34 L24,42 L34,38 L40,46 L46,38 L56,42 L52,34 L58,26 L48,28 Z"
+                    fill="#8a7040" opacity="0.85" />
+                  {/* center dot */}
+                  <circle cx="40" cy="34" r="3" fill="#c9a84c" opacity="0.7" />
+                  {/* horizontal bars */}
+                  <line x1="18" y1="52" x2="62" y2="52" stroke="#6a5430" strokeWidth="1" opacity="0.6" />
+                  <line x1="22" y1="56" x2="58" y2="56" stroke="#6a5430" strokeWidth="0.8" opacity="0.4" />
+                </svg>
+                <div style={{
+                  fontFamily: '"Courier Prime", monospace',
+                  fontSize: 10,
+                  letterSpacing: '0.45em',
+                  color: '#7a6538',
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                }}>
+                  Ministry of Revenue
+                </div>
+                <div style={{
+                  fontFamily: '"VT323", monospace',
+                  fontSize: 11,
+                  letterSpacing: '0.55em',
+                  color: '#4a3c24',
+                  textTransform: 'uppercase',
+                  marginTop: 3,
+                }}>
+                  Efficiency Is Our Currency
+                </div>
+              </motion.div>
+
+              {/* ── SHIFT CARD (paper) ── */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.45 }}
+                className="relative w-full"
+                style={{
+                  background: 'linear-gradient(160deg, #e8e2d4 0%, #ddd6c4 50%, #d6ceba 100%)',
+                  border: '1.5px solid #a0906c',
+                  boxShadow: '0 16px 48px rgba(0,0,0,0.7), 0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)',
+                  padding: '28px 32px 24px',
+                }}
+              >
+                {/* paper texture lines */}
+                <div className="absolute inset-0 pointer-events-none" style={{
+                  backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 26px, rgba(139,115,85,0.08) 26px, rgba(139,115,85,0.08) 27px)',
+                }} />
+                {/* subtle grain */}
+                <div className="absolute inset-0 pointer-events-none" style={{
+                  backgroundImage: NOISE_URL,
+                  backgroundSize: '160px 160px',
+                  opacity: 0.08,
+                  mixBlendMode: 'multiply',
+                }} />
+
+                {/* card header line */}
+                <div className="relative z-10" style={{
+                  borderBottom: '2px solid #8b7355',
+                  paddingBottom: 10,
+                  marginBottom: 18,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-end',
+                }}>
+                  <div>
+                    <div style={{
+                      fontFamily: '"Courier Prime", monospace',
+                      fontSize: 9,
+                      letterSpacing: '0.3em',
+                      color: '#6a5a40',
+                      textTransform: 'uppercase',
+                      marginBottom: 2,
+                    }}>
+                      District 7 — Processing Bureau
+                    </div>
+                    <div style={{
+                      fontFamily: '"Courier Prime", monospace',
+                      fontSize: 11,
+                      letterSpacing: '0.2em',
+                      color: '#4a3c28',
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                    }}>
+                      Daily Attendance Check-In
+                    </div>
+                  </div>
+                  <div style={{
+                    fontFamily: '"Courier Prime", monospace',
+                    fontSize: 9,
+                    color: '#8b7355',
+                    textAlign: 'right',
+                    lineHeight: 1.5,
+                  }}>
+                    Form MR-7<br />Rev. 04.15
+                  </div>
+                </div>
+
+                {/* DAY X OF 7 — typewriter style */}
+                <div className="relative z-10 text-center" style={{ marginBottom: 16 }}>
+                  <div style={{
+                    fontFamily: '"Courier Prime", monospace',
+                    fontSize: 22,
+                    fontWeight: 700,
+                    letterSpacing: '0.35em',
+                    color: '#2a2018',
+                    textTransform: 'uppercase',
+                  }}>
+                    Day {state.day} of 7
+                  </div>
+                  <div style={{
+                    width: '60%',
+                    margin: '6px auto 0',
+                    borderBottom: '1px dashed #a0906c',
+                  }} />
+                </div>
+
+                {/* TAXES PLEASE — ink-bleed effect */}
+                <div className="relative z-10 text-center" style={{ marginBottom: 14 }}>
+                  <div style={{
+                    fontFamily: 'Georgia, "Times New Roman", serif',
+                    fontSize: 52,
+                    fontWeight: 900,
+                    letterSpacing: '0.06em',
+                    color: '#1a1208',
+                    lineHeight: 1,
+                    textShadow: '1px 0 0 rgba(26,18,8,0.3), -1px 0 0 rgba(26,18,8,0.15), 0 1px 0 rgba(26,18,8,0.2), 0 0 3px rgba(26,18,8,0.12)',
+                    filter: 'url(#inkBleed)',
+                  }}>
+                    TAXES<br />PLEASE
+                  </div>
+                  {/* SVG filter for ink bleed */}
+                  <svg width="0" height="0" style={{ position: 'absolute' }}>
+                    <defs>
+                      <filter id="inkBleed">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise" />
+                        <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G" />
+                      </filter>
+                    </defs>
+                  </svg>
+                </div>
+
+                {/* Event notice (if any) */}
+                {event && meta && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="relative z-10"
+                    style={{
+                      border: `1.5px solid ${dayColor}66`,
+                      background: `${dayColor}0a`,
+                      padding: '12px 20px',
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div style={{
+                      fontFamily: '"Courier Prime", monospace',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      letterSpacing: '0.12em',
+                      color: dayColor,
+                      textTransform: 'uppercase',
+                      textAlign: 'center',
+                      marginBottom: 4,
+                    }}>
+                      {displayMeta.headline}
+                    </div>
+                    <div style={{
+                      fontFamily: '"Courier Prime", monospace',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#3a3028',
+                      textAlign: 'center',
+                      letterSpacing: '0.06em',
+                    }}>
+                      {displayMeta.effect.replace(/⚠\s+/g, '').replace(/\s+⚠/g, '')}
+                    </div>
+                    {event.ruleAddendum && (
+                      <div style={{
+                        fontFamily: '"Courier Prime", monospace',
+                        fontSize: 9.5,
+                        color: '#6a5a40',
+                        textAlign: 'center',
+                        marginTop: 4,
+                        lineHeight: 1.5,
+                      }}>
+                        {event.ruleAddendum}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* card footer */}
+                <div className="relative z-10" style={{
+                  borderTop: '1px solid #b0a080',
+                  paddingTop: 8,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <div style={{
+                    fontFamily: '"Courier Prime", monospace',
+                    fontSize: 8,
+                    color: '#8b7355',
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                  }}>
+                    Inspector Copy — Do Not Duplicate
+                  </div>
+                  <div style={{
+                    fontFamily: '"Courier Prime", monospace',
+                    fontSize: 8,
+                    color: '#8b7355',
+                  }}>
+                    MR-7/{state.day.toString().padStart(2, '0')}
+                  </div>
+                </div>
+
+                {/* ── RED "ENTRY PERMITTED" STAMP ── */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 1.3, rotate: -25 }}
+                  animate={{ opacity: 0.85, scale: 1, rotate: -15 }}
+                  transition={{ delay: 0.6, duration: 0.35, type: 'spring', stiffness: 200, damping: 14 }}
+                  className="absolute pointer-events-none select-none"
+                  style={{
+                    top: '20%',
+                    right: '6%',
+                    zIndex: 20,
+                  }}
+                >
+                  <div style={{
+                    border: '4px solid #9b2020',
+                    borderRadius: 4,
+                    padding: '8px 18px',
+                    fontFamily: '"Courier Prime", monospace',
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: '#9b2020',
+                    letterSpacing: '0.25em',
+                    textTransform: 'uppercase',
+                    lineHeight: 1.3,
+                    textAlign: 'center',
+                    background: 'rgba(155,32,32,0.04)',
+                    boxShadow: 'inset 0 0 12px rgba(155,32,32,0.08)',
+                  }}>
+                    ENTRY<br />PERMITTED
+                  </div>
+                </motion.div>
+              </motion.div>
+
+              {/* ── STAMP BUTTON (bottom-right) ── */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7, duration: 0.4 }}
+                className="w-full flex justify-end mt-6"
+              >
+                <motion.button
+                  onClick={startDay}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.96, y: 2 }}
+                  style={{
+                    fontFamily: '"Courier Prime", monospace',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    letterSpacing: '0.28em',
+                    textTransform: 'uppercase',
+                    color: '#d6ceba',
+                    cursor: 'pointer',
+                    padding: '14px 36px',
+                    background: 'linear-gradient(180deg, #5a4428 0%, #3a2a16 60%, #2a1c0e 100%)',
+                    border: '2px solid #7a6238',
+                    borderRadius: 3,
+                    boxShadow: '0 6px 18px rgba(0,0,0,0.6), 0 2px 0 #8a7040, inset 0 1px 0 rgba(255,255,255,0.08)',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                    position: 'relative',
+                  }}
+                >
+                  <span style={{ position: 'relative', zIndex: 1 }}>Start Shift →</span>
+                </motion.button>
+              </motion.div>
+            </motion.div>
           </motion.div>
         )}
 

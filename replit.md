@@ -109,7 +109,9 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 - **12 narrative endings** determined by final balance, citations, dominant alignment, and world-state flags
 - **Hidden notes** tucked inside VIP documents, toggled via eye icon in client booth
 
-**Intro Sequence:** Two phases: typewriter text on black screen → 4-page Inspector Handbook (Verification, Math Check, UV Stamp, Freeze Button). Uses Web Audio API for typewriter clicks and page-turn sounds. No footsteps. After last handbook page, transitions directly to desk with no intermediate button. State managed locally so the game engine stays idle until handbook is completed.
+**Intro Sequence:** Two phases: typewriter text on black screen → 4-page Inspector Handbook (Verification, Math Check, UV Stamp, Freeze Button). Uses Web Audio API for typewriter clicks and page-turn sounds. Clicking anywhere on the typewriter screen skips the animation instantly. Handbook has a "Skip Handbook" button. After last handbook page (or skip), transitions to the Day Start screen.
+
+**Day Start Screen (DayStartScreen.tsx):** Ministry Check-in Document aesthetic. Dark concrete-textured background (gradient + noise overlays). Ministry of Revenue shield crest SVG at top center with eagle silhouette. "Efficiency Is Our Currency" slogan. Paper card with parchment gradient containing "Day X of 7" (Courier Prime typewriter), "TAXES PLEASE" (Georgia serif with SVG ink-bleed displacement filter). Red "ENTRY PERMITTED" stamp tilted -15° overlapping card. Wooden stamp-style "Start Shift" button bottom-right. Event notices (market shock, hyperinflation, audit sweep) shown inside the card when active. Newspaper front page phase plays first on event days (4.2s auto-advance or click).
 
 **UV Stamp Mechanic:** Every document has a visible "Official M.O.F. Stamp" at the bottom. When the UV Scanner tool (key 2) is active and the player hovers over the stamp, it reveals hidden text: "VALID" (green) for clean documents, "FAKE" (red) for fraudulent ones. Fraudulent documents revealed as FAKE must be processed with FREEZE.
 
