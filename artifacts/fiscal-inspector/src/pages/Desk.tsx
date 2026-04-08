@@ -777,50 +777,74 @@ function BribeConfirmDialog({ total, onAccept, onDecline }: { total: number; onA
   );
 }
 
-// ─── Bribe bill stack on desk ─────────────────────────────────────────────────
+// ─── Bribe bill stack on desk — draggable, fanned portrait orientation ────────
+const FAN_ROTS  = [-9, -4, 0, 5, 10];
+const FAN_OFFX  = [-10, -5, 0, 5, 10];
+
 function BribeStack({ billCount, total, onClick }: { billCount: number; total: number; onClick: () => void }) {
+  const [grabbed, setGrabbed] = useState(false);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      drag
+      dragMomentum={false}
+      dragElastic={0.08}
+      whileDrag={{ scale: 1.06 }}
+      onDragStart={() => setGrabbed(true)}
+      onDragEnd={()   => setGrabbed(false)}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: 0.35, type: 'spring', stiffness: 200, damping: 22 }}
-      className="absolute z-40 flex flex-col items-center"
-      style={{ bottom: 28, right: 48 }}
+      exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.22 } }}
+      transition={{ duration: 0.38, type: 'spring', stiffness: 190, damping: 20 }}
+      className="absolute z-40 flex flex-col items-center select-none"
+      style={{
+        bottom: 40,
+        right: 60,
+        cursor: grabbed ? 'grabbing' : 'grab',
+        touchAction: 'none',
+      }}
     >
-      {/* Stack of bills */}
+      {/* Fanned bill pile — portrait (50×100) each */}
       <div
-        className="relative cursor-pointer group"
+        className="relative"
+        style={{ width: 90, height: 130 }}
         onClick={onClick}
-        style={{ width: 50, height: 100 + billCount * 5 }}
-        title={`Take bribe — $${total}`}
+        title={`$${total} cash — click to take`}
       >
-        {Array.from({ length: billCount }).reverse().map((_, i) => {
-          const zi = billCount - 1 - i;
+        {Array.from({ length: billCount }).map((_, i) => {
+          const rot = FAN_ROTS[i] ?? 0;
+          const ox  = FAN_OFFX[i] ?? 0;
           return (
             <div
-              key={zi}
-              className="absolute transition-transform group-hover:scale-105"
+              key={i}
+              className="absolute"
               style={{
-                bottom: zi * 5,
-                left: zi * 1,
-                transform: `rotate(${(zi - Math.floor(billCount / 2)) * 2.5}deg)`,
+                left: `calc(50% + ${ox}px)`,
+                top: 12,
+                transform: `translateX(-50%) rotate(${rot}deg)`,
                 transformOrigin: 'bottom center',
-                zIndex: zi,
-                filter: zi === billCount - 1 ? 'none' : 'brightness(0.75)',
+                zIndex: billCount - i,
+                filter: i < billCount - 1 ? 'brightness(0.7) contrast(1.1)' : 'none',
               }}
             >
-              <BankNoteSVG index={zi} />
+              <BankNoteSVG index={i} />
             </div>
           );
         })}
       </div>
+
       {/* Label */}
-      <div className="mt-1 font-terminal text-xs font-bold text-center" style={{ color: '#6a9020', textShadow: '0 0 8px rgba(90,130,20,0.5)' }}>
+      <div
+        className="mt-1 font-terminal text-[11px] font-bold tracking-wider text-center pointer-events-none"
+        style={{ color: '#6aa020', textShadow: '0 0 10px rgba(90,140,20,0.55)' }}
+      >
         ${total} CASH
       </div>
-      <div className="font-terminal text-[9px] uppercase tracking-widest" style={{ color: '#4a6a18', opacity: 0.7 }}>
-        Click to take
+      <div
+        className="font-terminal text-[9px] uppercase tracking-widest pointer-events-none"
+        style={{ color: '#4a6a18', opacity: 0.75 }}
+      >
+        click to take · drag to move
       </div>
     </motion.div>
   );
@@ -838,6 +862,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const [activeTool, setActiveTool] = useState<ToolType>(null);
   const [bribeTaken, setBribeTaken] = useState(false);
   const [showBribeConfirm, setShowBribeConfirm] = useState(false);
+  const [bribePop, setBribePop]     = useState<number | null>(null);
+  const [bribeConfiscated, setBribeConfiscated] = useState(false);
   const prevLogCount = useRef(0);
 
   const dailyGoal   = DAILY_GOALS[state.day] ?? 300;
@@ -888,6 +914,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     }
     setBribeTaken(false);
     setShowBribeConfirm(false);
+    setBribePop(null);
+    setBribeConfiscated(false);
   }, [state.currentClient?.id]);
 
   const handleEnvelopeClick = useCallback(() => {
@@ -1123,6 +1151,49 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             )}
           </AnimatePresence>
 
+          {/* ── Green money pop on bribed Approve ─────────────────────────────── */}
+          <AnimatePresence>
+            {bribePop !== null && (
+              <motion.div
+                key="bribe-pop"
+                initial={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 0, y: -72 }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+                className="absolute z-[300] pointer-events-none font-terminal font-bold text-3xl"
+                style={{
+                  bottom: 90,
+                  right: 80,
+                  color: '#3fa35c',
+                  textShadow: '0 0 20px rgba(63,163,92,0.9), 0 0 6px rgba(63,163,92,0.6)',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                +${bribePop}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Confiscated flash on Reject/Freeze with bribe on desk ─────────── */}
+          <AnimatePresence>
+            {bribeConfiscated && (
+              <motion.div
+                key="confiscated"
+                initial={{ opacity: 1, scale: 0.85 }}
+                animate={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.75, ease: 'easeOut' }}
+                className="absolute z-[300] pointer-events-none font-terminal font-bold text-base uppercase tracking-[0.3em]"
+                style={{
+                  bottom: 90,
+                  right: 32,
+                  color: '#b44740',
+                  textShadow: '0 0 12px rgba(180,71,64,0.8)',
+                }}
+              >
+                ✗ CONFISCATED
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* ── Bribe confirm dialog ──────────────────────────────────────────── */}
           <AnimatePresence>
             {showBribeConfirm && (
@@ -1221,7 +1292,13 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           <>
             {/* Approve — pulses amber when bribe taken */}
             <button
-              onClick={() => processDecision('APPROVE', 0)}
+              onClick={() => {
+                if (bribeTaken) {
+                  setBribePop(clientBribeAmount);
+                  setTimeout(() => setBribePop(null), 1400);
+                }
+                processDecision('APPROVE', 0);
+              }}
               disabled={isDeskDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
@@ -1242,7 +1319,13 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
             {/* Reject — locked when bribe taken */}
             <button
-              onClick={() => processDecision('REJECT', 0)}
+              onClick={() => {
+                if (showBribeStack) {
+                  setBribeConfiscated(true);
+                  setTimeout(() => setBribeConfiscated(false), 900);
+                }
+                processDecision('REJECT', 0);
+              }}
               disabled={isRejectFreezeDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
@@ -1258,7 +1341,13 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
             {/* Freeze — locked when bribe taken */}
             <button
-              onClick={() => processDecision('FREEZE', 0)}
+              onClick={() => {
+                if (showBribeStack) {
+                  setBribeConfiscated(true);
+                  setTimeout(() => setBribeConfiscated(false), 900);
+                }
+                processDecision('FREEZE', 0);
+              }}
               disabled={isRejectFreezeDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
