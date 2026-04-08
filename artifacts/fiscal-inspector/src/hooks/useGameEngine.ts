@@ -237,7 +237,9 @@ export function useGameEngine() {
         const client  = prev.currentClient;
         const event   = prev.activeEvent;
         const wageMult = event?.wageMultiplier ?? 1.0;
-        const isCorrect = client.expectedDecision === decision;
+        const isCorrect =
+          client.expectedDecision === decision ||
+          (decision === 'FREEZE' && (client.isFraud || client.isContraband));
 
         let baseEarnings   = 0;
         let citationsAdded = 0;
