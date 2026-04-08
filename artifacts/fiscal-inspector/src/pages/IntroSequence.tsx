@@ -3,21 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const INTRO_TEXT = "District 7.  April 15th.  Tax Season begins.";
 
-const BRIEFING_STEPS = [
-  {
-    label: 'CROSS-REFERENCE',
-    body: 'Check the Citizen ID against the W-2 and Form 1040.',
-  },
-  {
-    label: 'LOOK FOR ERRORS',
-    body: 'Ensure Names, SSNs, and Wages match across all documents.',
-  },
-  {
-    label: 'DECIDE',
-    body: 'Use the buttons at the bottom to Approve, Reject, or Freeze the file.',
-  },
-];
-
 function getOrResumeAudioCtx(ref: React.MutableRefObject<AudioContext | null>): AudioContext | null {
   try {
     if (!ref.current) {
@@ -56,44 +41,138 @@ function playTypewriterClick(ctx: AudioContext) {
   osc.stop(now + 0.03);
 }
 
-function playFootsteps(ctx: AudioContext) {
+function playPageTurn(ctx: AudioContext) {
   const now = ctx.currentTime;
-  const stepTimes = [0, 0.42, 0.84, 1.26, 1.68, 2.1];
-
-  stepTimes.forEach((t, idx) => {
-    const bufferSize = 2400;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
-    }
-
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(350 + (idx % 2) * 80, now + t);
-
-    const gain = ctx.createGain();
-    const vol = 0.25 + (idx % 2) * 0.08;
-    gain.gain.setValueAtTime(0, now + t);
-    gain.gain.linearRampToValueAtTime(vol, now + t + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.14);
-
-    source.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    source.start(now + t);
-    source.stop(now + t + 0.15);
-  });
+  const bufferSize = 3200;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.setValueAtTime(800, now);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.15, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  source.start(now);
+  source.stop(now + 0.15);
 }
+
+interface HandbookPage {
+  title: string;
+  icon: string;
+  lines: string[];
+  diagram?: React.ReactNode;
+}
+
+const HANDBOOK_PAGES: HandbookPage[] = [
+  {
+    title: 'VERIFICATION',
+    icon: '🔍',
+    lines: [
+      'Match NAME on all docs',
+      'Match SSN: ID ↔ 1040',
+      'Mismatch → REJECT',
+    ],
+    diagram: (
+      <div className="flex items-center justify-center gap-4 mt-2">
+        <div className="border-2 border-amber-600 rounded px-4 py-2 font-mono text-sm text-amber-200 text-center">
+          <div className="text-[10px] text-amber-400/60 uppercase tracking-widest mb-1">Citizen ID</div>
+          <div>John Doe</div>
+          <div className="text-xs text-amber-400/50">SSN: 123-45-6789</div>
+        </div>
+        <div className="text-2xl text-amber-400">⟷</div>
+        <div className="border-2 border-amber-600 rounded px-4 py-2 font-mono text-sm text-amber-200 text-center">
+          <div className="text-[10px] text-amber-400/60 uppercase tracking-widest mb-1">Form 1040</div>
+          <div>John Doe</div>
+          <div className="text-xs text-amber-400/50">SSN: 123-45-6789</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: 'MATH CHECK',
+    icon: '🧮',
+    lines: [
+      'Gross Income − Deductions',
+      '= Taxable Income',
+      'Numbers must add up',
+    ],
+    diagram: (
+      <div className="flex flex-col items-center gap-1 mt-2 font-mono text-lg text-amber-200">
+        <div className="flex items-center gap-3">
+          <span className="text-green-400">$80,000</span>
+          <span className="text-amber-400">−</span>
+          <span className="text-red-400">$15,000</span>
+        </div>
+        <div className="w-40 border-t-2 border-amber-600 my-1" />
+        <div className="flex items-center gap-2">
+          <span className="text-amber-400">=</span>
+          <span className="text-amber-100 font-bold">$65,000</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: 'UV STAMP',
+    icon: '🔦',
+    lines: [
+      'Every doc has a stamp',
+      'Use UV Scanner [2] to check',
+      'VALID = clean · FAKE = fraud',
+    ],
+    diagram: (
+      <div className="flex items-center justify-center gap-8 mt-2">
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-20 h-14 border-2 border-green-500/60 rounded flex items-center justify-center relative overflow-hidden" style={{ background: 'rgba(63,163,92,0.08)' }}>
+            <div className="font-mono text-xs font-bold tracking-wider text-green-400" style={{ textShadow: '0 0 8px rgba(63,163,92,0.5)' }}>VALID</div>
+          </div>
+          <span className="text-[10px] text-green-400/70 uppercase tracking-wider">Clean</span>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-20 h-14 border-2 border-red-500/60 rounded flex items-center justify-center relative overflow-hidden" style={{ background: 'rgba(180,71,63,0.08)' }}>
+            <div className="font-mono text-xs font-bold tracking-wider text-red-400" style={{ textShadow: '0 0 8px rgba(180,71,63,0.5)' }}>FAKE</div>
+          </div>
+          <span className="text-[10px] text-red-400/70 uppercase tracking-wider">Fraud</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: 'FREEZE BUTTON',
+    icon: '❄️',
+    lines: [
+      'FAKE stamp → use FREEZE',
+      'Freezes assets on the spot',
+      'Major fraud = bonus pay',
+    ],
+    diagram: (
+      <div className="flex flex-col items-center gap-3 mt-2">
+        <div className="flex items-center gap-3">
+          <div className="px-3 py-1.5 border-2 border-red-500/60 rounded font-mono text-sm text-red-400 font-bold" style={{ background: 'rgba(180,71,63,0.1)' }}>
+            FAKE STAMP
+          </div>
+          <div className="text-xl text-amber-400">→</div>
+          <div className="px-4 py-1.5 border-2 border-blue-400/60 rounded font-mono text-sm text-blue-300 font-bold" style={{ background: 'rgba(58,106,191,0.1)' }}>
+            ❄️ FREEZE
+          </div>
+        </div>
+      </div>
+    ),
+  },
+];
 
 interface Props {
   onStart: () => void;
 }
 
-type Phase = 'intro' | 'briefing';
+type Phase = 'intro' | 'handbook';
 
 export default function IntroSequence({ onStart }: Props) {
   const [phase, setPhase] = useState<Phase>('intro');
@@ -101,7 +180,8 @@ export default function IntroSequence({ onStart }: Props) {
   const [textDone, setTextDone] = useState(false);
   const [fading, setFading] = useState(false);
   const [showButton, setShowButton] = useState(false);
-  const [briefingVisible, setBriefingVisible] = useState(false);
+  const [handbookPage, setHandbookPage] = useState(0);
+  const [handbookReady, setHandbookReady] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -156,22 +236,36 @@ export default function IntroSequence({ onStart }: Props) {
   }, [phase]);
 
   const handleWalkToWork = useCallback(() => {
-    const ctx = getOrResumeAudioCtx(audioCtxRef);
-    if (ctx) playFootsteps(ctx);
-
     setTimeout(() => {
-      setPhase('briefing');
-      setTimeout(() => setBriefingVisible(true), 80);
-    }, 600);
+      setPhase('handbook');
+      setTimeout(() => setHandbookReady(true), 80);
+    }, 300);
   }, []);
 
-  const handleStartShift = useCallback(() => {
-    setFading(true);
-    setTimeout(() => {
-      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
-      onStart();
-    }, 700);
-  }, [onStart]);
+  const handleNextPage = useCallback(() => {
+    if (fading) return;
+    const ctx = getOrResumeAudioCtx(audioCtxRef);
+    if (ctx) playPageTurn(ctx);
+
+    if (handbookPage < HANDBOOK_PAGES.length - 1) {
+      setHandbookPage(p => p + 1);
+    } else {
+      setFading(true);
+      setTimeout(() => {
+        if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+        onStart();
+      }, 700);
+    }
+  }, [handbookPage, onStart, fading]);
+
+  const handlePrevPage = useCallback(() => {
+    const ctx = getOrResumeAudioCtx(audioCtxRef);
+    if (ctx) playPageTurn(ctx);
+    if (handbookPage > 0) setHandbookPage(p => p - 1);
+  }, [handbookPage]);
+
+  const page = HANDBOOK_PAGES[handbookPage];
+  const isLastPage = handbookPage === HANDBOOK_PAGES.length - 1;
 
   return (
     <div className="h-screen w-full overflow-hidden relative">
@@ -243,17 +337,17 @@ export default function IntroSequence({ onStart }: Props) {
           </motion.div>
         )}
 
-        {phase === 'briefing' && (
+        {phase === 'handbook' && (
           <motion.div
-            key="briefing"
+            key="handbook"
             className="absolute inset-0 flex items-center justify-center"
-            style={{ background: '#1a1208' }}
+            style={{ background: '#0e0a07' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
             <div
-              className="absolute inset-0 pointer-events-none opacity-30"
+              className="absolute inset-0 pointer-events-none opacity-20"
               style={{
                 backgroundImage:
                   'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.15) 3px, rgba(0,0,0,0.15) 4px)',
@@ -261,115 +355,127 @@ export default function IntroSequence({ onStart }: Props) {
             />
 
             <AnimatePresence>
-              {briefingVisible && (
+              {handbookReady && (
                 <motion.div
-                  key="clipboard"
-                  className="relative z-10 w-full max-w-md mx-4"
+                  key="handbook-card"
+                  className="relative z-10 w-full max-w-lg mx-4"
                   initial={{ opacity: 0, y: 30, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
                 >
-                  <div className="flex justify-center mb-[-1px] relative z-20">
-                    <div
-                      className="w-20 h-5 rounded-t"
-                      style={{ background: '#8B6914', border: '2px solid #5a4008' }}
-                    />
-                  </div>
-
                   <div
                     className="relative rounded-sm shadow-2xl overflow-hidden"
                     style={{
-                      background: '#f5f0e0',
-                      border: '2px solid #b8960c',
-                      boxShadow: '0 8px 40px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.3)',
+                      background: '#1a1410',
+                      border: '2px solid #6f4b1f',
+                      boxShadow: '0 8px 40px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.05)',
                     }}
                   >
-                    <div
-                      className="absolute inset-0 pointer-events-none opacity-20"
-                      style={{
-                        backgroundImage:
-                          'repeating-linear-gradient(0deg, transparent, transparent 22px, rgba(180,140,60,0.4) 22px, rgba(180,140,60,0.4) 23px)',
-                      }}
-                    />
-
-                    <div className="relative z-10 px-8 py-7">
-                      <div className="text-center border-b-2 border-stone-400 pb-4 mb-5">
-                        <p className="font-mono text-[9px] tracking-[0.3em] uppercase text-stone-500 mb-1">
-                          Ministry of Finance — Internal Document
+                    <div className="px-6 py-4 border-b flex items-center justify-between"
+                         style={{ background: '#0d0906', borderColor: '#6f4b1f' }}>
+                      <div>
+                        <p className="font-mono text-[9px] tracking-[0.3em] uppercase" style={{ color: '#7a5520' }}>
+                          Ministry of Finance
                         </p>
-                        <h2
-                          className="font-mono font-bold tracking-[0.2em] uppercase text-stone-800"
-                          style={{ fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}
-                        >
-                          Clerk Briefing
+                        <h2 className="font-mono text-lg font-bold tracking-[0.15em] uppercase" style={{ color: '#e0a11b' }}>
+                          Inspector Handbook
                         </h2>
-                        <p className="font-mono text-[9px] tracking-[0.2em] text-stone-500 mt-1 uppercase">
-                          Form MF-7 · Tax Season Orientation
-                        </p>
                       </div>
-
-                      <div className="bg-stone-800 text-amber-300 font-mono text-[9px] tracking-[0.3em] uppercase px-3 py-1.5 mb-5 text-center">
-                        Read before processing citizens
+                      <div className="font-mono text-xs px-2 py-1 rounded" style={{ background: '#2a1a0a', color: '#7a5520', border: '1px solid #6f4b1f55' }}>
+                        {handbookPage + 1} / {HANDBOOK_PAGES.length}
                       </div>
+                    </div>
 
-                      <ol className="flex flex-col gap-4 mb-6">
-                        {BRIEFING_STEPS.map((step, i) => (
-                          <motion.li
-                            key={i}
-                            className="flex gap-4 items-start"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 + i * 0.18, duration: 0.35 }}
-                          >
-                            <div
-                              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-mono font-bold text-xs text-amber-100"
-                              style={{ background: '#5a4008', border: '1.5px solid #8B6914' }}
-                            >
-                              {i + 1}
-                            </div>
-                            <div>
-                              <p className="font-mono font-bold text-stone-800 text-xs tracking-widest uppercase">
-                                {step.label}
-                              </p>
-                              <p className="font-mono text-stone-600 text-xs mt-0.5 leading-snug">
-                                {step.body}
-                              </p>
-                            </div>
-                          </motion.li>
-                        ))}
-                      </ol>
-
-                      <div className="border-t border-stone-300 pt-3 mb-5 flex justify-between items-end">
-                        <div>
-                          <div className="w-28 border-b border-stone-400 mb-0.5" />
-                          <p className="font-mono text-[8px] text-stone-400 tracking-wider uppercase">
-                            Supervisor Signature
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-mono text-[8px] text-stone-400 tracking-wider uppercase">
-                            District 7 Audit Office
-                          </p>
-                          <p className="font-mono text-[8px] text-stone-400">April 15th</p>
-                        </div>
-                      </div>
-
-                      <motion.button
-                        onClick={handleStartShift}
-                        className="w-full py-3 font-mono font-bold text-sm tracking-[0.25em] uppercase transition-colors"
-                        style={{
-                          background: '#2d1f00',
-                          color: '#f0c040',
-                          border: '2px solid #8B6914',
-                        }}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.85, duration: 0.4 }}
-                        whileHover={{ background: '#3d2a00' }}
-                        whileTap={{ scale: 0.98 }}
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={handbookPage}
+                        initial={{ opacity: 0, x: 40 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -40 }}
+                        transition={{ duration: 0.25 }}
+                        className="px-8 py-8"
                       >
-                        Start Shift
-                      </motion.button>
+                        <div className="flex items-center gap-3 mb-6">
+                          <span className="text-3xl">{page.icon}</span>
+                          <h3 className="font-mono text-2xl font-bold tracking-[0.2em] uppercase" style={{ color: '#f3dfb2' }}>
+                            {page.title}
+                          </h3>
+                        </div>
+
+                        <div className="flex flex-col gap-4 mb-6">
+                          {page.lines.map((line, i) => (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.1 + i * 0.12, duration: 0.3 }}
+                              className="flex items-center gap-3"
+                            >
+                              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: '#e0a11b' }} />
+                              <span className="font-mono text-base tracking-wide" style={{ color: '#f3dfb2' }}>
+                                {line}
+                              </span>
+                            </motion.div>
+                          ))}
+                        </div>
+
+                        {page.diagram && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.4, duration: 0.3 }}
+                            className="p-4 rounded border"
+                            style={{ background: 'rgba(224,161,27,0.04)', borderColor: '#6f4b1f55' }}
+                          >
+                            {page.diagram}
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+
+                    <div className="px-8 pb-6 flex items-center justify-between gap-3">
+                      {handbookPage > 0 ? (
+                        <button
+                          onClick={handlePrevPage}
+                          className="px-5 py-2.5 font-mono text-sm tracking-[0.15em] uppercase border transition-colors hover:bg-amber-900/20"
+                          style={{ borderColor: '#6f4b1f', color: '#7a5520' }}
+                        >
+                          ← Back
+                        </button>
+                      ) : (
+                        <div />
+                      )}
+
+                      <button
+                        onClick={handleNextPage}
+                        className="px-8 py-2.5 font-mono text-sm font-bold tracking-[0.2em] uppercase border-2 transition-colors"
+                        style={{
+                          borderColor: '#e0a11b',
+                          color: isLastPage ? '#1a1008' : '#e0a11b',
+                          background: isLastPage ? '#e0a11b' : 'transparent',
+                        }}
+                        onMouseOver={e => {
+                          if (isLastPage) e.currentTarget.style.background = '#c88a10';
+                          else e.currentTarget.style.background = 'rgba(224,161,27,0.12)';
+                        }}
+                        onMouseOut={e => {
+                          e.currentTarget.style.background = isLastPage ? '#e0a11b' : 'transparent';
+                        }}
+                      >
+                        {isLastPage ? 'Begin Shift →' : 'Next →'}
+                      </button>
+                    </div>
+
+                    <div className="px-8 pb-4 flex justify-center gap-2">
+                      {HANDBOOK_PAGES.map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-2 h-2 rounded-full transition-all duration-200"
+                          style={{
+                            background: i === handbookPage ? '#e0a11b' : '#6f4b1f44',
+                          }}
+                        />
+                      ))}
                     </div>
                   </div>
                 </motion.div>

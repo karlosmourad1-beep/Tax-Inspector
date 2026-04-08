@@ -12,6 +12,8 @@ interface DraggablePaperProps {
   highlightGroup: { group: string; value: string } | null;
   onFieldClick: (key: string, value: string) => void;
   isNew?: boolean;
+  uvActive?: boolean;
+  isFraud?: boolean;
 }
 
 function seedRotation(id: string): number {
@@ -21,7 +23,8 @@ function seedRotation(id: string): number {
 }
 
 export function DraggablePaper({
-  doc, initialX, initialY, zIndex, onFocus, highlightGroup, onFieldClick, isNew = false,
+  doc, initialX, initialY, zIndex, onFocus, highlightGroup, onFieldClick,
+  isNew = false, uvActive = false, isFraud = false,
 }: DraggablePaperProps) {
   const [isDragging, setIsDragging] = useState(false);
   const rotation = useMemo(() => seedRotation(doc.id), [doc.id]);
@@ -52,7 +55,13 @@ export function DraggablePaper({
       style={{ zIndex }}
       className="absolute cursor-grab active:cursor-grabbing origin-center"
     >
-      <RenderForm doc={doc} highlightGroup={highlightGroup} onFieldClick={onFieldClick} />
+      <RenderForm
+        doc={doc}
+        highlightGroup={highlightGroup}
+        onFieldClick={onFieldClick}
+        uvActive={uvActive}
+        isFraud={isFraud}
+      />
     </motion.div>
   );
 }

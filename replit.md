@@ -109,22 +109,26 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 - **12 narrative endings** determined by final balance, citations, dominant alignment, and world-state flags
 - **Hidden notes** tucked inside VIP documents, toggled via eye icon in client booth
 
-**Intro Sequence:** Pre-game intro replaces the old main menu. Three phases: typewriter text on black screen → clipboard briefing → fade to game. Uses Web Audio API for typewriter clicks and noise-buffer footsteps. State managed locally so the game engine stays idle until "Start Shift" is clicked.
+**Intro Sequence:** Two phases: typewriter text on black screen → 4-page Inspector Handbook (Verification, Math Check, UV Stamp, Freeze Button). Uses Web Audio API for typewriter clicks and page-turn sounds. No footsteps. After last handbook page, transitions directly to desk with no intermediate button. State managed locally so the game engine stays idle until handbook is completed.
+
+**UV Stamp Mechanic:** Every document has a visible "Official M.O.F. Stamp" at the bottom. When the UV Scanner tool (key 2) is active and the player hovers over the stamp, it reveals hidden text: "VALID" (green) for clean documents, "FAKE" (red) for fraudulent ones. Fraudulent documents revealed as FAKE must be processed with FREEZE.
 
 **Family System:** Family members (Elena, Mark, Lily, Rex) have statuses: OK → HUNGRY → WEAK → SICK → CRITICAL → DEAD. If unfed while SICK/CRITICAL, they decay 2 steps instead of 1. Family death triggers immediate GAME_OVER. Evening screen requires 2-second review before Continue button enables.
 
-**Evening Screen:** Dark kitchen atmosphere with emoji portraits, status labels, feed/medicine toggles, real-time cost animations, and auto-deducted rent/heat line. Summary bar shows fed count and savings.
+**Evening Screen:** Dark kitchen atmosphere with pixel art character portraits (imported via @assets/ alias), status labels, feed/medicine toggles, real-time cost animations, and auto-deducted rent/heat line. Summary bar shows fed count and savings.
 
-**Inspector's Toolkit:** Replaced old right sidebar with a thin 56px toolbar strip on the far-right edge. 4 numbered inventory slots (hotkeys 1-4): Calculator (functional 4-function, draggable), UV Scanner (cursor AoE purple light), Ledger (reference overlay with tax brackets, employer registry, rules), Rulebook (existing rules as overlay). Bottom section shows family health dots, daily goal progress bar, and funds. Keyboard shortcuts disabled when calculator is active to avoid conflicts. Escape clears active tool.
+**Inspector's Toolkit:** Thin 56px toolbar strip on the far-right edge. 4 numbered inventory slots (hotkeys 1-4): Calculator (functional 4-function, draggable, keyboard routing blocked when active), UV Scanner (cursor AoE purple light, activates stamp reveals), Finance Ledger (shows Current Funds + Daily Goal in large clean font), Family Monitor (shows family names + color-coded status). Clean toolbar with no bottom stats section. Escape clears active tool.
 
 **Key files:**
 - `src/types/game.ts` — full type system (alignment, macro events, VIP data, leaked memos, endings, DEAD status)
 - `src/lib/narrative.ts` — VIP definitions, macro events, 12-ending matrix, human cost messages
 - `src/lib/generator.ts` — procedural client generation + VIP injection + leaked memo generation
 - `src/hooks/useGameEngine.ts` — full game state machine with alignment tracking, freeze, memo handling, family death
-- `src/pages/IntroSequence.tsx` — pre-game intro with typewriter text, briefing clipboard, audio effects
-- `src/components/workspace/InspectorToolkit.tsx` — Inspector's Toolkit: calculator, UV scanner, ledger, toolbar
-- `src/pages/Desk.tsx` — main game view (lineup, booth, workspace, memo panel, day-end overlay)
+- `src/pages/IntroSequence.tsx` — pre-game intro with typewriter text + 4-page Inspector Handbook
+- `src/components/workspace/InspectorToolkit.tsx` — Inspector's Toolkit: calculator, UV scanner, finance ledger, family monitor
+- `src/components/forms/PaperForms.tsx` — document rendering with OfficialStamp + UV reveal mechanic
+- `src/components/workspace/DraggablePaper.tsx` — draggable document wrapper, threads UV props
+- `src/pages/Desk.tsx` — main game view (lineup, booth, workspace, tool overlays, day-end overlay)
 - `src/pages/EveningScreen.tsx` — family feeding screen with survival mechanics
 - `src/pages/EndScreen.tsx` — ending reveal with alignment bars and moral ledger
 

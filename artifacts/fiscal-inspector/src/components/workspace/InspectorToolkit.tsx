@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Rulebook } from './Rulebook';
-import { MacroEvent, FamilyMember } from '@/types/game';
-import { ORDINARY_BRACKETS } from '@/lib/taxBrackets';
+import { FamilyMember } from '@/types/game';
 import { formatMoney } from '@/lib/utils';
 
 const C = {
@@ -16,38 +14,29 @@ const C = {
   text:   '#f3dfb2',
 };
 
-export type ToolType = 'calculator' | 'uv' | 'ledger' | 'rulebook' | null;
+export type ToolType = 'calculator' | 'uv' | 'ledger' | 'family' | null;
 
 const TOOLS: { id: ToolType; label: string; icon: string; key: string }[] = [
   { id: 'calculator', label: 'Calculator', icon: '🧮', key: '1' },
   { id: 'uv',         label: 'UV Scanner', icon: '🔦', key: '2' },
-  { id: 'ledger',     label: 'Ledger',     icon: '📒', key: '3' },
-  { id: 'rulebook',   label: 'Rulebook',   icon: '📋', key: '4' },
+  { id: 'ledger',     label: 'Ledger',     icon: '💰', key: '3' },
+  { id: 'family',     label: 'Family',     icon: '🏠', key: '4' },
 ];
 
-const VALID_EMPLOYERS = [
-  'Initech', 'Umbrella Corp', 'Massive Dynamic', 'Soylent',
-  'Globex', 'Stark Ind.', 'Cyberdyne', 'Omni Consumer',
-  'NovaCorp', 'Helix Ventures', 'TriCorp', 'Arclight Media',
-];
-
-const STATUS_DOT: Record<string, string> = {
+const STATUS_COLOR: Record<string, string> = {
   OK: C.green, HUNGRY: '#d4a017', WEAK: '#c17f24', SICK: C.red, CRITICAL: '#cc2200', DEAD: '#555',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  OK: 'HEALTHY', HUNGRY: 'HUNGRY', WEAK: 'WEAK', SICK: 'SICK', CRITICAL: 'CRITICAL', DEAD: 'DEAD',
 };
 
 interface ToolkitProps {
   activeTool: ToolType;
   onSetTool: (tool: ToolType) => void;
-  day: number;
-  activeEvent: MacroEvent | null;
-  dailyGoal: number;
-  dailyEarned: number;
-  money: number;
-  family: FamilyMember[];
 }
 
-export function InspectorToolbar({ activeTool, onSetTool, money, family, dailyGoal, dailyEarned }: ToolkitProps) {
-  const progressPct = Math.min(100, Math.max(0, (dailyEarned / dailyGoal) * 100));
+export function InspectorToolbar({ activeTool, onSetTool }: ToolkitProps) {
   return (
     <div
       className="w-14 shrink-0 flex flex-col items-center border-l relative"
@@ -99,47 +88,7 @@ export function InspectorToolbar({ activeTool, onSetTool, money, family, dailyGo
         })}
       </div>
 
-      <div className="mt-auto w-full flex flex-col">
-        <div className="w-full border-t py-1.5 px-1" style={{ borderColor: C.border + '55' }}>
-          <div className="font-terminal text-[7px] uppercase tracking-wider text-center mb-1" style={{ color: C.muted }}>
-            Family
-          </div>
-          <div className="flex flex-col items-center gap-0.5">
-            {family.map(m => (
-              <div key={m.id} className="flex items-center gap-1" title={`${m.name}: ${m.status}`}>
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: STATUS_DOT[m.status] }} />
-                <span className="font-terminal text-[7px]" style={{ color: m.status === 'DEAD' ? '#555' : C.text }}>
-                  {m.name.slice(0, 3)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="w-full border-t py-1.5 px-1" style={{ borderColor: C.border + '55' }}>
-          <div className="font-terminal text-[7px] uppercase tracking-wider text-center" style={{ color: C.muted }}>
-            Goal
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden mx-1 my-1" style={{ background: '#090604' }}>
-            <div
-              className="h-full transition-all duration-300 rounded-full"
-              style={{
-                width: `${progressPct}%`,
-                background: progressPct >= 100 ? C.green : progressPct > 60 ? C.accent : C.red,
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="w-full border-t py-2 px-1" style={{ borderColor: C.border + '55' }}>
-          <div className="font-terminal text-[7px] uppercase tracking-wider text-center" style={{ color: C.muted }}>
-            Funds
-          </div>
-          <div className="font-terminal text-xs font-bold text-center mt-0.5" style={{ color: C.green }}>
-            {formatMoney(money)}
-          </div>
-        </div>
-      </div>
+      <div className="mt-auto" />
 
       {activeTool && (
         <button
@@ -368,8 +317,11 @@ export function UVScannerOverlay() {
   );
 }
 
-export function LedgerOverlay({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<'brackets' | 'employers' | 'rules'>('brackets');
+export function LedgerOverlay({ onClose, money, dailyGoal, dailyEarned }: {
+  onClose: () => void; money: number; dailyGoal: number; dailyEarned: number;
+}) {
+  const goalPct = Math.min(100, Math.max(0, (dailyEarned / dailyGoal) * 100));
+  const goalMet = dailyEarned >= dailyGoal;
 
   return (
     <motion.div
@@ -380,147 +332,68 @@ export function LedgerOverlay({ onClose }: { onClose: () => void }) {
       className="absolute z-40"
       style={{
         right: 70,
-        top: 20,
-        bottom: 20,
-        width: 280,
+        top: 60,
+        width: 260,
       }}
     >
       <div
-        className="h-full rounded shadow-2xl overflow-hidden flex flex-col"
+        className="rounded shadow-2xl overflow-hidden"
         style={{
-          background: '#f5f0e0',
-          border: '2px solid #b8960c',
+          background: '#0e0a07',
+          border: '2px solid #6f4b1f',
           boxShadow: '0 8px 40px rgba(0,0,0,0.7)',
         }}
       >
-        <div className="flex items-center justify-between px-3 py-2"
-             style={{ background: '#3a2a10', borderBottom: '2px solid #b8960c' }}>
-          <span className="font-mono text-[9px] uppercase tracking-[0.25em] font-bold" style={{ color: '#f0c040' }}>
-            Reference Ledger
+        <div className="flex items-center justify-between px-4 py-3"
+             style={{ background: '#0d0906', borderBottom: '2px solid #6f4b1f' }}>
+          <span className="font-mono text-sm uppercase tracking-[0.2em] font-bold" style={{ color: '#e0a11b' }}>
+            💰 Finance Ledger
           </span>
-          <button onClick={onClose} className="text-xs px-1 font-bold" style={{ color: '#f0c040' }}>✕</button>
+          <button onClick={onClose} className="text-sm px-1 font-bold hover:opacity-70" style={{ color: '#7a5520' }}>✕</button>
         </div>
 
-        <div className="flex border-b" style={{ borderColor: '#b8960c55' }}>
-          {(['brackets', 'employers', 'rules'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="flex-1 py-1.5 font-mono text-[8px] uppercase tracking-wider font-bold transition-colors"
-              style={{
-                background: tab === t ? '#e8dcc0' : '#f5f0e0',
-                color: tab === t ? '#3a2a10' : '#8a7050',
-                borderBottom: tab === t ? '2px solid #8B6914' : '2px solid transparent',
-              }}
-            >
-              {t === 'brackets' ? 'Tax Rates' : t === 'employers' ? 'Employers' : 'Rules'}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3 py-3">
-          {tab === 'brackets' && (
-            <div className="flex flex-col gap-2">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-stone-600 mb-1">
-                Ordinary Income Tax Brackets
-              </p>
-              {ORDINARY_BRACKETS.map((b, i) => (
-                <div key={i} className="flex justify-between items-center font-mono text-[10px] px-2 py-1.5 rounded"
-                     style={{ background: '#ebe5d0', border: '1px solid #d0c8a0' }}>
-                  <span className="text-stone-700">
-                    {formatMoney(b.from)} – {b.to === Infinity ? '∞' : formatMoney(b.to)}
-                  </span>
-                  <span className="font-bold text-stone-800">{(b.rate * 100).toFixed(0)}%</span>
-                </div>
-              ))}
-
-              <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-stone-600 mt-3 mb-1">
-                Capital Gains (Long-Term)
-              </p>
-              {[
-                { range: 'Under $44,000', rate: '0%' },
-                { range: '$44,000 – $492,000', rate: '15%' },
-                { range: 'Over $492,000', rate: '20%' },
-              ].map((r, i) => (
-                <div key={i} className="flex justify-between items-center font-mono text-[10px] px-2 py-1.5 rounded"
-                     style={{ background: '#ebe5d0', border: '1px solid #d0c8a0' }}>
-                  <span className="text-stone-700">{r.range}</span>
-                  <span className="font-bold text-stone-800">{r.rate}</span>
-                </div>
-              ))}
-
-              <p className="font-mono text-[8px] text-stone-500 mt-2 leading-snug italic">
-                Formula: Gross Income − Deductions = Taxable Income.
-                Apply brackets progressively.
-              </p>
+        <div className="px-6 py-6 flex flex-col gap-6">
+          <div>
+            <div className="font-mono text-xs uppercase tracking-[0.25em] mb-2" style={{ color: '#7a5520' }}>
+              Current Funds
             </div>
-          )}
-
-          {tab === 'employers' && (
-            <div className="flex flex-col gap-1">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-stone-600 mb-2">
-                Registered Employer Registry
-              </p>
-              {VALID_EMPLOYERS.map((emp, i) => (
-                <div key={i} className="flex items-center gap-2 font-mono text-[10px] px-2 py-1.5 rounded"
-                     style={{ background: i % 2 === 0 ? '#ebe5d0' : '#f5f0e0' }}>
-                  <span className="text-stone-400 text-[8px] w-4">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="text-stone-800">{emp}</span>
-                </div>
-              ))}
-              <p className="font-mono text-[8px] text-stone-500 mt-2 leading-snug italic">
-                Any employer not on this list may warrant investigation.
-              </p>
+            <div className="font-mono text-3xl font-bold" style={{ color: C.green }}>
+              {formatMoney(money)}
             </div>
-          )}
+          </div>
 
-          {tab === 'rules' && (
-            <div className="flex flex-col gap-2">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-stone-600 mb-1">
-                Verification Checklist
-              </p>
-              {[
-                { check: 'Name Match', detail: 'Same name on ID, W-2, and 1040' },
-                { check: 'SSN Match', detail: 'ID SSN must match 1040 SSN' },
-                { check: 'Income Match', detail: 'W-2 Wages = 1040 Gross Income' },
-                { check: 'Deductions', detail: 'Expense Total = 1040 Deductions' },
-                { check: 'Math Check', detail: 'Gross − Deductions = Taxable' },
-                { check: 'Tax Calc', detail: 'Apply brackets to Taxable Income' },
-              ].map((r, i) => (
-                <div key={i} className="px-2 py-1.5 rounded" style={{ background: '#ebe5d0', border: '1px solid #d0c8a0' }}>
-                  <p className="font-mono text-[10px] font-bold text-stone-800">{r.check}</p>
-                  <p className="font-mono text-[9px] text-stone-600">{r.detail}</p>
-                </div>
-              ))}
+          <div className="border-t" style={{ borderColor: '#6f4b1f44' }} />
 
-              <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-stone-600 mt-3 mb-1">
-                Decision Guide
-              </p>
-              <div className="flex flex-col gap-1">
-                <div className="font-mono text-[10px] px-2 py-1 rounded" style={{ background: '#d0e8d0', color: '#2a5a2a' }}>
-                  ✓ All docs match → <strong>APPROVE</strong>
-                </div>
-                <div className="font-mono text-[10px] px-2 py-1 rounded" style={{ background: '#e8d0d0', color: '#5a2a2a' }}>
-                  ✗ Mismatch found → <strong>REJECT</strong>
-                </div>
-                <div className="font-mono text-[10px] px-2 py-1 rounded" style={{ background: '#d0d8e8', color: '#2a3a5a' }}>
-                  ⚠ Fraud/Contraband → <strong>FREEZE</strong>
-                </div>
-              </div>
+          <div>
+            <div className="font-mono text-xs uppercase tracking-[0.25em] mb-2" style={{ color: '#7a5520' }}>
+              Daily Goal
             </div>
-          )}
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-3xl font-bold" style={{ color: goalMet ? C.green : C.accent }}>
+                {formatMoney(dailyEarned)}
+              </span>
+              <span className="font-mono text-lg" style={{ color: '#7a5520' }}>
+                / {formatMoney(dailyGoal)}
+              </span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: '#1a1208' }}>
+              <div
+                className="h-full transition-all duration-500 rounded-full"
+                style={{
+                  width: `${goalPct}%`,
+                  background: goalMet ? C.green : goalPct > 60 ? C.accent : C.red,
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
   );
 }
 
-export function RulebookOverlay({ onClose, day, activeEvent, dailyGoal, dailyEarned }: {
-  onClose: () => void;
-  day: number;
-  activeEvent: MacroEvent | null;
-  dailyGoal: number;
-  dailyEarned: number;
+export function FamilyMonitorOverlay({ onClose, family }: {
+  onClose: () => void; family: FamilyMember[];
 }) {
   return (
     <motion.div
@@ -531,28 +404,50 @@ export function RulebookOverlay({ onClose, day, activeEvent, dailyGoal, dailyEar
       className="absolute z-40"
       style={{
         right: 70,
-        top: 20,
-        bottom: 20,
-        width: 300,
+        top: 60,
+        width: 240,
       }}
     >
       <div
-        className="h-full rounded shadow-2xl overflow-hidden flex flex-col"
+        className="rounded shadow-2xl overflow-hidden"
         style={{
-          background: C.panel,
-          border: `2px solid ${C.border}`,
+          background: '#0e0a07',
+          border: '2px solid #6f4b1f',
           boxShadow: '0 8px 40px rgba(0,0,0,0.7)',
         }}
       >
-        <div className="flex items-center justify-between px-3 py-2"
-             style={{ background: '#0d0906', borderBottom: `1px solid ${C.border}` }}>
-          <span className="font-terminal text-[9px] uppercase tracking-[0.25em] font-bold" style={{ color: C.accent }}>
-            Day {day} Rulebook
+        <div className="flex items-center justify-between px-4 py-3"
+             style={{ background: '#0d0906', borderBottom: '2px solid #6f4b1f' }}>
+          <span className="font-mono text-sm uppercase tracking-[0.2em] font-bold" style={{ color: '#e0a11b' }}>
+            🏠 Family Monitor
           </span>
-          <button onClick={onClose} className="text-xs px-1 font-bold" style={{ color: C.muted }}>✕</button>
+          <button onClick={onClose} className="text-sm px-1 font-bold hover:opacity-70" style={{ color: '#7a5520' }}>✕</button>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          <Rulebook day={day} activeEvent={activeEvent} dailyGoal={dailyGoal} dailyEarned={dailyEarned} />
+
+        <div className="px-5 py-5 flex flex-col gap-3">
+          {family.map(m => {
+            const color = STATUS_COLOR[m.status] || C.text;
+            const label = STATUS_LABEL[m.status] || m.status;
+            const isDead = m.status === 'DEAD';
+            return (
+              <div
+                key={m.id}
+                className="flex items-center justify-between px-3 py-2.5 rounded"
+                style={{
+                  background: isDead ? 'rgba(85,85,85,0.1)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${isDead ? '#33333355' : color + '33'}`,
+                  opacity: isDead ? 0.5 : 1,
+                }}
+              >
+                <span className="font-mono text-base font-bold tracking-wide" style={{ color: isDead ? '#555' : C.text }}>
+                  {m.name}
+                </span>
+                <span className="font-mono text-sm font-bold uppercase tracking-wider" style={{ color }}>
+                  {label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </motion.div>

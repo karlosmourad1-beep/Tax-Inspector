@@ -1,8 +1,8 @@
+import { useState } from 'react';
 import { AnyDocument, TaxReturnDoc, W2Doc, ExpenseDoc, IDDoc, ScheduleDDoc } from '@/types/game';
 import { formatMoney, cn } from '@/lib/utils';
 import { PortraitSVG } from '@/components/ui/PortraitSVG';
 
-// ─── Field-group for cross-document comparison ────────────────────────────────
 export function fieldGroup(suffix: string): string | null {
   if (suffix === 'name') return 'name';
   if (suffix === 'employer') return 'employer';
@@ -13,9 +13,78 @@ export function fieldGroup(suffix: string): string | null {
   return null;
 }
 
-// ─── Shared wrapper ──────────────────────────────────────────────────────────
-function FormWrapper({ title, children, className }: {
+function OfficialStamp({ uvActive, isFraud }: { uvActive: boolean; isFraud: boolean }) {
+  const [hovering, setHovering] = useState(false);
+  const showReveal = uvActive && hovering;
+  const revealText = isFraud ? 'FAKE' : 'VALID';
+  const revealColor = isFraud ? '#e04040' : '#40b060';
+  const revealShadow = isFraud ? '0 0 12px rgba(224,64,64,0.6)' : '0 0 12px rgba(64,176,96,0.6)';
+
+  return (
+    <div
+      className="relative flex items-center justify-center select-none"
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
+      <div
+        className="relative w-[100px] h-[56px] flex items-center justify-center rounded-sm"
+        style={{
+          border: '2px solid rgba(107,0,0,0.55)',
+          background: 'rgba(107,0,0,0.04)',
+        }}
+      >
+        <svg viewBox="0 0 100 56" width={100} height={56} className="absolute inset-0">
+          <rect x="4" y="4" width="92" height="48" rx="2" fill="none" stroke="rgba(107,0,0,0.3)" strokeWidth="1" strokeDasharray="3 2" />
+          <text x="50" y="22" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="8" fontWeight="bold" fill="rgba(107,0,0,0.5)" letterSpacing="2">
+            OFFICIAL
+          </text>
+          <text x="50" y="36" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="7" fill="rgba(107,0,0,0.4)" letterSpacing="1">
+            M.O.F. STAMP
+          </text>
+          <circle cx="17" cy="42" r="4" fill="none" stroke="rgba(107,0,0,0.25)" strokeWidth="0.8" />
+          <circle cx="83" cy="42" r="4" fill="none" stroke="rgba(107,0,0,0.25)" strokeWidth="0.8" />
+        </svg>
+
+        {showReveal && (
+          <div
+            className="absolute inset-0 flex items-center justify-center rounded-sm z-10 transition-opacity duration-200"
+            style={{
+              background: isFraud
+                ? 'rgba(80,10,10,0.85)'
+                : 'rgba(10,60,20,0.85)',
+              border: `2px solid ${revealColor}`,
+              boxShadow: revealShadow,
+            }}
+          >
+            <span
+              className="font-mono text-xl font-bold tracking-[0.3em] uppercase"
+              style={{
+                color: revealColor,
+                textShadow: revealShadow,
+              }}
+            >
+              {revealText}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {uvActive && (
+        <div
+          className="absolute inset-0 rounded-sm pointer-events-none animate-pulse"
+          style={{
+            border: '1px solid rgba(120,80,255,0.3)',
+            boxShadow: '0 0 8px rgba(120,80,255,0.15)',
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function FormWrapper({ title, children, className, uvActive = false, isFraud = false }: {
   title: string; children: React.ReactNode; className?: string;
+  uvActive?: boolean; isFraud?: boolean;
 }) {
   return (
     <div className={cn(
@@ -27,12 +96,14 @@ function FormWrapper({ title, children, className }: {
           <h2 className="font-stamped text-base font-bold tracking-wider">{title}</h2>
         </div>
         {children}
+        <div className="mt-2 pt-2 border-t border-ink/20 flex justify-center">
+          <OfficialStamp uvActive={uvActive} isFraud={isFraud} />
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Clickable field ──────────────────────────────────────────────────────────
 interface FieldProps {
   label: string;
   value: string;
@@ -79,9 +150,11 @@ export interface RenderFormProps {
   doc: AnyDocument;
   highlightGroup: { group: string; value: string } | null;
   onFieldClick: (key: string, value: string) => void;
+  uvActive?: boolean;
+  isFraud?: boolean;
 }
 
-export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProps) {
+export function RenderForm({ doc, highlightGroup, onFieldClick, uvActive = false, isFraud = false }: RenderFormProps) {
   const fp = (suffix: string, value: string) => (
     <Field
       label={suffix === 'name' ? 'Name' : suffix === 'ssn' ? 'SSN' : suffix === 'employer' ? 'Employer' :
@@ -99,7 +172,7 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
     case '1040': {
       const d = doc as TaxReturnDoc;
       return (
-        <FormWrapper title="FORM 1040-FI">
+        <FormWrapper title="FORM 1040-FI" uvActive={uvActive} isFraud={isFraud}>
           {fp('name', d.name)}
           {fp('ssn', d.ssn)}
           {fp('gross', formatMoney(d.grossIncome))}
@@ -115,7 +188,7 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
     case 'W2': {
       const d = doc as W2Doc;
       return (
-        <FormWrapper title="W-2 STATEMENT">
+        <FormWrapper title="W-2 STATEMENT" uvActive={uvActive} isFraud={isFraud}>
           {fp('name', d.name)}
           {fp('employer', d.employer)}
           {fp('wages', formatMoney(d.wages))}
@@ -126,7 +199,7 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
     case 'EXPENSE': {
       const d = doc as ExpenseDoc;
       return (
-        <FormWrapper title="EXPENSE REPORT">
+        <FormWrapper title="EXPENSE REPORT" uvActive={uvActive} isFraud={isFraud}>
           {fp('name', d.name)}
           {fp('total', formatMoney(d.totalExpenses))}
           {d.lineItems.some(i => i.isSuspect) && (
@@ -141,7 +214,7 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
     case 'ID': {
       const d = doc as IDDoc;
       return (
-        <FormWrapper title="CITIZEN ID">
+        <FormWrapper title="CITIZEN ID" uvActive={uvActive} isFraud={isFraud}>
           <div className="flex gap-3 mb-1">
             {d.avatarSeed !== undefined && (
               <div className="shrink-0 border-2 border-ink/30 overflow-hidden"
@@ -163,7 +236,7 @@ export function RenderForm({ doc, highlightGroup, onFieldClick }: RenderFormProp
       const d = doc as ScheduleDDoc;
       const ltPct = Math.round(d.ltRate * 100);
       return (
-        <FormWrapper title="SCHEDULE D">
+        <FormWrapper title="SCHEDULE D" uvActive={uvActive} isFraud={isFraud}>
           {fp('name', d.name)}
           <Field label="Short-Term Gains" value={formatMoney(d.shortTermGains)}
                  fieldKey={`${doc.id}:st`} highlightGroup={highlightGroup} onFieldClick={onFieldClick} />

@@ -7,7 +7,7 @@ import { formatMoney, cn } from '@/lib/utils';
 import { DailyLog, Client } from '@/types/game';
 import { fieldGroup } from '@/components/forms/PaperForms';
 import {
-  InspectorToolbar, CalculatorOverlay, UVScannerOverlay, LedgerOverlay, RulebookOverlay,
+  InspectorToolbar, CalculatorOverlay, UVScannerOverlay, LedgerOverlay, FamilyMonitorOverlay,
   type ToolType,
 } from '@/components/workspace/InspectorToolkit';
 import {
@@ -618,7 +618,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
         if (e.key === 'Escape') setActiveTool(null);
         return;
       }
-      const toolKeys: Record<string, ToolType> = { '1': 'calculator', '2': 'uv', '3': 'ledger', '4': 'rulebook' };
+      const toolKeys: Record<string, ToolType> = { '1': 'calculator', '2': 'uv', '3': 'ledger', '4': 'family' };
       const tool = toolKeys[e.key];
       if (tool) {
         e.preventDefault();
@@ -844,6 +844,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                   highlightGroup={highlightGroup}
                   onFieldClick={handleFieldClick}
                   isNew={idx === 0}
+                  uvActive={activeTool === 'uv'}
+                  isFraud={!!state.currentClient?.isFraud}
                 />
               ))}
             </div>
@@ -888,16 +890,19 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
               <CalculatorOverlay key="calc" onClose={() => setActiveTool(null)} />
             )}
             {activeTool === 'ledger' && (
-              <LedgerOverlay key="ledger" onClose={() => setActiveTool(null)} />
-            )}
-            {activeTool === 'rulebook' && (
-              <RulebookOverlay
-                key="rulebook"
+              <LedgerOverlay
+                key="ledger"
                 onClose={() => setActiveTool(null)}
-                day={state.day}
-                activeEvent={state.activeEvent}
+                money={state.money}
                 dailyGoal={dailyGoal}
                 dailyEarned={dailyEarned}
+              />
+            )}
+            {activeTool === 'family' && (
+              <FamilyMonitorOverlay
+                key="family"
+                onClose={() => setActiveTool(null)}
+                family={state.family}
               />
             )}
           </AnimatePresence>
@@ -908,12 +913,6 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
         <InspectorToolbar
           activeTool={activeTool}
           onSetTool={setActiveTool}
-          day={state.day}
-          activeEvent={state.activeEvent}
-          dailyGoal={dailyGoal}
-          dailyEarned={dailyEarned}
-          money={state.money}
-          family={state.family}
         />
       </div>
 
