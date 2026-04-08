@@ -1465,7 +1465,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           <div className="flex items-center justify-between relative">
 
             {/* ── LEFT: Physical Rubber Stamps ── */}
-            <div className="flex items-end gap-5 pl-2">
+            <div className="flex items-end gap-5 pl-28">
               {(['APPROVE', 'REJECT'] as const).map((type) => {
                 const isApprove = type === 'APPROVE';
                 const color = isApprove ? '#3fa35c' : '#b4473f';
