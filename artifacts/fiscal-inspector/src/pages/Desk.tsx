@@ -4,6 +4,7 @@ import { useGameEngine, DAILY_GOALS } from '@/hooks/useGameEngine';
 import { DraggablePaper } from '@/components/workspace/DraggablePaper';
 import stackBillImg  from '@assets/image_1775629923935.png';
 import singleBillImg from '@assets/image_1775629927550.png';
+import approveStampImg from '@assets/image_1775637026808.png';
 import { Stamp } from '@/components/ui/Stamp';
 import { formatMoney, cn } from '@/lib/utils';
 import { DailyLog, Client } from '@/types/game';
@@ -1446,7 +1447,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
       </div>
 
       {/* ── BOTTOM STAMP TRAY ────────────────────────────────────────────────── */}
-      <div className="shrink-0 z-40 px-6 py-3"
+      <div className="shrink-0 z-40 px-6 py-2"
            style={{ background: '#0d0906', borderTop: `1px solid ${C.border}` }}>
 
         {isDayEnd ? (
@@ -1465,107 +1466,168 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           <div className="flex items-center justify-between relative">
 
             {/* ── LEFT: Physical Rubber Stamps ── */}
-            <div className="flex items-end gap-5 pl-28">
-              {(['APPROVE', 'REJECT'] as const).map((type) => {
-                const isApprove = type === 'APPROVE';
-                const color = isApprove ? '#3fa35c' : '#b4473f';
-                const colorLight = isApprove ? '#5fe07a' : '#f06060';
-                const colorDark = isApprove ? '#1a3a20' : '#3a1414';
-                const isSelected = selectedStamp === type;
-                const isPickingUp = stampPickingUp === type;
-                const isDisabled = type === 'APPROVE' ? isDeskDisabled : isRejectFreezeDisabled;
-                return (
-                  <motion.button
-                    key={type}
-                    onClick={() => !isDisabled && pickUpStamp(type)}
-                    disabled={isDisabled}
-                    animate={{
-                      y: isPickingUp ? -30 : 0,
-                      scale: isPickingUp ? 1.15 : 1,
-                      opacity: isSelected ? 0.3 : isPickingUp ? 0.6 : 1,
-                    }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                    className={cn(
-                      'relative flex flex-col items-center select-none',
-                      isDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
-                      bribeTaken && type === 'APPROVE' && !isDeskDisabled && 'animate-pulse',
-                    )}
-                    style={{ width: 72 }}
-                  >
+            <div className="flex items-end gap-6 pl-28">
+
+              {/* ── APPROVE STAMP (real image) ── */}
+              <motion.button
+                onClick={() => !isDeskDisabled && pickUpStamp('APPROVE')}
+                disabled={isDeskDisabled}
+                animate={{
+                  y: stampPickingUp === 'APPROVE' ? -40 : 0,
+                  scale: stampPickingUp === 'APPROVE' ? 1.18 : 1,
+                  opacity: selectedStamp === 'APPROVE' ? 0.25 : stampPickingUp === 'APPROVE' ? 0.5 : 1,
+                }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                className={cn(
+                  'relative flex flex-col items-center select-none',
+                  isDeskDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+                  bribeTaken && !isDeskDisabled && 'animate-pulse',
+                )}
+              >
+                <img
+                  src={approveStampImg}
+                  draggable={false}
+                  alt="Approve Stamp"
+                  style={{
+                    width: 100,
+                    height: 'auto',
+                    filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.7))',
+                    imageRendering: 'auto',
+                    userSelect: 'none',
+                  }}
+                />
+                <div className="font-terminal text-[8px] uppercase tracking-widest mt-0.5"
+                     style={{ color: selectedStamp === 'APPROVE' ? '#5fe07a' : '#6a5a40' }}>
+                  {bribeTaken ? '✓ Approve' : 'Approve'}
+                </div>
+              </motion.button>
+
+              {/* ── REJECT STAMP (CSS-drawn, matching style) ── */}
+              <motion.button
+                onClick={() => !isRejectFreezeDisabled && pickUpStamp('REJECT')}
+                disabled={isRejectFreezeDisabled}
+                animate={{
+                  y: stampPickingUp === 'REJECT' ? -40 : 0,
+                  scale: stampPickingUp === 'REJECT' ? 1.18 : 1,
+                  opacity: selectedStamp === 'REJECT' ? 0.25 : stampPickingUp === 'REJECT' ? 0.5 : 1,
+                }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                className={cn(
+                  'relative flex flex-col items-center select-none',
+                  isRejectFreezeDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+                )}
+              >
+                <div style={{
+                  width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.7))',
+                }}>
+                  <div style={{
+                    width: 30, height: 22,
+                    background: 'linear-gradient(180deg, #7a7060 0%, #5a4e3e 100%)',
+                    borderRadius: '50% 50% 4px 4px',
+                    boxShadow: 'inset 0 3px 5px rgba(255,255,255,0.12), inset 0 -2px 4px rgba(0,0,0,0.3)',
+                  }} />
+                  <div style={{
+                    width: 18, height: 20,
+                    background: 'linear-gradient(180deg, #5a4e3e 0%, #3a3228 100%)',
+                    boxShadow: 'inset 2px 0 3px rgba(255,255,255,0.06), inset -2px 0 3px rgba(0,0,0,0.15)',
+                  }} />
+                  <div style={{
+                    width: 72, height: 32,
+                    background: 'linear-gradient(180deg, #8a2020 0%, #b4473f 30%, #8a2020 70%, #5a1515 100%)',
+                    borderRadius: '3px 3px 6px 6px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1px solid #3a0e0e',
+                    boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -3px 6px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.5)',
+                  }}>
                     <div style={{
-                      width: 48, height: 36,
-                      background: `linear-gradient(180deg, #6a5a44 0%, #4a3e2a 30%, #3a2e22 60%, #2a2018 100%)`,
-                      borderRadius: '5px 5px 2px 2px',
-                      boxShadow: `0 -2px 6px rgba(0,0,0,0.3), inset 0 3px 6px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.25)`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'linear-gradient(180deg, #6a1818 0%, #4a1010 100%)',
+                      border: '1px solid #8a303088',
+                      borderRadius: 2,
+                      padding: '2px 10px',
                     }}>
-                      <div style={{
-                        width: 8, height: 18,
-                        background: `linear-gradient(180deg, #9a8a6a 0%, #6a5a44 100%)`,
-                        borderRadius: 3,
-                        boxShadow: 'inset 0 2px 3px rgba(255,255,255,0.2), 0 1px 2px rgba(0,0,0,0.3)',
-                      }} />
-                    </div>
-                    <div style={{
-                      width: 62, height: 24,
-                      background: `linear-gradient(180deg, ${colorDark} 0%, ${color} 45%, ${colorDark} 100%)`,
-                      borderRadius: '2px 2px 5px 5px',
-                      boxShadow: `0 5px 12px rgba(0,0,0,0.65), 0 3px 6px ${color}44, inset 0 2px 0 rgba(255,255,255,0.12)`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      borderTop: `1px solid ${color}88`,
-                    }}>
-                      <span className="font-stamped text-[10px] font-bold uppercase tracking-wider"
-                            style={{ color: `${colorLight}dd`, textShadow: `0 0 6px ${color}88` }}>
-                        {type === 'APPROVE' ? 'APPR' : 'REJ'}
+                      <span className="font-stamped text-[11px] font-bold uppercase tracking-wider"
+                            style={{ color: '#f0a0a0dd', textShadow: '0 0 4px #b4473f66' }}>
+                        REJECTED
                       </span>
                     </div>
-                    <div className="font-terminal text-[8px] uppercase tracking-widest mt-1.5"
-                         style={{ color: isSelected ? colorLight : '#6a5a40' }}>
-                      {type === 'APPROVE' ? (bribeTaken ? '✓ Approve' : 'Approve') : 'Reject'}
-                    </div>
-                  </motion.button>
-                );
-              })}
+                  </div>
+                  <div style={{
+                    width: 78, height: 8,
+                    background: 'linear-gradient(180deg, #2a1a14 0%, #1a100c 100%)',
+                    borderRadius: '0 0 4px 4px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                  }} />
+                </div>
+                <div className="font-terminal text-[8px] uppercase tracking-widest mt-0.5"
+                     style={{ color: selectedStamp === 'REJECT' ? '#f06060' : '#6a5a40' }}>
+                  Reject
+                </div>
+              </motion.button>
 
-              <div className="w-px h-10 mx-1 self-center" style={{ background: '#5a402044' }} />
+              <div className="w-px self-center" style={{ height: 60, background: '#5a402044' }} />
 
-              <button
+              {/* ── FREEZE STAMP (CSS-drawn, matching style) ── */}
+              <motion.button
                 onClick={handleFreeze}
                 disabled={isRejectFreezeDisabled}
+                whileHover={!isRejectFreezeDisabled ? { scale: 1.05 } : undefined}
+                whileTap={!isRejectFreezeDisabled ? { scale: 0.95 } : undefined}
                 className={cn(
                   'relative flex flex-col items-center select-none',
                   isContraband && !isRejectFreezeDisabled && 'animate-pulse',
                   isRejectFreezeDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
                 )}
-                style={{ width: 72 }}
               >
                 <div style={{
-                  width: 48, height: 36,
-                  background: `linear-gradient(180deg, #4a5a6a 0%, #3a4a5a 30%, #2a3a4a 60%, #1a2a3a 100%)`,
-                  borderRadius: '5px 5px 2px 2px',
-                  boxShadow: `0 -2px 6px rgba(0,0,0,0.3), inset 0 3px 6px rgba(255,255,255,0.08)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 80, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.7))',
                 }}>
-                  <Snowflake className="w-4 h-4" style={{ color: '#7ab0f0bb' }} />
+                  <div style={{
+                    width: 30, height: 22,
+                    background: 'linear-gradient(180deg, #6a7a8a 0%, #4a5a6a 100%)',
+                    borderRadius: '50% 50% 4px 4px',
+                    boxShadow: 'inset 0 3px 5px rgba(255,255,255,0.12), inset 0 -2px 4px rgba(0,0,0,0.3)',
+                  }} />
+                  <div style={{
+                    width: 18, height: 20,
+                    background: 'linear-gradient(180deg, #4a5a6a 0%, #2a3a4a 100%)',
+                    boxShadow: 'inset 2px 0 3px rgba(255,255,255,0.06), inset -2px 0 3px rgba(0,0,0,0.15)',
+                  }} />
+                  <div style={{
+                    width: 72, height: 32,
+                    background: 'linear-gradient(180deg, #1a3a6a 0%, #3a6abf 30%, #1a3a6a 70%, #0e1a3a 100%)',
+                    borderRadius: '3px 3px 6px 6px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1px solid #0a1a3a',
+                    boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -3px 6px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.5)',
+                  }}>
+                    <div style={{
+                      background: 'linear-gradient(180deg, #1a2a4a 0%, #0e1a2a 100%)',
+                      border: '1px solid #3a6abf88',
+                      borderRadius: 2,
+                      padding: '2px 8px',
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}>
+                      <Snowflake className="w-3 h-3" style={{ color: '#7ab0f0cc' }} />
+                      <span className="font-stamped text-[11px] font-bold uppercase tracking-wider"
+                            style={{ color: '#7ab0f0dd', textShadow: '0 0 4px #3a6abf66' }}>
+                        FREEZE
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 78, height: 8,
+                    background: 'linear-gradient(180deg, #1a2030 0%, #0e1420 100%)',
+                    borderRadius: '0 0 4px 4px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                  }} />
                 </div>
-                <div style={{
-                  width: 62, height: 24,
-                  background: `linear-gradient(180deg, #0e1a2a 0%, #3a6abf 45%, #0e1a2a 100%)`,
-                  borderRadius: '2px 2px 5px 5px',
-                  boxShadow: `0 5px 12px rgba(0,0,0,0.65), 0 3px 6px rgba(58,106,191,0.25), inset 0 2px 0 rgba(255,255,255,0.12)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderTop: '1px solid #3a6abf88',
-                }}>
-                  <span className="font-stamped text-[10px] font-bold uppercase tracking-wider"
-                        style={{ color: '#7ab0f0dd' }}>
-                    FRZ
-                  </span>
-                </div>
-                <div className="font-terminal text-[8px] uppercase tracking-widest mt-1.5"
+                <div className="font-terminal text-[8px] uppercase tracking-widest mt-0.5"
                      style={{ color: '#6090c0' }}>
                   Freeze{isContraband ? ' !' : ''}
                 </div>
-              </button>
+              </motion.button>
             </div>
 
             {/* ── CENTER: Status hint ── */}
