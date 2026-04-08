@@ -1,15 +1,37 @@
 import {
   Client, AnyDocument, TaxReturnDoc, W2Doc, ExpenseDoc, IDDoc, ScheduleDDoc,
-  FraudType, LeakedMemo, DecisionType, RecurringCharId, RecurringCharState,
+  FraudType, LeakedMemo, DecisionType,
 } from '../types/game';
 import { randomInt, pickRandom } from './utils';
 import { VIP_CLIENTS, getVIPForDay } from './narrative';
 import { calculateOrdinaryTax, calculateCapitalGainsTax } from './taxBrackets';
-import { RECURRING_SCHEDULE, generateRecurringClient, defaultCharState } from './recurringChars';
 
-const FIRST_NAMES = ["James","Carla","David","Sarah","Michael","Elena","Robert","Maria","Wei","Aisha","Frank","Donna","Leon","Petra","Oscar","Nadia","Brett","Yuna","Hassan","Ingrid"];
-const LAST_NAMES  = ["Morton","Voss","Chen","Smith","Johnson","Garcia","Brown","Miller","Kim","Patel","Webb","Russo","Mori","Diaz","Novak","Flynn","Osei","Tanaka","Holt","Reyes"];
-const EMPLOYERS   = ["Initech","Umbrella Corp","Massive Dynamic","Soylent","Globex","Stark Ind.","Cyberdyne","Omni Consumer","NovaCorp","Helix Ventures","TriCorp","Arclight Media"];
+const FIRST_NAMES = [
+  "James","Carla","David","Sarah","Michael","Elena","Robert","Maria",
+  "Wei","Aisha","Frank","Donna","Leon","Petra","Oscar","Nadia",
+  "Brett","Yuna","Hassan","Ingrid","Pablo","Leila","Marcus","Svetlana",
+  "Antoine","Yuki","Rajesh","Fatima","Gerald","Sienna","Kwame","Oksana",
+  "Dmitri","Priya","Tobias","Miriam","Luiz","Amara","Nikolai","Celia",
+  "Hector","Zara","Bruno","Felix","Nadine","Tamir","Soledad","Remy",
+  "Isla","Dante","Keiko","Sven","Layla","Omar","Renata","Conrad",
+  "Yolanda","Stephan","Mei","Arnaud","Delia","Sergei","Wren","Kofi",
+];
+const LAST_NAMES = [
+  "Morton","Voss","Chen","Smith","Johnson","Garcia","Brown","Miller",
+  "Kim","Patel","Webb","Russo","Mori","Diaz","Novak","Flynn",
+  "Osei","Tanaka","Holt","Reyes","Bernstein","Kowalski","Andersson","Nkosi",
+  "Petrov","Yamamoto","Svensson","Hassan","Delacroix","Okafor","Vasquez","Lindgren",
+  "Ferreira","Nguyen","Adeyemi","Sato","Herrera","Beaumont","Szabo","Makinen",
+  "Rossi","Gruber","Park","Johansson","Carvalho","Nakamura","Stein","Kovac",
+  "Larsson","Dube","Moreau","Takahashi","Mbeki","Eriksson","Jourdain","Khalil",
+  "Steinberg","Abara","Wexler","Brandt","Okonkwo","Leblanc","Hashimoto","Pelletier",
+];
+const EMPLOYERS = [
+  "Initech","Umbrella Corp","Massive Dynamic","Soylent","Globex",
+  "Stark Ind.","Cyberdyne","Omni Consumer","NovaCorp","Helix Ventures",
+  "TriCorp","Arclight Media","Zenith Systems","Coldwater Group","Arcadian Ltd.",
+  "Pinnacle Works","Meridian Co.","Harbor Partners","Ashfield Corp","Delta Eleven",
+];
 
 const EXPENSE_CATEGORIES = [
   { description: "Home Office", pct: 0.35 },
@@ -48,6 +70,12 @@ const SMALL_TALK: string[][] = [
   ["Do you validate parking? No?", "Figures."],
   ["Don't mind me, I talk when I'm nervous.", "Not that I have any reason to be nervous. Ha."],
   ["I prepared everything twice this year.", "Just to be sure. My ex was an auditor."],
+  ["Long line out there today.", "Hope you're moving fast."],
+  ["My employer switched systems mid-year.", "Numbers should still line up."],
+  ["Filed online last year, they told me to come in.", "System glitch, apparently."],
+  ["I'm just a contractor. Freelance.", "Tax code is a nightmare."],
+  ["No issues. I checked three times.", "Well. Twice. I checked twice."],
+  ["They say the new director is strict.", "Good. The old one let too much slide, I think."],
 ];
 
 const LEAKED_MEMO_TEMPLATES = [
@@ -198,19 +226,20 @@ export function generateClient(day: number, idPrefix: string): Client {
   }
 
   // Bribery: ~22% of non-contraband fraud cases from day 2 become bribe attempts
+  // Each bill = $10. Generate 2–5 bills.
   if (!isContraband && isFraud && day >= 2 && Math.random() < 0.22) {
     hasBribe = true;
-    brideAmountVal = randomInt(3, 11) * 20; // ¢60–¢220
+    const billCount = randomInt(2, 5);
+    brideAmountVal = billCount * 10;
     fraudType = 'bribe_attempt';
     expectedDecision = 'FREEZE';
-    hiddenNote = `Inside the filing envelope: a sealed inner sleeve containing ¢${brideAmountVal} in cash. Handwritten note: "For your understanding. No record necessary."`;
+    hiddenNote = `Inside the filing envelope: ${billCount} bill${billCount > 1 ? 's' : ''} in cash ($${brideAmountVal}). Handwritten note: "For your understanding. No record necessary."`;
   }
 
   const documents: AnyDocument[] = [idDoc, taxDoc];
   if (day >= 2) documents.push(w2Doc);
   if (day >= 3) documents.push(finalExpense);
 
-  // Capital Gains Schedule D (days 5+)
   if (hasCapitalGains && day >= 5) {
     const stGains = randomInt(5,40)*1000;
     const ltGains = randomInt(10,80)*1000;
@@ -219,7 +248,6 @@ export function generateClient(day: number, idPrefix: string): Client {
     let actualLtGains = ltGains;
     let actualLtTax   = cgTax.longTermTax;
 
-    // For capital_gains_misclass fraud: pretend all ST gains are LT
     if (fraudType === 'capital_gains_misclass') {
       actualLtGains = ltGains + stGains;
       actualLtTax   = Math.floor(actualLtGains * cgTax.ltRate);
@@ -289,14 +317,12 @@ export function generateVIPClient(day: number, vipKey: string): Client {
     taxableIncome: trueTaxable, taxOwed: trueTaxOwed
   };
 
-  // Robin Hood: introduce the $400 error
   if (vip.isRobinHood) {
     taxDoc.deductions = trueDeductions + 400;
     taxDoc.taxableIncome = taxDoc.grossIncome - taxDoc.deductions;
     taxDoc.taxOwed = calculateOrdinaryTax(taxDoc.taxableIncome).total;
   }
 
-  // MegaCorp: technically legal, 0% effective
   const expenseDoc = vip.isMegaCorp
     ? { id: 'vip-exp', type: 'EXPENSE' as const, name: vip.name, totalExpenses: trueDeductions,
         lineItems: [
@@ -371,43 +397,25 @@ export function generateVIPClient(day: number, vipKey: string): Client {
 export function generateDailyClients(
   day: number,
   count: number,
-  recurringChars: Record<RecurringCharId, RecurringCharState> = {} as Record<RecurringCharId, RecurringCharState>
+  _recurringChars?: unknown
 ): Client[] {
   const clients: Client[] = [];
 
-  // Build a pool of special clients (VIP + recurring) to insert
-  const specialPool: Client[] = [];
-
   // Add VIP if applicable
   const vipKey = getVIPForDay(day);
-  if (vipKey) specialPool.push(generateVIPClient(day, vipKey));
+  if (vipKey) clients.push(generateVIPClient(day, vipKey));
 
-  // Add recurring characters scheduled for today
-  const scheduledRecurring = RECURRING_SCHEDULE[day] ?? [];
-  for (const charId of scheduledRecurring) {
-    const charState = recurringChars[charId] ?? defaultCharState(charId);
-    if (!charState.disappeared) {
-      specialPool.push(generateRecurringClient(charId, charState, day));
-    }
+  // Fill remaining slots with random citizens
+  const remaining = count - clients.length;
+  for (let i = 0; i < remaining; i++) {
+    clients.push(generateClient(day, `d${day}-c${i}`));
   }
 
-  // Fill slots: place special clients at random positions, fill rest with random
-  const totalSpecial = Math.min(specialPool.length, count);
-  const randomCount  = count - totalSpecial;
-
-  // Generate random clients to fill remaining slots
-  const randomClients: Client[] = [];
-  for (let i = 0; i < randomCount; i++) {
-    randomClients.push(generateClient(day, `d${day}-c${i}`));
-  }
-
-  // Shuffle special clients into the queue
-  const allClients = [...specialPool.slice(0, totalSpecial), ...randomClients];
   // Fisher-Yates shuffle
-  for (let i = allClients.length - 1; i > 0; i--) {
+  for (let i = clients.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [allClients[i], allClients[j]] = [allClients[j], allClients[i]];
+    [clients[i], clients[j]] = [clients[j], clients[i]];
   }
 
-  return allClients;
+  return clients;
 }

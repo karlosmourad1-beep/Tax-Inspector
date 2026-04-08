@@ -515,10 +515,15 @@ export function useGameEngine() {
     setState(prev => ({ ...prev, status: 'TITLE' }));
   }, []);
 
+  const addMoney = useCallback((amount: number) => {
+    setState(prev => ({ ...prev, money: prev.money + amount }));
+  }, []);
+
   return {
     state, stampAction,
     startGame, startDay, callNextClient,
     processDecision, actOnMemo, dismissMemo,
     endDay, confirmEvening, returnToMenu,
+    addMoney,
   };
 }

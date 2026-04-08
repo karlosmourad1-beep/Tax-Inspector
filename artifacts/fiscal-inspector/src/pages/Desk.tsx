@@ -28,84 +28,144 @@ const C = {
   desk:   'linear-gradient(170deg, #251a12 0%, #1a110c 100%)',
 };
 
-// ─── Envelope SVG (physical envelope animation) ──────────────────────────────
+// ─── Envelope SVG (physical mail design) ─────────────────────────────────────
 function EnvelopeSVG({ client }: { client: Client }) {
-  const isVIP      = client.isVIP;
-  const hasBribe   = !!client.hasBribe;
-  const isRecurring = !!client.recurringId;
+  const isVIP    = client.isVIP;
+  const hasBribe = !!client.hasBribe;
+  const billCount = Math.min(Math.floor((client.brideAmount ?? 20) / 10), 5);
+  const deskNum   = (client.avatarSeed % 9) + 1;
 
-  const baseColor  = isVIP ? '#c8b455' : hasBribe ? '#b89040' : '#c2a050';
-  const darkColor  = isVIP ? '#9a8028' : hasBribe ? '#8a6a28' : '#8a7030';
-  const lightColor = isVIP ? '#e0cc78' : hasBribe ? '#d4b058' : '#d4b860';
+  // Manila/buff envelope palette
+  const envBase  = '#d6bc7a';
+  const envDark  = '#a08840';
+  const envShade = '#b8a258';
+  const envLight = '#e8d498';
+
+  // Bribe: envelope is thicker — extra drop shadow
+  const extraShadow = hasBribe ? ', 0 12px 32px rgba(0,0,0,0.5)' : '';
 
   return (
     <div style={{ position: 'relative', userSelect: 'none' }}>
-      <svg viewBox="0 0 320 210" width={320} height={210} style={{ display: 'block', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.7))' }}>
-        {/* Body */}
-        <rect x="0" y="30" width="320" height="180" rx="5" fill={baseColor} />
-
-        {/* Side triangles */}
-        <polygon points="0,30 160,132 320,30" fill={darkColor} opacity="0.55" />
-        <polygon points="0,210 160,132 320,210" fill={lightColor} opacity="0.35" />
-        <line x1="0" y1="30" x2="160" y2="132" stroke={darkColor} strokeWidth="0.7" opacity="0.5" />
-        <line x1="320" y1="30" x2="160" y2="132" stroke={darkColor} strokeWidth="0.7" opacity="0.5" />
-
-        {/* Top flap */}
-        <polygon points="0,30 160,132 320,30 320,0 0,0" fill={baseColor} />
-        <line x1="0" y1="30" x2="320" y2="30" stroke={darkColor} strokeWidth="0.9" opacity="0.55" />
-
-        {/* VIP gold border trim */}
-        {isVIP && (
-          <rect x="2" y="2" width="316" height="206" rx="4" fill="none" stroke="#c8a800" strokeWidth="2.5" />
+      <svg
+        viewBox="0 0 340 220"
+        width={340} height={hasBribe ? 236 : 220}
+        style={{ display: 'block', filter: `drop-shadow(0 8px 28px rgba(0,0,0,0.65))${extraShadow}` }}
+      >
+        {/* Bribe envelope bulge shadow underneath */}
+        {hasBribe && (
+          <>
+            <ellipse cx="170" cy="228" rx="148" ry="7" fill="rgba(0,0,0,0.28)" />
+            <rect x="4" y="34" width="332" height="190" rx="5" fill={envShade} opacity="0.6" />
+            <rect x="8" y="38" width="328" height="188" rx="5" fill={envBase} opacity="0.5" />
+          </>
         )}
 
-        {/* Main stamp */}
-        {!hasBribe && (
+        {/* === ENVELOPE BODY === */}
+        <rect x="0" y="30" width="340" height="190" rx="5" fill={envBase} />
+
+        {/* Subtle paper texture — horizontal lines */}
+        {[60, 90, 120, 150, 180, 210].map(y => (
+          <line key={y} x1="0" y1={y} x2="340" y2={y} stroke={envDark} strokeWidth="0.3" opacity="0.12" />
+        ))}
+
+        {/* Left & right diagonal fold marks (diamond-back style) */}
+        <polygon points="0,30 170,136 0,220" fill={envDark} opacity="0.18" />
+        <polygon points="340,30 170,136 340,220" fill={envDark} opacity="0.18" />
+        {/* Bottom fold crease */}
+        <line x1="0" y1="220" x2="170" y2="136" stroke={envDark} strokeWidth="0.8" opacity="0.3" />
+        <line x1="340" y1="220" x2="170" y2="136" stroke={envDark} strokeWidth="0.8" opacity="0.3" />
+
+        {/* === FLAP (top) === */}
+        {hasBribe ? (
+          /* Slightly bulging flap — lift it a tiny bit to show cash beneath */
           <>
-            <rect x="88" y="72" width="144" height="56" rx="3" fill="none" stroke="#6b0000" strokeWidth="3" />
-            <text x="160" y="98" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="14" fontWeight="bold" fill="#6b0000">MINISTRY</text>
-            <text x="160" y="118" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="11" fill="#6b0000">
+            {/* Cash bills peeking from under flap */}
+            {Array.from({ length: Math.min(billCount, 4) }).map((_, i) => (
+              <rect
+                key={i}
+                x={118 + i * 8} y={2 + i}
+                width={104 - i * 6} height={24}
+                rx="2" fill={i % 2 === 0 ? '#2d4010' : '#3a5018'}
+                opacity={0.9 - i * 0.1}
+              />
+            ))}
+            {/* Serial-number-like stripe on top bill */}
+            <text x="170" y="18" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="9" fill="#6a9020" fontWeight="bold" opacity="0.9">
+              MF·{String(client.avatarSeed).padStart(5,'0')}·A
+            </text>
+            {/* Flap over the bills */}
+            <polygon points="0,30 170,126 340,30 340,0 0,0" fill={envBase} />
+            <line x1="0" y1="30" x2="340" y2="30" stroke={envDark} strokeWidth="1" opacity="0.4" />
+          </>
+        ) : (
+          <>
+            <polygon points="0,30 170,126 340,30 340,0 0,0" fill={envBase} />
+            <line x1="0" y1="30" x2="340" y2="30" stroke={envDark} strokeWidth="0.8" opacity="0.4" />
+          </>
+        )}
+
+        {/* Flap center fold crease line */}
+        <line x1="0" y1="30" x2="170" y2="126" stroke={envDark} strokeWidth="0.5" opacity="0.25" />
+        <line x1="340" y1="30" x2="170" y2="126" stroke={envDark} strokeWidth="0.5" opacity="0.25" />
+
+        {/* === POSTAGE STAMP (top right) === */}
+        <rect x="266" y="8" width="60" height="48" rx="2" fill={envLight} stroke={envDark} strokeWidth="0.8" />
+        {/* Perforated edges (dashed border) */}
+        <rect x="268" y="10" width="56" height="44" rx="1" fill="none" stroke={envDark} strokeWidth="0.6" strokeDasharray="2.5,1.5" opacity="0.5" />
+        {/* Stamp art */}
+        <rect x="270" y="12" width="52" height="38" rx="1" fill="#3d5a18" />
+        <text x="296" y="30" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="7" fill="#8ab840" fontWeight="bold">M.O.F.</text>
+        <text x="296" y="40" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="6" fill="#6a9020">DISTRICT 7</text>
+        <text x="296" y="47" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="6" fill="#5a7a18">TAX AUTH.</text>
+        {/* Cancellation wavy lines */}
+        <line x1="258" y1="14" x2="270" y2="14" stroke={envDark} strokeWidth="1" opacity="0.4" />
+        <line x1="258" y1="18" x2="270" y2="18" stroke={envDark} strokeWidth="1" opacity="0.35" />
+        <line x1="258" y1="22" x2="270" y2="22" stroke={envDark} strokeWidth="1" opacity="0.3" />
+        {/* Circular cancellation ring */}
+        <circle cx="258" cy="20" r="16" fill="none" stroke={envDark} strokeWidth="0.8" opacity="0.3" />
+
+        {/* === RETURN ADDRESS (top left) === */}
+        <text x="14" y="46" fontFamily='"Courier New",monospace' fontSize="7" fill={envDark} opacity="0.65">DISTRICT TAX AUTHORITY</text>
+        <text x="14" y="56" fontFamily='"Courier New",monospace' fontSize="7" fill={envDark} opacity="0.45">GOVERNMENT DISTRICT 7</text>
+
+        {/* === CENTER INTAKE STAMP === */}
+        {hasBribe ? (
+          <>
+            <rect x="68" y="72" width="204" height="56" rx="3" fill="none" stroke="#7a3800" strokeWidth="2.5" />
+            <text x="170" y="100" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="13" fontWeight="bold" fill="#7a3800">CONFIDENTIAL</text>
+            <text x="170" y="118" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="10" fill="#7a3800">SEALED — DO NOT OPEN</text>
+          </>
+        ) : (
+          <>
+            <rect x="88" y="76" width="164" height="52" rx="3" fill="none" stroke="#6b0000" strokeWidth="2.5" />
+            <text x="170" y="103" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="13" fontWeight="bold" fill="#6b0000">MINISTRY</text>
+            <text x="170" y="120" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="10" fill="#6b0000">
               {isVIP ? 'PRIORITY INTAKE' : 'STANDARD INTAKE'}
             </text>
           </>
         )}
 
-        {/* Bribe cues */}
-        {hasBribe && (
-          <>
-            {/* Cash edge peeking from flap */}
-            <rect x="108" y="2" width="104" height="20" rx="2" fill="#3a6a20" opacity="0.9" />
-            <text x="160" y="17" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="10" fill="#a0d070" fontWeight="bold">¢ ¢ ¢</text>
-            {/* Confidential stamp */}
-            <rect x="68" y="68" width="184" height="60" rx="3" fill="none" stroke="#7a3a00" strokeWidth="3" />
-            <text x="160" y="98" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="14" fontWeight="bold" fill="#7a3a00">CONFIDENTIAL</text>
-            <text x="160" y="119" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="10" fill="#7a3a00">SEALED — DO NOT OPEN</text>
-          </>
-        )}
+        {/* === RECIPIENT ADDRESS (center-left) === */}
+        <text x="20" y="158" fontFamily='"Courier New",monospace' fontSize="8" fill={envDark} opacity="0.55">TO: TAX INSPECTION BUREAU</text>
+        <text x="20" y="169" fontFamily='"Courier New",monospace' fontSize="8" fill={envDark} opacity="0.42">DEPT. REVENUE — DESK {deskNum}</text>
+        <text x="20" y="180" fontFamily='"Courier New",monospace' fontSize="8" fill={envDark} opacity="0.35">DISTRICT 7, GOVERNMENT QUARTER</text>
 
-        {/* Recurring — blue return stamp */}
-        {isRecurring && !isVIP && (
-          <>
-            <rect x="200" y="62" width="108" height="36" rx="3" fill="none" stroke="#3a6abf" strokeWidth="2.5" transform="rotate(-9,254,80)" />
-            <text x="254" y="79" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="11" fontWeight="bold" fill="#6aabf0" transform="rotate(-9,254,79)">RETURN</text>
-            <text x="254" y="93" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="10" fill="#6aabf0" transform="rotate(-9,254,93)">CASE</text>
-          </>
-        )}
-
-        {/* Postage box */}
-        <rect x="235" y="6" width="76" height="54" rx="2" fill="none" stroke={darkColor} strokeWidth="1" opacity="0.45" />
-        <text x="273" y="22" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="8" fill={darkColor} opacity="0.5">M.O.F.</text>
-        <text x="273" y="36" textAnchor="middle" fontFamily='"Courier New",monospace' fontSize="8" fill={darkColor} opacity="0.5">POSTMARK</text>
-
-        {/* Case number */}
-        <text x="14" y="198" fontFamily='"Courier New",monospace' fontSize="9" fill={darkColor} opacity="0.45">
-          CASE NO. {client.id.slice(0, 12).toUpperCase()}
+        {/* === CASE NUMBER (bottom left) === */}
+        <text x="14" y="215" fontFamily='"Courier New",monospace' fontSize="8" fill={envDark} opacity="0.38">
+          CASE NO. {client.id.slice(0, 14).toUpperCase()}
         </text>
+
+        {/* VIP gold trim */}
+        {isVIP && (
+          <rect x="2" y="2" width="336" height="216" rx="4" fill="none" stroke="#c8a800" strokeWidth="2.5" />
+        )}
+
+        {/* Outer envelope border */}
+        <rect x="0" y="0" width="340" height="220" rx="5" fill="none" stroke={envDark} strokeWidth="1" opacity="0.3" />
       </svg>
 
-      {/* Click prompt */}
       <div style={{
-        position: 'absolute', bottom: -30, left: 0, right: 0, textAlign: 'center',
+        position: 'absolute', bottom: hasBribe ? -14 : -30, left: 0, right: 0, textAlign: 'center',
         fontFamily: '"Courier New",monospace', fontSize: 10,
         color: C.accent, letterSpacing: '0.22em', opacity: 0.7,
         textTransform: 'uppercase',
@@ -113,6 +173,79 @@ function EnvelopeSVG({ client }: { client: Client }) {
         Click to open case
       </div>
     </div>
+  );
+}
+
+// ─── Pixel-art bank note (1-bit olive green, government issue) ────────────────
+function BankNoteSVG({ index = 0 }: { index?: number }) {
+  const pid = `bdp${index}`;
+  return (
+    <svg width="50" height="100" viewBox="0 0 50 100" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', imageRendering: 'pixelated' }}>
+      <defs>
+        <pattern id={pid} x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+          <rect width="4" height="4" fill="#243010" />
+          <rect x="0" y="0" width="2" height="2" fill="#2d3e12" />
+          <rect x="2" y="2" width="2" height="2" fill="#2d3e12" />
+        </pattern>
+      </defs>
+      {/* Base + dither */}
+      <rect width="50" height="100" fill="#2d3e12" />
+      <rect width="50" height="100" fill={`url(#${pid})`} />
+      {/* Border double frame */}
+      <rect x="2" y="2" width="46" height="96" fill="none" stroke="#4e6c1e" strokeWidth="1" />
+      <rect x="4" y="4" width="42" height="92" fill="none" stroke="#3a5214" strokeWidth="0.5" />
+      {/* Header bar */}
+      <rect x="5" y="7" width="40" height="10" fill="#1a2808" />
+      <text x="25" y="14.5" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="4.5" fontWeight="bold" fill="#5a8020" letterSpacing="0.8">MINISTRY OF FINANCE</text>
+      {/* Corner denominations */}
+      <text x="8" y="24" fontFamily="'Courier New',monospace" fontSize="5" fill="#4e6e20" fontWeight="bold">10</text>
+      <text x="39" y="24" fontFamily="'Courier New',monospace" fontSize="5" fill="#4e6e20" fontWeight="bold">10</text>
+      {/* Portrait frame */}
+      <rect x="9" y="26" width="32" height="42" fill="#192208" />
+      <rect x="10" y="27" width="30" height="40" fill="#1e2a0a" />
+      {/* === PIXEL PORTRAIT === */}
+      {/* Head block */}
+      <rect x="13" y="29" width="24" height="24" rx="2" fill="#2e4010" />
+      {/* Hair */}
+      <rect x="13" y="29" width="24" height="5" fill="#0a1404" />
+      <rect x="13" y="29" width="4" height="3" fill="#0a1404" />
+      <rect x="33" y="29" width="4" height="3" fill="#0a1404" />
+      {/* Ears */}
+      <rect x="10" y="37" width="3" height="5" fill="#2e4010" />
+      <rect x="37" y="37" width="3" height="5" fill="#2e4010" />
+      {/* Eye sockets */}
+      <rect x="15" y="36" width="5" height="4" rx="1" fill="#0e1a04" />
+      <rect x="30" y="36" width="5" height="4" rx="1" fill="#0e1a04" />
+      {/* Pupils */}
+      <rect x="17" y="37" width="3" height="2" fill="#040804" />
+      <rect x="31" y="37" width="3" height="2" fill="#040804" />
+      {/* Nose */}
+      <rect x="23" y="43" width="4" height="3" fill="#243810" />
+      <rect x="22" y="45" width="6" height="2" fill="#0e1a04" />
+      {/* Grim mouth */}
+      <rect x="17" y="49" width="16" height="2" fill="#0e1a04" />
+      {/* Neck */}
+      <rect x="20" y="53" width="10" height="4" fill="#2e4010" />
+      {/* Collar */}
+      <rect x="10" y="57" width="30" height="8" fill="#162008" />
+      <rect x="22" y="57" width="3" height="6" fill="#0a1204" />
+      <rect x="25" y="57" width="3" height="6" fill="#0a1204" />
+      {/* Horizontal dither lines on portrait */}
+      {[31,35,39,43,47,51,55,59,63].map((y,i) =>
+        i % 3 === 0 ? <rect key={y} x="10" y={y} width="30" height="0.5" fill="#3a5418" opacity="0.2" /> : null
+      )}
+      {/* Serial number */}
+      <text x="25" y="78" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="3.5" fill="#4a6a1e" letterSpacing="0.5">MF·44190·{String(index).padStart(4,'0')}·A</text>
+      {/* OFFICIAL ISSUE */}
+      <text x="25" y="84" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="3" fill="#3a5818" letterSpacing="0.2">OFFICIAL GOVERNMENT ISSUE</text>
+      {/* Bottom bar */}
+      <rect x="5" y="87" width="40" height="10" fill="#1a2808" />
+      <text x="25" y="94.5" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="6" fontWeight="bold" fill="#6a9828" letterSpacing="2">T E N</text>
+      {/* Aging marks */}
+      <rect x="8" y="61" width="5" height="1" fill="#0e1804" opacity="0.45" />
+      <rect x="36" y="43" width="3" height="1" fill="#0e1804" opacity="0.3" />
+      <rect x="14" y="79" width="7" height="1" fill="#0e1804" opacity="0.35" />
+    </svg>
   );
 }
 
@@ -596,6 +729,103 @@ function FraudEscalationModal({ log, onContinue }: { log: DailyLog; onContinue: 
 
 
 
+// ─── Bribe confirmation dialog ────────────────────────────────────────────────
+function BribeConfirmDialog({ total, onAccept, onDecline }: { total: number; onAccept: () => void; onDecline: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.92 }}
+      transition={{ duration: 0.18 }}
+      className="absolute inset-0 z-[250] flex items-center justify-center"
+      style={{ background: 'rgba(4,2,0,0.88)', backdropFilter: 'blur(3px)' }}
+    >
+      <div className="flex flex-col items-center gap-0 w-[360px]" style={{ border: `2px solid #7a5c1a`, background: '#0e0906' }}>
+        <div className="w-full text-center py-3 font-terminal text-xs font-bold uppercase tracking-[0.3em]" style={{ background: 'rgba(122,92,26,0.18)', color: '#e0a11b', borderBottom: '1px solid #7a5c1a' }}>
+          Cash Found In Envelope
+        </div>
+        <div className="flex flex-col items-center gap-5 px-8 py-7 w-full">
+          <p className="font-terminal text-sm text-center leading-relaxed" style={{ color: '#d0bc96' }}>
+            The envelope contains <strong style={{ color: '#e0a11b' }}>${total}</strong> in cash. Taking it locks you into approving this filing.
+          </p>
+          <p className="font-terminal text-[10px] uppercase tracking-widest text-center" style={{ color: '#7a5520' }}>
+            This will be cited as bribery if discovered.
+          </p>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={onAccept}
+              className="flex-1 py-3 font-terminal text-sm font-bold uppercase tracking-widest border-2 transition-colors"
+              style={{ borderColor: '#c8a800', color: '#c8a800', background: 'transparent' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'rgba(200,168,0,0.12)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              Take ${total}
+            </button>
+            <button
+              onClick={onDecline}
+              className="flex-1 py-3 font-terminal text-sm font-bold uppercase tracking-widest border-2 transition-colors"
+              style={{ borderColor: '#6f4b1f', color: '#7a5520', background: 'transparent' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'rgba(111,75,31,0.15)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              Leave It
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Bribe bill stack on desk ─────────────────────────────────────────────────
+function BribeStack({ billCount, total, onClick }: { billCount: number; total: number; onClick: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.35, type: 'spring', stiffness: 200, damping: 22 }}
+      className="absolute z-40 flex flex-col items-center"
+      style={{ bottom: 28, right: 48 }}
+    >
+      {/* Stack of bills */}
+      <div
+        className="relative cursor-pointer group"
+        onClick={onClick}
+        style={{ width: 50, height: 100 + billCount * 5 }}
+        title={`Take bribe — $${total}`}
+      >
+        {Array.from({ length: billCount }).reverse().map((_, i) => {
+          const zi = billCount - 1 - i;
+          return (
+            <div
+              key={zi}
+              className="absolute transition-transform group-hover:scale-105"
+              style={{
+                bottom: zi * 5,
+                left: zi * 1,
+                transform: `rotate(${(zi - Math.floor(billCount / 2)) * 2.5}deg)`,
+                transformOrigin: 'bottom center',
+                zIndex: zi,
+                filter: zi === billCount - 1 ? 'none' : 'brightness(0.75)',
+              }}
+            >
+              <BankNoteSVG index={zi} />
+            </div>
+          );
+        })}
+      </div>
+      {/* Label */}
+      <div className="mt-1 font-terminal text-xs font-bold text-center" style={{ color: '#6a9020', textShadow: '0 0 8px rgba(90,130,20,0.5)' }}>
+        ${total} CASH
+      </div>
+      <div className="font-terminal text-[9px] uppercase tracking-widest" style={{ color: '#4a6a18', opacity: 0.7 }}>
+        Click to take
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Main Desk Page ──────────────────────────────────────────────────────────
 export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngine> }) {
   const { state, stampAction, processDecision, callNextClient, endDay, actOnMemo, dismissMemo } = engine;
@@ -606,6 +836,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const [decisionFeedback, setDecisionFeedback] = useState<DailyLog | null>(null);
   const [envelopePhase, setEnvelopePhase] = useState<'sealed' | 'opening' | 'open'>(state.currentClient ? 'sealed' : 'open');
   const [activeTool, setActiveTool] = useState<ToolType>(null);
+  const [bribeTaken, setBribeTaken] = useState(false);
+  const [showBribeConfirm, setShowBribeConfirm] = useState(false);
   const prevLogCount = useRef(0);
 
   const dailyGoal   = DAILY_GOALS[state.day] ?? 300;
@@ -654,6 +886,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
       setDocZIndices({});
       setHighlightGroup(null);
     }
+    setBribeTaken(false);
+    setShowBribeConfirm(false);
   }, [state.currentClient?.id]);
 
   const handleEnvelopeClick = useCallback(() => {
@@ -677,9 +911,15 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     );
   }, []);
 
-  const isDeskDisabled = !!stampAction || !state.currentClient || envelopePhase !== 'open';
-  const isContraband   = !!state.currentClient?.isContraband;
-  const hasClient      = !!state.currentClient;
+  const isDeskDisabled         = !!stampAction || !state.currentClient || envelopePhase !== 'open';
+  const isRejectFreezeDisabled = isDeskDisabled || bribeTaken;
+  const isContraband           = !!state.currentClient?.isContraband;
+  const hasClient              = !!state.currentClient;
+
+  // Bribe stack info
+  const clientBribeAmount = state.currentClient?.brideAmount ?? 0;
+  const clientBillCount   = Math.min(Math.floor(clientBribeAmount / 10), 5);
+  const showBribeStack    = !!state.currentClient?.hasBribe && envelopePhase === 'open' && !bribeTaken;
   const canCallNext    = state.clientsQueue.length > 0;
   const isDayEnd       = state.status === 'DAY_END';
 
@@ -851,6 +1091,47 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             </div>
           )}
 
+          {/* ── Bribe stack (bills on desk) ───────────────────────────────────── */}
+          <AnimatePresence>
+            {showBribeStack && (
+              <BribeStack
+                billCount={clientBillCount}
+                total={clientBribeAmount}
+                onClick={() => setShowBribeConfirm(true)}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* ── Bribe taken indicator ─────────────────────────────────────────── */}
+          <AnimatePresence>
+            {bribeTaken && envelopePhase === 'open' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="absolute z-40 font-terminal text-xs uppercase tracking-widest px-3 py-1.5 rounded border"
+                style={{ bottom: 28, right: 48, color: '#c8a800', borderColor: '#c8a80044', background: 'rgba(200,168,0,0.08)' }}
+              >
+                ✓ ${clientBribeAmount} Accepted — Approve Only
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Bribe confirm dialog ──────────────────────────────────────────── */}
+          <AnimatePresence>
+            {showBribeConfirm && (
+              <BribeConfirmDialog
+                total={clientBribeAmount}
+                onAccept={() => {
+                  setBribeTaken(true);
+                  setShowBribeConfirm(false);
+                  engine.addMoney(clientBribeAmount);
+                }}
+                onDecline={() => setShowBribeConfirm(false)}
+              />
+            )}
+          </AnimatePresence>
+
           {/* ── Envelope overlay ──────────────────────────────────────────────── */}
           <AnimatePresence>
             {state.currentClient && envelopePhase !== 'open' && (
@@ -932,49 +1213,54 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           </button>
         ) : hasClient ? (
           <>
-            {/* Approve */}
+            {/* Approve — pulses amber when bribe taken */}
             <button
               onClick={() => processDecision('APPROVE', 0)}
               disabled={isDeskDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
                 isDeskDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+                bribeTaken && !isDeskDisabled && 'animate-pulse',
               )}
-              style={{ background: C.panel, borderColor: C.green, color: C.green }}
-              onMouseOver={e => { if (!isDeskDisabled) e.currentTarget.style.background = 'rgba(63,163,92,0.15)'; }}
+              style={{
+                background: C.panel,
+                borderColor: bribeTaken ? '#c8a800' : C.green,
+                color:       bribeTaken ? '#c8a800' : C.green,
+              }}
+              onMouseOver={e => { if (!isDeskDisabled) e.currentTarget.style.background = bribeTaken ? 'rgba(200,168,0,0.12)' : 'rgba(63,163,92,0.15)'; }}
               onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
             >
               <CheckCircle2 className="w-5 h-5" />
-              Approve
+              {bribeTaken ? 'Approve (Bribed)' : 'Approve'}
             </button>
 
-            {/* Reject */}
+            {/* Reject — locked when bribe taken */}
             <button
               onClick={() => processDecision('REJECT', 0)}
-              disabled={isDeskDisabled}
+              disabled={isRejectFreezeDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
-                isDeskDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+                isRejectFreezeDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
               )}
               style={{ background: C.panel, borderColor: C.red, color: C.red }}
-              onMouseOver={e => { if (!isDeskDisabled) e.currentTarget.style.background = 'rgba(180,71,63,0.15)'; }}
+              onMouseOver={e => { if (!isRejectFreezeDisabled) e.currentTarget.style.background = 'rgba(180,71,63,0.15)'; }}
               onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
             >
               <XCircle className="w-5 h-5" />
               Reject
             </button>
 
-            {/* Freeze */}
+            {/* Freeze — locked when bribe taken */}
             <button
               onClick={() => processDecision('FREEZE', 0)}
-              disabled={isDeskDisabled}
+              disabled={isRejectFreezeDisabled}
               className={cn(
                 'flex items-center gap-3 px-10 py-4 border-2 font-terminal text-base font-bold uppercase tracking-widest transition-all',
-                isContraband && !isDeskDisabled && 'animate-pulse',
-                isDeskDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+                isContraband && !isRejectFreezeDisabled && 'animate-pulse',
+                isRejectFreezeDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
               )}
               style={{ background: C.panel, borderColor: '#3a6abf', color: '#7ab0f0' }}
-              onMouseOver={e => { if (!isDeskDisabled) e.currentTarget.style.background = 'rgba(58,106,191,0.15)'; }}
+              onMouseOver={e => { if (!isRejectFreezeDisabled) e.currentTarget.style.background = 'rgba(58,106,191,0.15)'; }}
               onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
             >
               <Snowflake className="w-5 h-5" />
@@ -994,7 +1280,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             onMouseOver={e => { if (canCallNext) e.currentTarget.style.background = 'rgba(224,161,27,0.12)'; }}
             onMouseOut={e => { e.currentTarget.style.background = C.panel; }}
           >
-            {canCallNext ? '▶  Call Next Citizen' : 'Queue Empty — Shift Complete'}
+            {canCallNext ? '▶  Pull from Pile' : 'Queue Empty — Shift Complete'}
           </button>
         )}
       </div>
