@@ -185,6 +185,7 @@ export default function IntroSequence({ onStart }: Props) {
   const [showButton, setShowButton] = useState(false);
   const [handbookPage, setHandbookPage] = useState(0);
   const [handbookReady, setHandbookReady] = useState(false);
+  const [handbookSkipped, setHandbookSkipped] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -232,6 +233,14 @@ export default function IntroSequence({ onStart }: Props) {
     };
   }, [phase]);
 
+  const skipIntro = useCallback(() => {
+    if (phase !== 'intro') return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setTypedCount(INTRO_TEXT.length);
+    setTextDone(true);
+    setShowButton(true);
+  }, [phase]);
+
   const handleWalkToWork = useCallback(() => {
     setTimeout(() => {
       setPhase('handbook');
@@ -260,6 +269,16 @@ export default function IntroSequence({ onStart }: Props) {
     if (handbookPage > 0) setHandbookPage(p => p - 1);
   }, [handbookPage]);
 
+  const skipHandbook = useCallback(() => {
+    if (fading) return;
+    setHandbookSkipped(true);
+    setFading(true);
+    setTimeout(() => {
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+      onStart();
+    }, 500);
+  }, [fading, onStart]);
+
   const page = HANDBOOK_PAGES[handbookPage];
   const isLastPage = handbookPage === HANDBOOK_PAGES.length - 1;
 
@@ -286,6 +305,7 @@ export default function IntroSequence({ onStart }: Props) {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
+            onClick={skipIntro}
           >
             <div
               className="absolute inset-0 pointer-events-none"
@@ -544,6 +564,20 @@ export default function IntroSequence({ onStart }: Props) {
 
                         {/* nav buttons */}
                         <div className="flex items-center gap-3">
+                          <button
+                            onClick={skipHandbook}
+                            className="font-mono text-xs tracking-[0.2em] uppercase px-4 py-2 transition-colors"
+                            style={{
+                              border: '1px solid #b4473f',
+                              color: '#b4473f',
+                              background: 'transparent',
+                              borderRadius: 2,
+                            }}
+                            onMouseOver={e => (e.currentTarget.style.background = 'rgba(180,71,63,0.10)')}
+                            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            Skip Handbook
+                          </button>
                           {handbookPage > 0 && (
                             <button
                               onClick={handlePrevPage}
