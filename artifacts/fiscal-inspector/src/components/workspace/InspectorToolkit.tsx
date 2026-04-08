@@ -5,6 +5,7 @@ import { formatMoney } from '@/lib/utils';
 import calculatorArt from '@assets/image_1775624556009.png';
 import flashlightArt from '@assets/image_1775624698996.png';
 import ledgerArt from '@assets/image_1775624829058.png';
+import familyArt from '@assets/image_1775625265968.png';
 
 const C = {
   bg:     '#120d0a',
@@ -81,6 +82,8 @@ export function InspectorToolbar({ activeTool, onSetTool }: ToolkitProps) {
                 <img src={flashlightArt} alt="UV Scanner" className="w-8 h-8 object-contain select-none pointer-events-none" draggable={false} />
               ) : tool.id === 'ledger' ? (
                 <img src={ledgerArt} alt="Ledger" className="w-8 h-8 object-contain select-none pointer-events-none" draggable={false} />
+              ) : tool.id === 'family' ? (
+                <img src={familyArt} alt="Family Monitor" className="w-8 h-8 object-contain select-none pointer-events-none" draggable={false} />
               ) : (
                 <span className="text-lg leading-none">{tool.icon}</span>
               )}
