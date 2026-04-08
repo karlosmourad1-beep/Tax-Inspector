@@ -760,82 +760,104 @@ function BribeConfirmDialog({ total, onAccept, onDecline }: { total: number; onA
 }
 
 // ─── Bribe bill stack on desk — draggable, fanned portrait orientation ────────
-// Haphazard rotations: left bill leans left, right bill leans right (hand-of-cards fan)
-// Offsets scaled for 100×230px bills
-const BILL_SLOTS = [
-  { rot: -8,  ox: -44 },
-  { rot: -3,  ox: -18 },
-  { rot:  2,  ox:   6 },
-  { rot:  7,  ox:  28 },
-  { rot: 11,  ox:  50 },
-];
+// Rotation angles for each bill in the fan (max 5 bills).
+// Pure rotation from a shared bottom-centre pivot — no horizontal offsets needed,
+// the rotation itself spreads the bills into a hand-of-cards shape.
+const BILL_ROTS = [-12, -6, 0, 6, 12];
+
+// How much to dim each buried bill (frontmost = index billCount-1 = full brightness)
+function billBrightness(i: number, total: number) {
+  const depth = total - 1 - i;           // 0 = front, increasing = more buried
+  return Math.max(0.55, 1 - depth * 0.14);
+}
 
 function BribeStack({ billCount, total, onClick }: { billCount: number; total: number; onClick: () => void }) {
   const [grabbed, setGrabbed] = useState(false);
 
-  // Centre the fan: pick first `billCount` slots and centre them
-  const slots = BILL_SLOTS.slice(0, billCount);
+  // Grab the centred slice of rotations for however many bills we have
+  const mid   = Math.floor(BILL_ROTS.length / 2);
+  const half  = Math.floor(billCount / 2);
+  const rots  = BILL_ROTS.slice(mid - half, mid - half + billCount);
 
   return (
     <motion.div
       drag
       dragMomentum={false}
       dragElastic={0.06}
-      whileDrag={{ scale: 1.05 }}
+      whileDrag={{ scale: 1.04 }}
       onDragStart={() => setGrabbed(true)}
       onDragEnd={()   => setGrabbed(false)}
-      // Entry: bills fall in from slightly above, like sliding out of an envelope
-      initial={{ opacity: 0, y: -30, rotate: -3 }}
-      animate={{ opacity: 1, y: 0,  rotate: 0 }}
-      exit={{ opacity: 0, scale: 0.75, y: 8, transition: { duration: 0.2 } }}
-      transition={{ duration: 0.45, type: 'spring', stiffness: 160, damping: 18 }}
+      initial={{ opacity: 0, y: -28, rotate: -4 }}
+      animate={{ opacity: 1, y: 0,   rotate: 0  }}
+      exit={{ opacity: 0, scale: 0.72, y: 10, transition: { duration: 0.18 } }}
+      transition={{ duration: 0.42, type: 'spring', stiffness: 155, damping: 17 }}
       className="absolute select-none"
-      // z-[45]: above documents (~z-30), below toolbar chrome (z-50+)
       style={{
-        bottom: 60,
-        right:  90,
+        // Anchor point — bottom-right of the desk area
+        bottom: 70,
+        right:  110,
         zIndex: 45,
         cursor: grabbed ? 'grabbing' : 'grab',
         touchAction: 'none',
       }}
     >
-      {/* ── Fan of bills ── */}
+      {/*
+        Fan container: all bills share the exact same left/bottom anchor point.
+        transform-origin: 'bottom center' means rotating a bill pivots it around
+        the bottom-centre of that bill — naturally fanning them into a hand shape.
+        Container is padded so rotated corners don't clip.
+      */}
       <div
         className="relative"
-        // Container wide enough to hold 5 bills × fan spread, tall enough for 230px bills + rotation slop
-        style={{ width: 220, height: 260 }}
+        style={{ width: 260, height: 280 }}
         onClick={() => { playRustle(); onClick(); }}
         title={`$${total} cash — click to take · drag to move`}
       >
-        {slots.map(({ rot, ox }, i) => (
-          <motion.div
-            key={i}
-            // Stagger each bill's entry so they land one after another
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06, duration: 0.32, type: 'spring', stiffness: 220, damping: 20 }}
-            className="absolute"
-            style={{
-              // All bills pivot from their bottom-centre so rotation fans outward
-              left: `calc(50% + ${ox}px)`,
-              bottom: 0,
-              transform: `translateX(-50%) rotate(${rot}deg)`,
-              transformOrigin: 'bottom center',
-              zIndex: i + 1,
-              // Drop shadow for physical depth; darker on buried bills
-              filter: `drop-shadow(2px 5px 4px rgba(0,0,0,${i === slots.length - 1 ? 0.65 : 0.45}))
-                       brightness(${i === slots.length - 1 ? 1 : 0.72})`,
-            }}
-          >
-            <BankNoteSVG index={i} />
-          </motion.div>
-        ))}
+        {rots.map((rot, i) => {
+          const isFront = i === rots.length - 1;
+          const bright  = billBrightness(i, rots.length);
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: i * 0.055,
+                duration: 0.30,
+                type: 'spring',
+                stiffness: 240,
+                damping: 22,
+              }}
+              style={{
+                position: 'absolute',
+                // Every bill starts at the same bottom-centre of the container
+                left:   '50%',
+                bottom: 0,
+                // Step 1: centre the bill on the anchor; Step 2: rotate from bottom-centre
+                transform: `translateX(-50%) rotate(${rot}deg)`,
+                transformOrigin: 'bottom center',
+                // Front bill on top
+                zIndex: i + 1,
+                // Solid backing so transparent PNG edges don't bleed the desk through
+                backgroundColor: '#0d1205',
+                borderRadius: 3,
+                // Physical depth: shadow + dimming for buried bills
+                filter: [
+                  `drop-shadow(2px 4px 6px rgba(0,0,0,${isFront ? 0.80 : 0.55}))`,
+                  `brightness(${bright})`,
+                ].join(' '),
+              }}
+            >
+              <BankNoteSVG index={i} />
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* ── Hint label ── */}
+      {/* Subtle take-hint below the fan */}
       <div
-        className="mt-0.5 font-terminal text-[10px] font-bold tracking-wider text-center pointer-events-none"
-        style={{ color: '#283a10', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+        className="font-terminal text-[10px] font-bold tracking-widest text-center pointer-events-none mt-1"
+        style={{ color: '#3a5218', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
       >
         ${total} · click to take
       </div>
