@@ -1,0 +1,112 @@
+Improve the stamping system to fix bugs, enhance visuals, and make the interaction feel physical and satisfying.
+
+Goal:
+Make stamping feel like a deliberate, physical action (like Papers Please), not a UI click.
+
+--------------------------------
+1. FIX DOUBLE-STAMP BUG (CRITICAL)
+--------------------------------
+
+Problem:
+Stamping currently triggers twice (duplicate approve/reject effect).
+
+Fix:
+
+- Ensure stamping only triggers ONCE per action
+- Only use ONE input event (preferably click OR mousedown, not both)
+- After stamping:
+  - lock the decision state
+  - prevent additional stamping input
+- Disable input until next filing loads
+
+Goal:
+Each stamp action should happen exactly once with no duplication.
+
+--------------------------------
+2. MAKE STAMPS LOOK LIKE REAL STAMPS
+--------------------------------
+
+Problem:
+Current stamps look like clean UI overlays, not physical ink stamps.
+
+Fix:
+
+- Add realistic stamp styling:
+  - slight random rotation (-10° to +10°)
+  - semi-transparent ink effect
+  - slightly uneven edges
+  - distressed / worn texture
+
+- Use bold uppercase text:
+  - APPROVED (green)
+  - REJECTED (red)
+
+- Add stamp shapes:
+  - rectangle or circular border
+  - ink-style outline
+
+- Add stamping animation:
+  - quick downward motion
+  - slight impact bounce
+  - opacity fade-in
+
+- Do NOT use clean digital text styles
+
+Goal:
+Stamps should feel like imperfect ink pressed onto paper.
+
+--------------------------------
+3. ADD STAMP MODE (FOCUSED INTERACTION)
+--------------------------------
+
+Goal:
+Make stamping feel intentional and focused without slowing gameplay.
+
+Behavior:
+
+- When player selects APPROVE or REJECT:
+  - slightly darken the background
+  - highlight the document area
+  - change cursor to the stamp
+
+- Show subtle instruction:
+  "STAMP DOCUMENT"
+
+- Player clicks on document:
+  - stamp applies at click position
+  - animation plays
+  - exit stamp mode immediately
+
+Important:
+- Do NOT create a separate screen
+- Keep interaction fast and simple
+
+--------------------------------
+4. IMPROVE STAMP FEEL (POLISH)
+--------------------------------
+
+- Add sound:
+  - stamp “thud” sound
+  - subtle paper impact
+
+- Use click position for stamp placement (not fixed center)
+
+- Add slight randomness:
+  - rotation
+  - opacity variation
+
+Goal:
+Make stamping feel physical, responsive, and satisfying.
+
+--------------------------------
+FINAL GOAL
+--------------------------------
+
+Turn stamping from:
+"clicking a button"
+
+Into:
+"a physical, committed action"
+
+The player should feel:
+"I made a decision and stamped it myself."

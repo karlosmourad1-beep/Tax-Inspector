@@ -815,7 +815,8 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
   const [bribeConfiscated, setBribeConfiscated] = useState(false);
   const [selectedStamp, setSelectedStamp] = useState<'APPROVE' | 'REJECT' | null>(null);
   const [stampCursorPos, setStampCursorPos] = useState({ x: 0, y: 0 });
-  const [stampMark, setStampMark] = useState<{ type: 'APPROVE' | 'REJECT' | 'FREEZE'; x: number; y: number } | null>(null);
+  const [stampMark, setStampMark] = useState<{ type: 'APPROVE' | 'REJECT' | 'FREEZE'; x: number; y: number; rot: number; seed: number } | null>(null);
+  const stampLocked = useRef(false);
   const deskAreaRef = useRef<HTMLDivElement>(null);
   const prevLogCount = useRef(0);
 
@@ -878,6 +879,7 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     setBribeConfiscated(false);
     setSelectedStamp(null);
     setStampMark(null);
+    stampLocked.current = false;
   }, [state.currentClient?.id]);
 
   const handleEnvelopeClick = useCallback(() => {
@@ -921,11 +923,42 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
     return () => window.removeEventListener('mousemove', handleMove);
   }, [selectedStamp]);
 
+  const stampAudioCtx = useRef<AudioContext | null>(null);
+  const playStampSound = useCallback(() => {
+    try {
+      if (!stampAudioCtx.current) {
+        stampAudioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = stampAudioCtx.current;
+      if (ctx.state === 'suspended') ctx.resume();
+      const now = ctx.currentTime;
+      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.12), ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const t = i / ctx.sampleRate;
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 40) * 0.4;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(800, now);
+      lp.frequency.exponentialRampToValueAtTime(200, now + 0.12);
+      src.connect(lp);
+      lp.connect(ctx.destination);
+      src.start(now);
+      src.stop(now + 0.15);
+    } catch (_) {}
+  }, []);
+
   // Click desk area with stamp selected → finalize decision
   const handleDeskStamp = useCallback((e: React.MouseEvent) => {
+    if (stampLocked.current) return;
     if (!selectedStamp || !state.currentClient) return;
     if (isDeskDisabled) return;
     if (selectedStamp === 'REJECT' && bribeTaken) return;
+
+    stampLocked.current = true;
 
     if (selectedStamp === 'APPROVE' && bribeTaken) {
       setBribePop(clientBribeAmount);
@@ -938,33 +971,40 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
 
     const rect = deskAreaRef.current?.getBoundingClientRect();
     if (rect) {
+      const rot = (Math.random() - 0.5) * 20;
       setStampMark({
         type: selectedStamp,
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
+        rot,
+        seed: Math.random(),
       });
-      setTimeout(() => setStampMark(null), 1200);
     }
 
+    playStampSound();
     processDecision(selectedStamp, 0);
     setSelectedStamp(null);
-  }, [selectedStamp, state.currentClient, isDeskDisabled, bribeTaken, clientBribeAmount, showBribeStack, processDecision]);
+  }, [selectedStamp, state.currentClient, isDeskDisabled, bribeTaken, clientBribeAmount, showBribeStack, processDecision, playStampSound]);
 
   // Handle FREEZE escalation (no stamp cursor, direct action)
   const handleFreeze = useCallback(() => {
+    if (stampLocked.current) return;
     if (!state.currentClient || isDeskDisabled || bribeTaken) return;
+
+    stampLocked.current = true;
+
     if (showBribeStack) {
       setBribeConfiscated(true);
       setTimeout(() => setBribeConfiscated(false), 900);
     }
     const rect = deskAreaRef.current?.getBoundingClientRect();
     if (rect) {
-      setStampMark({ type: 'FREEZE', x: rect.width / 2, y: rect.height / 2 });
-      setTimeout(() => setStampMark(null), 1200);
+      setStampMark({ type: 'FREEZE', x: rect.width / 2, y: rect.height / 2, rot: 0, seed: Math.random() });
     }
+    playStampSound();
     processDecision('FREEZE', 0);
     setSelectedStamp(null);
-  }, [state.currentClient, isDeskDisabled, bribeTaken, showBribeStack, processDecision]);
+  }, [state.currentClient, isDeskDisabled, bribeTaken, showBribeStack, processDecision, playStampSound]);
   const canCallNext    = state.clientsQueue.length > 0;
   const isDayEnd       = state.status === 'DAY_END';
   const testBribeNext = () => {
@@ -1094,6 +1134,37 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           onClick={selectedStamp ? handleDeskStamp : undefined}
         >
 
+          {/* Stamp mode overlay: dim background + highlight */}
+          <AnimatePresence>
+            {selectedStamp && hasClient && !isDeskDisabled && (
+              <motion.div
+                key="stamp-mode-overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 z-[55] pointer-events-none"
+                style={{ background: 'rgba(0,0,0,0.35)' }}
+              >
+                <div className="absolute top-5 left-1/2 -translate-x-1/2">
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="font-stamped text-lg uppercase tracking-[0.3em] px-5 py-2 rounded"
+                    style={{
+                      color: selectedStamp === 'APPROVE' ? '#5fe07a' : '#f06060',
+                      background: 'rgba(0,0,0,0.6)',
+                      border: `1px solid ${selectedStamp === 'APPROVE' ? '#3fa35c55' : '#b4473f55'}`,
+                      textShadow: `0 0 12px ${selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.4)' : 'rgba(180,71,63,0.4)'}`,
+                    }}
+                  >
+                    Stamp Document
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Subtle grain / grid at very low opacity */}
           <div className="absolute inset-0 pointer-events-none" style={{
             backgroundImage: `
@@ -1110,11 +1181,16 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           <AnimatePresence>
             {stampMark && (
               <motion.div
-                key="stamp-mark"
-                initial={{ scale: 2.5, opacity: 0, rotate: stampMark.type === 'APPROVE' ? -18 : stampMark.type === 'FREEZE' ? 0 : 12 }}
-                animate={{ scale: 1, opacity: 0.85, rotate: stampMark.type === 'APPROVE' ? -8 : stampMark.type === 'FREEZE' ? 0 : 6 }}
-                exit={{ opacity: 0, transition: { duration: 0.3 } }}
-                transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+                key={'stamp-mark-' + stampMark.seed}
+                initial={{ scale: 2.5, opacity: 0, rotate: stampMark.rot - 10, y: -30 }}
+                animate={{
+                  scale: 1,
+                  opacity: 0.7 + stampMark.seed * 0.2,
+                  rotate: stampMark.rot,
+                  y: 0,
+                }}
+                exit={{ opacity: 0, transition: { duration: 0.4 } }}
+                transition={{ type: 'spring', stiffness: 600, damping: 20, mass: 0.8 }}
                 className="absolute z-[60] pointer-events-none"
                 style={{
                   left: stampMark.x,
@@ -1123,16 +1199,28 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
                 }}
               >
                 <div
-                  className="font-stamped text-3xl font-bold tracking-widest uppercase px-4 py-2 border-4 rounded-sm"
+                  className="relative font-stamped text-3xl font-bold tracking-widest uppercase px-5 py-2.5"
                   style={{
-                    color: stampMark.type === 'APPROVE' ? '#2a8a44' : stampMark.type === 'FREEZE' ? '#4488cc' : '#aa2020',
-                    borderColor: stampMark.type === 'APPROVE' ? '#2a8a44' : stampMark.type === 'FREEZE' ? '#4488cc' : '#aa2020',
-                    background: stampMark.type === 'APPROVE' ? 'rgba(42,138,68,0.08)' : stampMark.type === 'FREEZE' ? 'rgba(68,136,204,0.08)' : 'rgba(170,32,32,0.08)',
-                    textShadow: '0 0 2px rgba(255,255,255,0.3)',
+                    color: stampMark.type === 'APPROVE' ? '#2a8a44' : stampMark.type === 'FREEZE' ? '#3a7abf' : '#aa2020',
+                    border: `4px solid ${stampMark.type === 'APPROVE' ? '#2a8a44' : stampMark.type === 'FREEZE' ? '#3a7abf' : '#aa2020'}`,
+                    borderRadius: 2,
+                    borderTopWidth: 3 + stampMark.seed * 3,
+                    borderBottomWidth: 3 + (1 - stampMark.seed) * 3,
+                    textShadow: `1px 1px 0 ${stampMark.type === 'APPROVE' ? '#2a8a4422' : stampMark.type === 'FREEZE' ? '#3a7abf22' : '#aa202022'}`,
+                    filter: 'url(#stamp-mark-roughen)',
+                    mixBlendMode: 'multiply',
                   }}
                 >
                   {stampMark.type === 'APPROVE' ? 'APPROVED' : stampMark.type === 'FREEZE' ? 'FROZEN' : 'REJECTED'}
                 </div>
+                <svg width="0" height="0" className="absolute">
+                  <defs>
+                    <filter id="stamp-mark-roughen">
+                      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed={Math.floor(stampMark.seed * 99)} result="noise" />
+                      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G" />
+                    </filter>
+                  </defs>
+                </svg>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1500,12 +1588,15 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
           }}
         >
           <div
-            className="font-stamped text-2xl font-bold tracking-widest uppercase px-3 py-1.5 border-[3px] rounded-sm"
+            className="relative font-stamped text-2xl font-bold tracking-widest uppercase px-4 py-2"
             style={{
-              color: selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.7)' : 'rgba(180,71,63,0.7)',
-              borderColor: selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.5)' : 'rgba(180,71,63,0.5)',
-              background: selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.06)' : 'rgba(180,71,63,0.06)',
-              textShadow: `0 0 8px ${selectedStamp === 'APPROVE' ? 'rgba(63,163,92,0.3)' : 'rgba(180,71,63,0.3)'}`,
+              color: selectedStamp === 'APPROVE' ? 'rgba(42,138,68,0.6)' : 'rgba(170,32,32,0.6)',
+              border: `3px solid ${selectedStamp === 'APPROVE' ? 'rgba(42,138,68,0.45)' : 'rgba(170,32,32,0.45)'}`,
+              borderRadius: 2,
+              borderTopWidth: 2,
+              borderBottomWidth: 4,
+              textShadow: `1px 1px 0 ${selectedStamp === 'APPROVE' ? 'rgba(42,138,68,0.15)' : 'rgba(170,32,32,0.15)'}`,
+              filter: 'blur(0.3px)',
             }}
           >
             {selectedStamp === 'APPROVE' ? 'APPROVED' : 'REJECTED'}
