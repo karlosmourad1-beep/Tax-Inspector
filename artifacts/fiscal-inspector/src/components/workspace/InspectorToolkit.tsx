@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FamilyMember } from '@/types/game';
 import { formatMoney } from '@/lib/utils';
+import calculatorArt from '@assets/image_1775624556009.png';
 
 const C = {
   bg:     '#120d0a',
@@ -72,7 +73,11 @@ export function InspectorToolbar({ activeTool, onSetTool }: ToolkitProps) {
               }}
               title={`${tool.label} [${tool.key}]`}
             >
-              <span className="text-lg leading-none">{tool.icon}</span>
+              {tool.id === 'calculator' ? (
+                <img src={calculatorArt} alt="Calculator" className="w-8 h-8 object-contain select-none pointer-events-none" draggable={false} />
+              ) : (
+                <span className="text-lg leading-none">{tool.icon}</span>
+              )}
               <span
                 className="absolute -top-1 -left-1 w-4 h-4 flex items-center justify-center font-terminal text-[8px] font-bold rounded-full"
                 style={{
