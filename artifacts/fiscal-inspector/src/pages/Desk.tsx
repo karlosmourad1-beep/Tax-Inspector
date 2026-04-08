@@ -1289,15 +1289,15 @@ export default function Desk({ engine }: { engine: ReturnType<typeof useGameEngi
             {canCallNext ? '▶  Pull from Pile' : 'Queue Empty — Shift Complete'}
           </button>
         )}
-      </div>
 
-      <button
-        onClick={testBribeNext}
-        className="absolute bottom-4 left-4 z-50 px-3 py-2 rounded border font-terminal text-[10px] uppercase tracking-widest"
-        style={{ background: 'rgba(20,15,10,0.92)', borderColor: '#7a5c1a', color: '#e0a11b' }}
-      >
-        Test Bribe
-      </button>
+        <button
+          onClick={testBribeNext}
+          className="fixed bottom-4 left-4 z-50 px-3 py-2 rounded border font-terminal text-[10px] uppercase tracking-widest"
+          style={{ background: 'rgba(20,15,10,0.96)', borderColor: '#7a5c1a', color: '#e0a11b' }}
+        >
+          Test Bribe
+        </button>
+      </div>
 
       {/* ── Decision feedback overlays ───────────────────────────────────────── */}
       <AnimatePresence>
