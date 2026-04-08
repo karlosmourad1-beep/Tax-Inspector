@@ -4,6 +4,7 @@ import { useGameEngine, FEED_COST, MEDICINE_COST } from '@/hooks/useGameEngine';
 import { formatMoney } from '@/lib/utils';
 import { RENT_BY_DAY } from '@/lib/eveningEvents';
 import { FamilyMember, FamilyMemberStatus } from '@/types/game';
+import markArt from '@assets/image_1775621787627.png';
 
 const C = {
   bg:     '#0e0a07',
@@ -121,10 +122,8 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="relative z-10 flex flex-col w-[90vw] max-w-3xl gap-5"
+        className="relative z-10 flex flex-col w-[94vw] max-w-6xl gap-4"
       >
-
-        {/* ── HEADER ── */}
         <div className="flex items-end justify-between">
           <div>
             <div className="font-terminal text-[10px] uppercase tracking-[0.4em]" style={{ color: C.muted }}>
@@ -136,127 +135,113 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
           </div>
         </div>
 
-        {/* ── FINANCIAL BREAKDOWN ── */}
-        <div className="border px-5 py-4" style={{ borderColor: C.border + '55', background: 'rgba(22,17,14,0.8)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-terminal text-xs uppercase tracking-[0.3em]" style={{ color: C.muted }}>
-              Today's Earnings
-            </span>
-            <span className="font-stamped text-3xl" style={{ color: C.text }}>
-              {formatMoney(state.money)}
-            </span>
+        <div className="grid grid-cols-[1.15fr_1fr] gap-4 items-start">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {state.family.map(member => (
+              <FamilyCard
+                key={member.id}
+                member={member}
+                fed={fedIds.has(member.id)}
+                treated={treatedIds.has(member.id)}
+                canFeed={remaining + (fedIds.has(member.id) ? FEED_COST : 0) >= FEED_COST}
+                canTreat={remaining + (treatedIds.has(member.id) ? MEDICINE_COST : 0) >= MEDICINE_COST}
+                onToggleFeed={() => toggleFeed(member.id)}
+                onToggleTreat={() => toggleTreat(member.id)}
+              />
+            ))}
           </div>
 
-          <div className="flex flex-col gap-1.5 border-t pt-3" style={{ borderColor: C.border + '33' }}>
-            <div className="flex items-center justify-between font-terminal text-xs" style={{ color: '#e07070' }}>
-              <span className="uppercase tracking-wider">Rent / Heat</span>
-              <span>−{formatMoney(rent)}</span>
+          <div className="border px-5 py-4 sticky top-4" style={{ borderColor: C.border + '55', background: 'rgba(22,17,14,0.8)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-terminal text-xs uppercase tracking-[0.3em]" style={{ color: C.muted }}>
+                Today's Earnings
+              </span>
+              <span className="font-stamped text-3xl" style={{ color: C.text }}>
+                {formatMoney(state.money)}
+              </span>
             </div>
-            {feedCost > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center justify-between font-terminal text-xs" style={{ color: '#d4a017' }}
-              >
-                <span className="uppercase tracking-wider">Food ({fedIds.size}×)</span>
-                <span>−{formatMoney(feedCost)}</span>
-              </motion.div>
-            )}
-            {treatCost > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center justify-between font-terminal text-xs" style={{ color: C.blue }}
-              >
-                <span className="uppercase tracking-wider">Medicine ({treatedIds.size}×)</span>
-                <span>−{formatMoney(treatCost)}</span>
-              </motion.div>
-            )}
-          </div>
 
-          <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: C.border + '33' }}>
-            <span className="font-terminal text-sm uppercase tracking-[0.25em] font-bold" style={{ color: C.muted }}>
-              Remaining
-            </span>
-            <motion.span
-              key={remaining}
-              initial={{ scale: 1.15 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.15 }}
-              className="font-stamped text-4xl"
-              style={{
-                color: remaining < 0 ? C.red : C.accent,
-                textShadow: remaining >= 0 ? '0 0 12px rgba(224,161,27,0.35)' : '0 0 12px rgba(180,71,63,0.35)',
-              }}
-            >
-              {formatMoney(remaining)}
-            </motion.span>
-          </div>
+            <div className="flex flex-col gap-1.5 border-t pt-3" style={{ borderColor: C.border + '33' }}>
+              <div className="flex items-center justify-between font-terminal text-xs" style={{ color: '#e07070' }}>
+                <span className="uppercase tracking-wider">Rent / Heat</span>
+                <span>−{formatMoney(rent)}</span>
+              </div>
+              {feedCost > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center justify-between font-terminal text-xs" style={{ color: '#d4a017' }}
+                >
+                  <span className="uppercase tracking-wider">Food ({fedIds.size}×)</span>
+                  <span>−{formatMoney(feedCost)}</span>
+                </motion.div>
+              )}
+              {treatCost > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center justify-between font-terminal text-xs" style={{ color: C.blue }}
+                >
+                  <span className="uppercase tracking-wider">Medicine ({treatedIds.size}×)</span>
+                  <span>−{formatMoney(treatCost)}</span>
+                </motion.div>
+              )}
+            </div>
 
-          <AnimatePresence>
-            {costFlash && (
-              <motion.div
-                key={costFlash.id + costFlash.type}
-                initial={{ opacity: 1, y: 0 }}
-                animate={{ opacity: 0, y: -20 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.6 }}
-                className="text-right font-stamped text-xl"
-                style={{ color: C.red }}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: C.border + '33' }}>
+              <span className="font-terminal text-sm uppercase tracking-[0.25em] font-bold" style={{ color: C.muted }}>
+                Remaining
+              </span>
+              <motion.span
+                key={remaining}
+                initial={{ scale: 1.15 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.15 }}
+                className="font-stamped text-4xl"
+                style={{
+                  color: remaining < 0 ? C.red : C.accent,
+                  textShadow: remaining >= 0 ? '0 0 12px rgba(224,161,27,0.35)' : '0 0 12px rgba(180,71,63,0.35)',
+                }}
               >
-                −${costFlash.amount}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                {formatMoney(remaining)}
+              </motion.span>
+            </div>
+
+            <AnimatePresence>
+              {costFlash && (
+                <motion.div
+                  key={costFlash.id + costFlash.type}
+                  initial={{ opacity: 1, y: 0 }}
+                  animate={{ opacity: 0, y: -20 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="text-right font-stamped text-xl"
+                  style={{ color: C.red }}
+                >
+                  −${costFlash.amount}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
-        {/* ── FAMILY CARDS ── */}
-        <div className="grid grid-cols-4 gap-3">
-          {state.family.map(member => (
-            <FamilyCard
-              key={member.id}
-              member={member}
-              fed={fedIds.has(member.id)}
-              treated={treatedIds.has(member.id)}
-              canFeed={remaining + (fedIds.has(member.id) ? FEED_COST : 0) >= FEED_COST}
-              canTreat={remaining + (treatedIds.has(member.id) ? MEDICINE_COST : 0) >= MEDICINE_COST}
-              onToggleFeed={() => toggleFeed(member.id)}
-              onToggleTreat={() => toggleTreat(member.id)}
-            />
-          ))}
-        </div>
-
-        {/* ── SUMMARY ── */}
-        <div
-          className="border px-4 py-3 font-terminal text-xs text-center uppercase tracking-wider"
-          style={{
-            borderColor: C.border + '44',
-            background: 'rgba(22,17,14,0.6)',
-            color: fedCount > 0 ? C.text : '#e07070',
-          }}
-        >
-          {fedCount === 0
-            ? 'No one is being fed tonight.'
-            : `${fedCount} family member${fedCount > 1 ? 's' : ''} fed. ${formatMoney(savedForTomorrow)} saved for tomorrow.`}
-        </div>
-
-        {/* ── DEBT WARNING ── */}
-        {remaining < 0 && (
-          <div className="w-full text-center font-terminal text-xs uppercase tracking-wider px-4 py-2.5 border"
-               style={{ borderColor: C.red + '55', background: 'rgba(180,71,63,0.08)', color: C.red }}>
-            Continuing with debt will have consequences
+        <div className="flex items-center justify-between border px-5 py-3" style={{ borderColor: C.border + '55', background: 'rgba(22,17,14,0.8)' }}>
+          <div className="font-terminal text-xs uppercase tracking-widest" style={{ color: C.muted }}>
+            {fedCount} fed • {aliveMembers.length} alive • {formatMoney(savedForTomorrow)} saved for tomorrow
           </div>
-        )}
+          <div className="font-terminal text-xs uppercase tracking-wider" style={{ color: C.muted }}>
+            {isLastDay ? 'Final evening' : 'Review before continuing'}
+          </div>
+        </div>
 
-        {/* ── CONTINUE ── */}
         <motion.button
           onClick={handleConfirm}
-          disabled={confirmed || !canContinue}
-          whileTap={{ scale: 0.98 }}
-          className="w-full py-4 font-terminal text-sm font-bold uppercase tracking-[0.4em] border-2 transition-all disabled:opacity-30"
+          disabled={!canContinue || confirmed}
+          whileTap={canContinue && !confirmed ? { scale: 0.98 } : undefined}
+          className="w-full py-4 font-terminal text-sm font-bold uppercase tracking-widest border transition-all disabled:opacity-40"
           style={{
-            borderColor: canContinue ? C.accent : C.muted,
             background: canContinue ? 'rgba(224,161,27,0.08)' : 'rgba(30,20,10,0.5)',
+            borderColor: canContinue ? C.accent : C.border,
             color: canContinue ? C.accent : C.muted,
           }}
           onMouseOver={e => { if (canContinue && !confirmed) e.currentTarget.style.background = 'rgba(224,161,27,0.16)'; }}
@@ -268,7 +253,6 @@ export default function EveningScreen({ engine }: { engine: ReturnType<typeof us
               ? '...'
               : isLastDay ? 'Submit Final Report →' : 'Continue →'}
         </motion.button>
-
       </motion.div>
     </div>
   );
@@ -291,6 +275,7 @@ function FamilyCard({
   const needsMed   = member.status === 'SICK' || member.status === 'CRITICAL';
   const isCritical = member.status === 'CRITICAL';
   const isWeak     = member.status === 'WEAK' || member.status === 'SICK' || isCritical;
+  const isMark = member.name.toLowerCase() === 'mark' || member.role === 'son';
 
   return (
     <motion.div
@@ -306,10 +291,16 @@ function FamilyCard({
         filter: isDead ? 'grayscale(1)' : isWeak && !fed ? 'grayscale(0.4)' : 'none',
       }}
     >
-      {/* Portrait area */}
-      <div className="flex flex-col items-center pt-4 pb-2 gap-1">
-        <div className="text-3xl leading-none" style={{ opacity: isDead ? 0.3 : 1 }}>
-          {ROLE_EMOJI[member.role]}
+      <div className={`flex flex-col items-center pt-3 pb-2 gap-2 ${isMark ? 'px-2' : 'px-3'}`}>
+        <div
+          className={isMark ? 'w-full max-w-[160px] aspect-[4/5] flex items-center justify-center' : 'text-3xl leading-none'}
+          style={{ opacity: isDead ? 0.3 : 1 }}
+        >
+          {isMark ? (
+            <img src={markArt} alt="Mark" className="w-full h-full object-contain select-none pointer-events-none" draggable={false} />
+          ) : (
+            ROLE_EMOJI[member.role]
+          )}
         </div>
         <span className="font-terminal text-sm font-bold uppercase tracking-wider" style={{ color: isDead ? '#666' : C.text }}>
           {member.name}
@@ -334,7 +325,6 @@ function FamilyCard({
         </div>
       ) : (
         <div className="flex flex-col gap-2 px-3 pb-4 pt-1">
-          {/* Feed toggle */}
           <button
             onClick={onToggleFeed}
             disabled={!fed && !canFeed}
@@ -348,7 +338,6 @@ function FamilyCard({
             {fed ? '🍽 Fed' : `Feed $${FEED_COST}`}
           </button>
 
-          {/* Medicine toggle */}
           <AnimatePresence>
             {needsMed && (
               <motion.button
