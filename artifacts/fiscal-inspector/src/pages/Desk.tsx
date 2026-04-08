@@ -708,9 +708,15 @@ function BribeConfirmDialog({ total, onAccept, onDecline }: { total: number; onA
           <p className="font-terminal text-sm text-center leading-relaxed" style={{ color: '#d0bc96' }}>
             The envelope contains <strong style={{ color: '#e0a11b' }}>${total}</strong> in cash. Taking it locks you into approving this filing.
           </p>
-          <p className="font-terminal text-[10px] uppercase tracking-widest text-center" style={{ color: '#7a5520' }}>
-            25% chance Internal Affairs is watching. Getting caught means arrest.
-          </p>
+          <div className="w-full rounded border-2 px-4 py-4 text-center" style={{ borderColor: '#b4473f', background: 'rgba(180,71,63,0.16)' }}>
+            <div className="font-terminal text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: '#ffb3ab' }}>
+              WARNING: BRIBE RISK
+            </div>
+            <div className="mt-2 font-terminal text-sm leading-relaxed" style={{ color: '#f6cdc8' }}>
+              Accepting has a <strong style={{ color: '#ffd76a' }}>25% chance</strong> of getting caught.
+              If caught, the game ends immediately and you are <strong style={{ color: '#ffd76a' }}>imprisoned/fired</strong>.
+            </div>
+          </div>
           <div className="flex gap-3 w-full">
             <button
               onClick={onAccept}
@@ -763,8 +769,8 @@ function BribeStack({ brideAmount, onClick }: { brideAmount: number; onClick: ()
       title={`$${brideAmount} cash — click to take · drag to move`}
       className="absolute select-none"
       style={{
-        bottom: 80,
-        right:  110,
+        bottom: 104,
+        left: 338,
         zIndex: 45,
         cursor: grabbed ? 'grabbing' : 'grab',
         touchAction: 'none',
