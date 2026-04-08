@@ -85,6 +85,7 @@ function buildInitialRecurringChars(): Record<RecurringCharId, RecurringCharStat
 }
 
 export function useGameEngine() {
+  const [forcedBribeNextClient, setForcedBribeNextClient] = useState(false);
   const [state, setState] = useState<GameState>({
     status: 'TITLE',
     day: 1,
@@ -182,7 +183,7 @@ export function useGameEngine() {
   const startDay = useCallback(() => {
     setState(prev => {
       const event = DAILY_EVENTS[prev.day] || null;
-      const queue = generateDailyClients(prev.day, CLIENTS_PER_DAY, prev.recurringChars);
+      const queue = generateDailyClients(prev.day, CLIENTS_PER_DAY, prev.recurringChars, forcedBribeNextClient);
       const costDeduction = event?.costOfLiving || 0;
       return {
         ...prev,
@@ -196,7 +197,8 @@ export function useGameEngine() {
         memoActed: false,
       };
     });
-  }, []);
+    setForcedBribeNextClient(false);
+  }, [forcedBribeNextClient]);
 
   const callNextClient = useCallback(() => {
     setState(prev => {
@@ -519,11 +521,16 @@ export function useGameEngine() {
     setState(prev => ({ ...prev, money: prev.money + amount }));
   }, []);
 
+  const forceNextBribeCase = useCallback(() => {
+    setForcedBribeNextClient(true);
+  }, []);
+
   return {
     state, stampAction,
     startGame, startDay, callNextClient,
     processDecision, actOnMemo, dismissMemo,
     endDay, confirmEvening, returnToMenu,
     addMoney,
+    forceNextBribeCase,
   };
 }

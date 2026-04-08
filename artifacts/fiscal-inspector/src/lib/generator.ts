@@ -397,7 +397,8 @@ export function generateVIPClient(day: number, vipKey: string): Client {
 export function generateDailyClients(
   day: number,
   count: number,
-  _recurringChars?: unknown
+  _recurringChars?: unknown,
+  forceBribeNextClient = false
 ): Client[] {
   const clients: Client[] = [];
 
@@ -408,7 +409,17 @@ export function generateDailyClients(
   // Fill remaining slots with random citizens
   const remaining = count - clients.length;
   for (let i = 0; i < remaining; i++) {
-    clients.push(generateClient(day, `d${day}-c${i}`));
+    const client = generateClient(day, `d${day}-c${i}`);
+    if (forceBribeNextClient && i === 0) {
+      client.hasBribe = true;
+      client.brideAmount = 50;
+      client.isContraband = true;
+      client.fraudType = 'bribe_attempt';
+      client.expectedDecision = 'APPROVE';
+      client.hiddenNote = 'TEST MODE: guaranteed bribe case.';
+      client.smallTalk = ['TEST MODE', 'This filing has guaranteed cash inside.'];
+    }
+    clients.push(client);
   }
 
   // Fisher-Yates shuffle
