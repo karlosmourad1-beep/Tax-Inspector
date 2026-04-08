@@ -176,75 +176,144 @@ function EnvelopeSVG({ client }: { client: Client }) {
   );
 }
 
-// ─── Pixel-art bank note (1-bit olive green, government issue) ────────────────
+// ─── Paper-rustle sound (white noise burst) ───────────────────────────────────
+function playRustle() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const rate = ctx.sampleRate;
+    const dur  = 0.18;
+    const buf  = ctx.createBuffer(1, Math.floor(rate * dur), rate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      // amplitude tapers off quickly (simulate a short scrape)
+      const env = Math.pow(1 - i / data.length, 1.6);
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+    const src    = ctx.createBufferSource();
+    src.buffer   = buf;
+    const lpf    = ctx.createBiquadFilter();
+    lpf.type     = 'lowpass';
+    lpf.frequency.value = 2800;
+    const hpf    = ctx.createBiquadFilter();
+    hpf.type     = 'highpass';
+    hpf.frequency.value = 400;
+    const gain   = ctx.createGain();
+    gain.gain.setValueAtTime(0.45, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    src.connect(lpf); lpf.connect(hpf); hpf.connect(gain); gain.connect(ctx.destination);
+    src.start(); src.stop(ctx.currentTime + dur + 0.02);
+  } catch (_) { /* silently skip if AudioContext unavailable */ }
+}
+
+// ─── Pixel-art banknote — dark army-green, checkerboard dither, bloc silhouette
 function BankNoteSVG({ index = 0 }: { index?: number }) {
-  const pid = `bdp${index}`;
+  // Each note gets its own unique pattern ID so SVG reuse doesn't bleed between bills
+  const pid   = `dp_${index}_a`;
+  const pid2  = `dp_${index}_b`;
+  const serial = `MF-${(7411 + index * 137).toString().padStart(5, '0')}-${['A','B','C','D','E'][index % 5]}`;
+
   return (
-    <svg width="50" height="100" viewBox="0 0 50 100" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', imageRendering: 'pixelated' }}>
+    <svg
+      width="52" height="104"
+      viewBox="0 0 52 104"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: 'block', imageRendering: 'pixelated' }}
+    >
       <defs>
-        <pattern id={pid} x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-          <rect width="4" height="4" fill="#243010" />
-          <rect x="0" y="0" width="2" height="2" fill="#2d3e12" />
-          <rect x="2" y="2" width="2" height="2" fill="#2d3e12" />
+        {/* Heavy 2×2 checkerboard dither — base fill */}
+        <pattern id={pid} x="0" y="0" width="2" height="2" patternUnits="userSpaceOnUse">
+          <rect width="2" height="2" fill="#151c07" />
+          <rect x="1" y="0" width="1" height="1" fill="#1c2609" />
+          <rect x="0" y="1" width="1" height="1" fill="#1c2609" />
+        </pattern>
+        {/* Lighter dither for worn highlight strips */}
+        <pattern id={pid2} x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+          <rect width="4" height="4" fill="transparent" />
+          <rect x="0" y="0" width="1" height="1" fill="#242e0c" opacity="0.55" />
+          <rect x="2" y="2" width="1" height="1" fill="#242e0c" opacity="0.55" />
         </pattern>
       </defs>
-      {/* Base + dither */}
-      <rect width="50" height="100" fill="#2d3e12" />
-      <rect width="50" height="100" fill={`url(#${pid})`} />
-      {/* Border double frame */}
-      <rect x="2" y="2" width="46" height="96" fill="none" stroke="#4e6c1e" strokeWidth="1" />
-      <rect x="4" y="4" width="42" height="92" fill="none" stroke="#3a5214" strokeWidth="0.5" />
-      {/* Header bar */}
-      <rect x="5" y="7" width="40" height="10" fill="#1a2808" />
-      <text x="25" y="14.5" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="4.5" fontWeight="bold" fill="#5a8020" letterSpacing="0.8">MINISTRY OF FINANCE</text>
-      {/* Corner denominations */}
-      <text x="8" y="24" fontFamily="'Courier New',monospace" fontSize="5" fill="#4e6e20" fontWeight="bold">10</text>
-      <text x="39" y="24" fontFamily="'Courier New',monospace" fontSize="5" fill="#4e6e20" fontWeight="bold">10</text>
-      {/* Portrait frame */}
-      <rect x="9" y="26" width="32" height="42" fill="#192208" />
-      <rect x="10" y="27" width="30" height="40" fill="#1e2a0a" />
-      {/* === PIXEL PORTRAIT === */}
-      {/* Head block */}
-      <rect x="13" y="29" width="24" height="24" rx="2" fill="#2e4010" />
-      {/* Hair */}
-      <rect x="13" y="29" width="24" height="5" fill="#0a1404" />
-      <rect x="13" y="29" width="4" height="3" fill="#0a1404" />
-      <rect x="33" y="29" width="4" height="3" fill="#0a1404" />
-      {/* Ears */}
-      <rect x="10" y="37" width="3" height="5" fill="#2e4010" />
-      <rect x="37" y="37" width="3" height="5" fill="#2e4010" />
-      {/* Eye sockets */}
-      <rect x="15" y="36" width="5" height="4" rx="1" fill="#0e1a04" />
-      <rect x="30" y="36" width="5" height="4" rx="1" fill="#0e1a04" />
-      {/* Pupils */}
-      <rect x="17" y="37" width="3" height="2" fill="#040804" />
-      <rect x="31" y="37" width="3" height="2" fill="#040804" />
-      {/* Nose */}
-      <rect x="23" y="43" width="4" height="3" fill="#243810" />
-      <rect x="22" y="45" width="6" height="2" fill="#0e1a04" />
-      {/* Grim mouth */}
-      <rect x="17" y="49" width="16" height="2" fill="#0e1a04" />
+
+      {/* ── Paper base — dark mold-green ── */}
+      <rect width="52" height="104" fill="#151c07" />
+      <rect width="52" height="104" fill={`url(#${pid})`} />
+
+      {/* ── Outer border — double rule ── */}
+      <rect x="1" y="1" width="50" height="102" fill="none" stroke="#1f2a0a" strokeWidth="1.5" />
+      <rect x="3" y="3" width="46" height="98"  fill="none" stroke="#192208" strokeWidth="0.5" />
+
+      {/* ── Header band ── */}
+      <rect x="4"  y="5"  width="44" height="11" fill="#0c1104" />
+      <rect x="4"  y="5"  width="44" height="11" fill={`url(#${pid2})`} />
+      <text x="26" y="12.5" textAnchor="middle"
+            fontFamily="'Courier New',monospace" fontSize="4" fontWeight="bold"
+            fill="#293a0e" letterSpacing="0.6">
+        MINISTRY OF FINANCE
+      </text>
+
+      {/* ── Corner denomination digits ── */}
+      <text x="7"  y="23" fontFamily="'Courier New',monospace" fontSize="5.5" fill="#202c0c" fontWeight="bold">10</text>
+      <text x="37" y="23" fontFamily="'Courier New',monospace" fontSize="5.5" fill="#202c0c" fontWeight="bold">10</text>
+
+      {/* ── Portrait inset ── */}
+      <rect x="8"  y="24" width="36" height="44" fill="#0c1104" />
+      <rect x="9"  y="25" width="34" height="42" fill="#101505" />
+
+      {/* ── Pixel silhouette (pure block shapes, no detail) ── */}
+      {/* Shoulders mass */}
+      <rect x="9"  y="54" width="34" height="13" fill="#080c02" />
       {/* Neck */}
-      <rect x="20" y="53" width="10" height="4" fill="#2e4010" />
-      {/* Collar */}
-      <rect x="10" y="57" width="30" height="8" fill="#162008" />
-      <rect x="22" y="57" width="3" height="6" fill="#0a1204" />
-      <rect x="25" y="57" width="3" height="6" fill="#0a1204" />
-      {/* Horizontal dither lines on portrait */}
-      {[31,35,39,43,47,51,55,59,63].map((y,i) =>
-        i % 3 === 0 ? <rect key={y} x="10" y={y} width="30" height="0.5" fill="#3a5418" opacity="0.2" /> : null
-      )}
-      {/* Serial number */}
-      <text x="25" y="78" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="3.5" fill="#4a6a1e" letterSpacing="0.5">MF·44190·{String(index).padStart(4,'0')}·A</text>
-      {/* OFFICIAL ISSUE */}
-      <text x="25" y="84" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="3" fill="#3a5818" letterSpacing="0.2">OFFICIAL GOVERNMENT ISSUE</text>
-      {/* Bottom bar */}
-      <rect x="5" y="87" width="40" height="10" fill="#1a2808" />
-      <text x="25" y="94.5" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="6" fontWeight="bold" fill="#6a9828" letterSpacing="2">T E N</text>
-      {/* Aging marks */}
-      <rect x="8" y="61" width="5" height="1" fill="#0e1804" opacity="0.45" />
-      <rect x="36" y="43" width="3" height="1" fill="#0e1804" opacity="0.3" />
-      <rect x="14" y="79" width="7" height="1" fill="#0e1804" opacity="0.35" />
+      <rect x="20" y="50" width="12" height="6"  fill="#080c02" />
+      {/* Head block */}
+      <rect x="14" y="29" width="24" height="22" fill="#080c02" />
+      {/* Hair block (top solid bar) */}
+      <rect x="14" y="29" width="24" height="6"  fill="#040602" />
+      <rect x="10" y="29" width="4"  height="4"  fill="#040602" />
+      <rect x="38" y="29" width="4"  height="4"  fill="#040602" />
+      {/* Ear stubs */}
+      <rect x="11" y="36" width="3"  height="5"  fill="#080c02" />
+      <rect x="38" y="36" width="3"  height="5"  fill="#080c02" />
+      {/* Eyes — 2-pixel black slits */}
+      <rect x="17" y="38" width="4"  height="2"  fill="#000000" />
+      <rect x="31" y="38" width="4"  height="2"  fill="#000000" />
+      {/* Nose hint */}
+      <rect x="24" y="43" width="3"  height="3"  fill="#000000" />
+      {/* Grim mouth — single pixel line */}
+      <rect x="19" y="48" width="14" height="1"  fill="#000000" />
+
+      {/* Diagonal dither lines across portrait for worn look */}
+      {[27,31,35,39,43,47,51,55,59,63].map((y, i) => (
+        <rect key={y} x="9" y={y} width="34" height="0.5"
+              fill="#1c2609" opacity={i % 2 === 0 ? 0.35 : 0.15} />
+      ))}
+
+      {/* ── Denomination large numeral ── */}
+      <text x="26" y="78" textAnchor="middle"
+            fontFamily="'Courier New',monospace" fontSize="9" fontWeight="bold"
+            fill="#1c2609" letterSpacing="1">
+        10
+      </text>
+
+      {/* ── Serial number (tiny mono) ── */}
+      <text x="26" y="85" textAnchor="middle"
+            fontFamily="'Courier New',monospace" fontSize="3.5"
+            fill="#1a2408" letterSpacing="0.4">
+        {serial}
+      </text>
+
+      {/* ── Footer band ── */}
+      <rect x="4"  y="89" width="44" height="11" fill="#0c1104" />
+      <text x="26" y="96.5" textAnchor="middle"
+            fontFamily="'Courier New',monospace" fontSize="5" fontWeight="bold"
+            fill="#202e0c" letterSpacing="3">
+        TEN
+      </text>
+
+      {/* ── Grime / crease marks (haphazard aging) ── */}
+      <rect x="6"  y="62" width="8"  height="0.8" fill="#0a0e04" opacity="0.6" />
+      <rect x="32" y="45" width="5"  height="0.8" fill="#0a0e04" opacity="0.5" />
+      <rect x="12" y="82" width="10" height="0.8" fill="#0a0e04" opacity="0.4" />
+      <rect x="38" y="75" width="6"  height="0.8" fill="#0a0e04" opacity="0.45" />
     </svg>
   );
 }
@@ -778,73 +847,84 @@ function BribeConfirmDialog({ total, onAccept, onDecline }: { total: number; onA
 }
 
 // ─── Bribe bill stack on desk — draggable, fanned portrait orientation ────────
-const FAN_ROTS  = [-9, -4, 0, 5, 10];
-const FAN_OFFX  = [-10, -5, 0, 5, 10];
+// Haphazard rotations: left bill leans left, right bill leans right (hand-of-cards fan)
+// Extra small random-looking offset baked in per slot so they look "dropped"
+const BILL_SLOTS = [
+  { rot: -6,  ox: -18 },
+  { rot: -2,  ox:  -7 },
+  { rot:  2,  ox:   2 },
+  { rot:  6,  ox:  13 },
+  { rot: 10,  ox:  22 },
+];
 
 function BribeStack({ billCount, total, onClick }: { billCount: number; total: number; onClick: () => void }) {
   const [grabbed, setGrabbed] = useState(false);
+
+  // Centre the fan: pick first `billCount` slots and centre them
+  const slots = BILL_SLOTS.slice(0, billCount);
 
   return (
     <motion.div
       drag
       dragMomentum={false}
-      dragElastic={0.08}
-      whileDrag={{ scale: 1.06 }}
+      dragElastic={0.06}
+      whileDrag={{ scale: 1.05 }}
       onDragStart={() => setGrabbed(true)}
       onDragEnd={()   => setGrabbed(false)}
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.22 } }}
-      transition={{ duration: 0.38, type: 'spring', stiffness: 190, damping: 20 }}
-      className="absolute z-40 flex flex-col items-center select-none"
+      // Entry: bills fall in from slightly above, like sliding out of an envelope
+      initial={{ opacity: 0, y: -30, rotate: -3 }}
+      animate={{ opacity: 1, y: 0,  rotate: 0 }}
+      exit={{ opacity: 0, scale: 0.75, y: 8, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.45, type: 'spring', stiffness: 160, damping: 18 }}
+      className="absolute select-none"
+      // z-[45]: above documents (~z-30), below toolbar chrome (z-50+)
       style={{
-        bottom: 40,
-        right: 60,
+        bottom: 44,
+        right:  72,
+        zIndex: 45,
         cursor: grabbed ? 'grabbing' : 'grab',
         touchAction: 'none',
       }}
     >
-      {/* Fanned bill pile — portrait (50×100) each */}
+      {/* ── Fan of bills ── */}
       <div
         className="relative"
-        style={{ width: 90, height: 130 }}
-        onClick={onClick}
-        title={`$${total} cash — click to take`}
+        // Container sized to hold the widest fan spread
+        style={{ width: 110, height: 140 }}
+        onClick={() => { playRustle(); onClick(); }}
+        title={`$${total} cash — click to take · drag to move`}
       >
-        {Array.from({ length: billCount }).map((_, i) => {
-          const rot = FAN_ROTS[i] ?? 0;
-          const ox  = FAN_OFFX[i] ?? 0;
-          return (
-            <div
-              key={i}
-              className="absolute"
-              style={{
-                left: `calc(50% + ${ox}px)`,
-                top: 12,
-                transform: `translateX(-50%) rotate(${rot}deg)`,
-                transformOrigin: 'bottom center',
-                zIndex: billCount - i,
-                filter: i < billCount - 1 ? 'brightness(0.7) contrast(1.1)' : 'none',
-              }}
-            >
-              <BankNoteSVG index={i} />
-            </div>
-          );
-        })}
+        {slots.map(({ rot, ox }, i) => (
+          <motion.div
+            key={i}
+            // Stagger each bill's entry so they land one after another
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06, duration: 0.32, type: 'spring', stiffness: 220, damping: 20 }}
+            className="absolute"
+            style={{
+              // All bills pivot from their bottom-centre so rotation fans outward
+              left: `calc(50% + ${ox}px)`,
+              bottom: 0,
+              transform: `translateX(-50%) rotate(${rot}deg)`,
+              transformOrigin: 'bottom center',
+              zIndex: i + 1,
+              // Drop shadow for physical depth; darker on buried bills
+              filter: `drop-shadow(2px 5px 4px rgba(0,0,0,${i === slots.length - 1 ? 0.65 : 0.45}))
+                       brightness(${i === slots.length - 1 ? 1 : 0.72})`,
+            }}
+          >
+            <BankNoteSVG index={i} />
+          </motion.div>
+        ))}
       </div>
 
-      {/* Label */}
+      {/* ── Hint label ── */}
       <div
-        className="mt-1 font-terminal text-[11px] font-bold tracking-wider text-center pointer-events-none"
-        style={{ color: '#6aa020', textShadow: '0 0 10px rgba(90,140,20,0.55)' }}
+        className="mt-0.5 font-terminal text-[10px] font-bold tracking-wider text-center pointer-events-none"
+        style={{ color: '#283a10', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
       >
-        ${total} CASH
-      </div>
-      <div
-        className="font-terminal text-[9px] uppercase tracking-widest pointer-events-none"
-        style={{ color: '#4a6a18', opacity: 0.75 }}
-      >
-        click to take · drag to move
+        ${total} · click to take
       </div>
     </motion.div>
   );
