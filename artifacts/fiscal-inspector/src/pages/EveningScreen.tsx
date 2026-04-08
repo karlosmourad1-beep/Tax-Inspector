@@ -6,6 +6,7 @@ import { RENT_BY_DAY } from '@/lib/eveningEvents';
 import { FamilyMember, FamilyMemberStatus } from '@/types/game';
 import markArt from '@assets/image_1775621787627.png';
 import lilyArt from '@assets/image_1775621970319.png';
+import elenaArt from '@assets/image_1775622093518.png';
 
 const C = {
   bg:     '#0e0a07',
@@ -278,6 +279,7 @@ function FamilyCard({
   const isWeak     = member.status === 'WEAK' || member.status === 'SICK' || isCritical;
   const isMark = member.name.toLowerCase() === 'mark' || member.role === 'son';
   const isLily = member.name.toLowerCase() === 'lily' || member.role === 'daughter';
+  const isElena = member.name.toLowerCase() === 'elena' || member.role === 'wife';
 
   return (
     <motion.div
@@ -295,13 +297,15 @@ function FamilyCard({
     >
       <div className={`flex flex-col items-center pt-3 pb-2 gap-2 ${isMark || isLily ? 'px-2' : 'px-3'}`}>
         <div
-          className={isMark || isLily ? 'w-full max-w-[160px] aspect-[4/5] flex items-center justify-center' : 'text-3xl leading-none'}
+          className={isMark || isLily || isElena ? 'w-full max-w-[160px] aspect-[4/5] flex items-center justify-center' : 'text-3xl leading-none'}
           style={{ opacity: isDead ? 0.3 : 1 }}
         >
           {isMark ? (
             <img src={markArt} alt="Mark" className="w-full h-full object-contain select-none pointer-events-none" draggable={false} />
           ) : isLily ? (
             <img src={lilyArt} alt="Lily" className="w-full h-full object-contain select-none pointer-events-none" draggable={false} />
+          ) : isElena ? (
+            <img src={elenaArt} alt="Elena" className="w-full h-full object-contain select-none pointer-events-none" draggable={false} />
           ) : (
             ROLE_EMOJI[member.role]
           )}
